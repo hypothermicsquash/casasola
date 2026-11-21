@@ -3245,39 +3245,30 @@ function frame(now) {
 const COARSE = matchMedia('(pointer: coarse)').matches;
 const INTRO = [
   [
-    { dl: 'Mexico City, July 1910.', fig: { map: { kind: 'route', faint: true }, print: { photo: 'diaz', cap: 'Porfirio Díaz', reign: true } } },
-    { p: 'Porfirio Díaz, who first took power in 1876, is declared re-elected president. His challenger, Francisco I. Madero, spent the vote in a cell in San Luis Potosí.' },
+    { dl: 'Mexico, 1910.', fig: { map: { kind: 'north', faint: true }, print: { photo: 'diaz', cap: 'Porfirio Díaz', reign: true } } },
+    { p: 'Porfirio Díaz has ruled Mexico for more than thirty years. In November, Francisco I. Madero calls the country to rise against him.' },
     { cut: true },
-    { dl: 'San Antonio, Texas, October 1910.', fig: { map: { kind: 'route', route: true } } },
-    { p: 'Out on bail, Madero slips across the border and issues the Plan de San Luis Potosí. Mexicans are to rise in arms on the 20th of November.' }
+    { dl: 'Ciudad Juárez, 10 May 1911.', fig: { map: { kind: 'north', view: 'vbN', dur: 3200, north: true } } },
+    { p: 'Six months into the Revolution, rebels in the north take the border city. Díaz\'s government is close to collapse.' }
   ],
   [
-    { dl: 'Chihuahua, winter 1910.', fig: { map: { kind: 'north', view: 'vbM', dur: 11000 }, print: { photo: 'remington', paint: 'remington_p', s: .35, cap: 'Federal cavalry, painted by Frederic Remington' } } },
-    { p: 'The north answers first. Pascual Orozco and Francisco Villa lead ranchers, miners and muleteers against the federal army.' },
-    { cut: true },
-    { dl: 'Ciudad Juárez, 10 May 1911.', fig: { map: { kind: 'north', view: 'vbN', dur: 3000, north: true } } },
-    { p: 'After two days of fighting the rebels take the border city, the decisive victory of the revolt.' }
+    { dl: 'Agustín Víctor Casasola.', fig: { archive: 11, print: { photo: 'villa', paint: 'villa_p', s: .7, half: .3, cap: 'Villa and Zapata in the National Palace, December 1914. Casasola archive' } } },
+    { p: 'A press photographer from Mexico City, working for the capital\'s newspapers. The archive he and his family build will shape how the Revolution is remembered.' }
   ],
   [
-    { dl: 'Agustín Víctor Casasola, 36, of Mexico City.', fig: { print: { photo: 'miguel', paint: 'miguel_p', s: .5, cap: 'Miguel Casasola in his darkroom, 1925' } } },
-    { p: 'He started at El Imparcial setting type, became a reporter, then a press photographer. He works alongside his younger brother, Miguel.' },
-    { cut: true },
-    { p: 'In the decades ahead the Casasolas will gather nearly half a million negatives, many made by other photographers and filed under the family name. Much of how the Revolution is remembered comes through that archive, kept today by the INAH in Pachuca, Hidalgo.', fig: { archive: 11, print: { photo: 'villa', paint: 'villa_p', s: .7, half: .3, cap: 'Villa and Zapata in the National Palace, December 1914. Casasola archive' } } }
-  ],
-  [
-    { dl: 'Chihuahua, May 1911.', fig: { hold: 10600, print: { photo: 'mad', paint: 'mad_p', s: 1, half: .55, game: 'game', gameHalf: .32, cap: 'Maderistas. Casasola archive' } } },
-    { p: 'Madero\'s riders are expected along the railway this morning. You are Casasola, with a folding plate camera and three glass plates: three photographs. You will send one of them to the newspapers.' },
+    { dl: 'A railway town in Chihuahua, May 1911.', fig: { hold: 10600, print: { photo: 'mad', paint: 'mad_p', s: 1, half: .55, game: 'game', gameHalf: .32, cap: 'Maderistas. Casasola archive' } } },
+    { p: 'Madero\'s riders are expected this morning. You have three glass plates, so three photographs. You will send one of them to the newspapers.' },
     { glass: 3, fig: { process: true } },
     { keys: COARSE
       ? [['Walk, Back', 'Move'], ['Drag', 'Look around'], ['Tap the camera', 'Raise it'], ['Squeeze the bulb', 'Expose a plate'], ['Tap the tag', 'Talk']]
       : [['W A S D', 'Walk'], ['Drag', 'Look around'], ['R, or click the camera', 'Raise it'], ['Space, or click', 'Expose a plate'], ['E', 'Talk']] }
   ]
 ];
-const INTRO_IMG = {"arch0":__BASE + "scenes/scene1/assets/intro-arch0.jpg","arch1":__BASE + "scenes/scene1/assets/intro-arch1.jpg","arch10":__BASE + "scenes/scene1/assets/intro-arch10.jpg","arch2":__BASE + "scenes/scene1/assets/intro-arch2.jpg","arch3":__BASE + "scenes/scene1/assets/intro-arch3.jpg","arch4":__BASE + "scenes/scene1/assets/intro-arch4.jpg","arch5":__BASE + "scenes/scene1/assets/intro-arch5.jpg","arch6":__BASE + "scenes/scene1/assets/intro-arch6.jpg","arch7":__BASE + "scenes/scene1/assets/intro-arch7.jpg","arch8":__BASE + "scenes/scene1/assets/intro-arch8.jpg","arch9":__BASE + "scenes/scene1/assets/intro-arch9.jpg","diaz":__BASE + "scenes/scene1/assets/intro-diaz.jpg","game":__BASE + "scenes/scene1/assets/intro-game.jpg","mad":__BASE + "scenes/scene1/assets/intro-mad.jpg","mad_p":__BASE + "scenes/scene1/assets/intro-mad_p.jpg","madero":__BASE + "scenes/scene1/assets/intro-madero.jpg","miguel":__BASE + "scenes/scene1/assets/intro-miguel.jpg","miguel_p":__BASE + "scenes/scene1/assets/intro-miguel_p.jpg","remington":__BASE + "scenes/scene1/assets/intro-remington.jpg","remington_p":__BASE + "scenes/scene1/assets/intro-remington_p.jpg","villa":__BASE + "scenes/scene1/assets/intro-villa.jpg","villa_p":__BASE + "scenes/scene1/assets/intro-villa_p.jpg"};
+const INTRO_IMG = {"arch0":__BASE + "scenes/scene1/assets/intro-arch0.jpg","arch1":__BASE + "scenes/scene1/assets/intro-arch1.jpg","arch10":__BASE + "scenes/scene1/assets/intro-arch10.jpg","arch2":__BASE + "scenes/scene1/assets/intro-arch2.jpg","arch3":__BASE + "scenes/scene1/assets/intro-arch3.jpg","arch4":__BASE + "scenes/scene1/assets/intro-arch4.jpg","arch5":__BASE + "scenes/scene1/assets/intro-arch5.jpg","arch6":__BASE + "scenes/scene1/assets/intro-arch6.jpg","arch7":__BASE + "scenes/scene1/assets/intro-arch7.jpg","arch8":__BASE + "scenes/scene1/assets/intro-arch8.jpg","arch9":__BASE + "scenes/scene1/assets/intro-arch9.jpg","diaz":__BASE + "scenes/scene1/assets/intro-diaz.jpg","game":__BASE + "scenes/scene1/assets/intro-game.jpg","mad":__BASE + "scenes/scene1/assets/intro-mad.jpg","mad_p":__BASE + "scenes/scene1/assets/intro-mad_p.jpg","madero":__BASE + "scenes/scene1/assets/intro-madero.jpg","villa":__BASE + "scenes/scene1/assets/intro-villa.jpg","villa_p":__BASE + "scenes/scene1/assets/intro-villa_p.jpg"};
 // Natural Earth 1:110m outlines (public domain), equirectangular at 24°N; pt = places in the same units
 const INTRO_MAP = {"mex":"M4.8 13.5 19.3 12.4 35.5 10.9 34.3 13.6 53.7 20.5 82.8 30.3 108.3 30.2 118.4 30.2 118.4 24.4 140.6 24.4 145.3 29.4 151.8 33.8 159.4 40.0 163.6 47.3 166.8 55.0 173.4 59.2 184.0 63.4 192.1 52.4 202.6 52.1 211.6 57.7 218.0 67.3 222.4 75.5 230.0 83.4 232.8 93.2 236.4 99.8 246.3 104.2 255.4 107.2 260.4 106.8 255.4 119.1 253.2 129.2 252.3 147.9 251.0 154.8 253.2 162.4 257.2 169.2 259.8 180.1 268.3 190.5 271.2 198.5 276.2 205.4 289.8 209.1 295.1 215.0 306.3 211.1 316.1 209.7 325.7 207.1 333.7 204.7 341.8 199.0 344.9 190.9 345.9 179.1 348.2 175.0 356.8 171.3 370.3 168.1 381.7 168.6 389.4 167.4 392.5 170.4 392.1 177.1 385.2 185.4 382.1 193.9 384.5 196.4 382.6 202.4 379.4 213.4 376.1 209.8 373.5 210.0 371.0 210.2 366.4 218.6 364.1 217.0 362.6 217.6 362.7 219.7 350.8 219.5 338.9 219.6 338.9 227.4 333.1 227.5 337.9 232.1 342.6 235.4 344.0 238.4 346.1 239.3 345.8 244.0 329.4 244.1 323.2 255.5 325.0 258.1 323.5 261.4 323.2 265.5 308.7 250.4 302.2 245.8 291.7 242.2 284.6 243.2 274.3 248.5 267.8 249.9 258.8 246.2 249.2 243.5 237.3 237.1 227.7 235.1 213.2 228.6 202.5 221.9 199.3 218.2 192.1 217.3 179.0 212.9 173.7 206.5 160.0 198.6 153.6 189.7 150.5 182.9 154.8 181.6 153.5 177.6 156.4 173.9 156.5 169.1 152.2 162.8 151.0 157.2 146.7 150.2 135.4 136.3 122.6 125.3 116.4 116.6 105.4 110.9 103.0 107.5 105.0 98.8 98.5 95.5 90.9 88.7 87.7 79.0 80.8 77.8 73.4 70.4 67.4 63.6 66.9 59.3 60.0 48.7 55.5 38.0 55.7 32.6 46.4 27.1 42.1 27.7 34.8 23.8 32.8 29.5 34.9 36.2 36.1 46.7 40.5 52.5 50.0 62.1 52.1 65.4 54.1 66.4 55.8 71.2 58.0 71.0 60.6 80.1 64.5 83.6 67.2 88.6 75.2 95.7 79.5 108.7 83.3 114.9 86.8 121.4 87.5 128.8 93.7 129.3 98.8 135.6 103.5 141.9 103.2 144.4 97.8 149.5 95.5 149.5 92.1 141.0 83.8 133.0 74.6 126.2 68.0 122.7 68.4 112.4 66.5 104.8 60.4 100.5 51.6 94.2 49.9 96.0 46.7 92.4 38.8 89.0 31.3 80.9 32.2 79.8 37.5 80.6 42.2 75.4 42.7 69.1 32.8 59.1 25.3 55.2 20.6 46.5 15.9 37.3 10.0 26.1 4.8 13.5Z","usa":"M-32.0 -35.0 428.5 -35.0 428.5 48.3 427.2 47.7 414.3 54.1 412.0 53.4 405.8 46.9 397.8 43.4 383.3 45.2 372.0 43.6 362.2 44.6 356.9 46.8 359.2 50.5 359.0 56.2 361.7 58.9 359.3 60.8 354.5 58.7 349.7 61.4 340.5 60.9 330.9 53.5 319.8 55.3 310.5 52.0 302.5 53.0 291.7 56.3 280.1 66.7 267.4 72.7 260.4 79.4 257.5 85.7 257.3 95.3 258.0 102.1 260.4 106.8 255.4 107.2 246.3 104.2 236.4 99.8 232.8 93.2 230.0 83.4 222.4 75.5 218.0 67.3 211.6 57.7 202.6 52.1 192.1 52.4 184.0 63.4 173.4 59.2 166.8 55.0 163.6 47.3 159.4 40.0 151.8 33.8 145.3 29.4 140.6 24.4 118.4 24.4 118.4 30.2 108.3 30.2 82.8 30.3 53.7 20.5 34.3 13.6 35.5 10.9 19.3 12.4 4.8 13.5 2.6 6.4 -5.7 -1.7 -11.6 -3.4 -13.0 -7.4 -20.2 -8.1 -24.8 -11.9 -32.0 -12.7Z","cam":"M323.2 265.5 323.5 261.4 325.0 258.1 323.2 255.5 329.4 244.1 345.8 244.0 346.1 239.3 344.0 238.4 342.6 235.4 337.9 232.1 333.1 227.5 338.9 227.4 338.9 219.6 350.8 219.5 362.7 219.7 362.6 230.8 361.6 246.6 365.4 246.6 369.6 249.1 370.7 247.0 374.4 248.8 368.6 254.2 362.5 258.1 361.6 260.8 362.6 263.5 360.0 267.1 357.0 267.9 357.7 269.6 355.3 271.1 350.9 274.7 350.5 276.7 343.9 274.3 336.0 274.0 330.1 271.2 323.2 265.5ZM362.7 219.7 362.6 217.6 364.1 217.0 366.4 218.6 371.0 210.2 373.5 210.0 373.5 212.1 375.9 212.1 375.7 215.9 373.6 222.0 374.8 224.1 373.4 229.2 374.2 230.5 372.7 237.6 370.2 241.3 367.9 241.7 365.4 246.6 361.6 246.6 362.6 230.8 362.7 219.7Z","vb":[0,0,402.9,273.0],"pt":{"mexico":[234.9,197.0],"slp":[211.3,158.9],"monterrey":[219.9,109.3],"nlaredo":[230.1,84.3],"sanantonio":[243.1,57.1],"chihuahua":[145.9,68.2],"juarez":[141.5,24.9],"ahumada":[140.6,40.3],"jimenez":[160.9,89.2],"torreon":[180.0,111.4],"zacatecas":[190.8,150.2],"aguascalientes":[194.5,162.7],"leon":[202.3,173.3],"queretaro":[218.8,180.7],"acambaro":[214.6,188.6],"saltillo":[211.0,113.1],"guerrero":[128.2,69.3],"casasgrandes":[122.1,43.8],"sanandres":[139.4,68.6],"parral":[151.4,92.0],"ojinaga":[167.4,55.2]},"vbN":[88.2,5.6,130.5,88.4]};
 INTRO_MAP.vbM = INTRO_MAP.vb.map((q, i) => q + (INTRO_MAP.vbN[i] - q) * .45);
-const ASPECT = { diaz: .8, remington: 1.5, miguel: 360 / 470, villa: 560 / 460, mad: 1.4 };
+const ASPECT = { diaz: .8, villa: 560 / 460, mad: 1.4 };
 const EASE = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 // reading pace: about 200 words a minute, counted from when the paragraph starts typing, plus a moment for the picture
 const READ = { wps: 3.3, look: 1.4, min: 3, max: 10 };
@@ -3340,23 +3331,13 @@ function reignSVG() {
 const pts = ks => ks.map(k => INTRO_MAP.pt[k].join(',')).join(' ');
 function mapSVG(kind) {
   const M = INTRO_MAP, P = M.pt;
-  const dot = (k, r = 2.4) => `<circle class="city" cx="${P[k][0]}" cy="${P[k][1]}" r="${r}"/>`;
-  const lab = (k, t, dx, dy, a = 'start') => `<text class="lb" text-anchor="${a}" x="${P[k][0] + dx}" y="${P[k][1] + dy}">${t}</text>`;
   let s = `<svg class="map ${kind}" viewBox="${M.vb.join(' ')}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-    <defs><clipPath id="ov-${kind}"><ellipse cx="333" cy="118" rx="27" ry="34"/></clipPath></defs>
+    <defs><clipPath id="ov-${kind}"><ellipse cx="197" cy="31" rx="7.4" ry="9.2"/></clipPath></defs>
     <rect class="sea" x="-50" y="-50" width="600" height="400"/>
     <path class="usa" d="${M.usa}"/><path class="cam" d="${M.cam}"/><path class="mex" d="${M.mex}"/>
     <polyline class="rail" points="${pts(['juarez', 'ahumada', 'chihuahua', 'jimenez', 'torreon', 'zacatecas', 'aguascalientes', 'leon', 'queretaro', 'mexico'])}"/>
     <polyline class="rail" points="${pts(['mexico', 'acambaro', 'slp', 'saltillo', 'monterrey', 'nlaredo', 'sanantonio'])}"/>`;
-  if (kind === 'route') {
-    s += `<polyline class="route" pathLength="1" points="${pts(['slp', 'saltillo', 'monterrey', 'nlaredo', 'sanantonio'])}"/>
-      ${dot('mexico', 3)}${dot('slp')}${dot('sanantonio')}
-      ${lab('mexico', 'Mexico City', 6, 4)}${lab('slp', 'San Luis Potosí', -6, 4, 'end')}${lab('sanantonio', 'San Antonio', 6, -2)}
-      <circle class="train" r="3.2" cx="${P.slp[0]}" cy="${P.slp[1]}"/>
-      <g class="medal"><ellipse cx="333" cy="118" rx="29.5" ry="36.5" class="mf"/><image href="${INTRO_IMG.madero}" x="304" y="82" width="58" height="72" clip-path="url(#ov-${kind})" preserveAspectRatio="xMidYMid slice"/>
-      <text class="lb" x="333" y="167" text-anchor="middle">Madero</text></g>`;
-  } else {
-    // the north rises: bands from the Guerrero district and from around Chihuahua close on the border city
+  // the north rises: bands from the Guerrero district and from around Chihuahua close on the border city
     const c = (a, b, bend) => { const A = P[a], B = P[b], mx = (A[0] + B[0]) / 2 + bend[0], my = (A[1] + B[1]) / 2 + bend[1]; return `M${A[0]} ${A[1]}Q${mx} ${my} ${B[0]} ${B[1]}`; };
     const J = P.juarez;
     s += `<path class="arrow" d="${c('guerrero', 'casasgrandes', [-4, 0])}T${J[0] - 1.6} ${J[1] + 1.4}"/>
@@ -3365,8 +3346,8 @@ function mapSVG(kind) {
       <circle class="burst" cx="${J[0]}" cy="${J[1]}" r="2.2"/><circle class="city n" cx="${J[0]}" cy="${J[1]}" r="1"/>
       <text class="lb n" x="${J[0] + 2.2}" y="${J[1] + 3.4}">Ciudad Juárez</text><text class="lb n" x="${P.chihuahua[0] + 1.8}" y="${P.chihuahua[1] + 1.2}">Chihuahua</text>
       <text class="lb n us" x="${J[0] + 6}" y="${J[1] - 6}">TEXAS</text>
-      <text class="lb n who" text-anchor="end" x="${P.guerrero[0] - 1.5}" y="${P.guerrero[1] + 4.5}">Orozco</text><text class="lb n who" x="${P.sanandres[0] + 1}" y="${P.sanandres[1] + 4.5}">Villa</text>`;
-  }
+      <g class="medal n"><ellipse cx="197" cy="31" rx="8.2" ry="10" class="mf"/><image href="${INTRO_IMG.madero}" x="189.6" y="21.8" width="14.8" height="18.4" clip-path="url(#ov-${kind})" preserveAspectRatio="xMidYMid slice"/>
+      <text class="lb n" x="197" y="45.5" text-anchor="middle">Madero</text></g>`;
   return s + '</svg>';
 }
 // the camera's round: a plate goes in, is exposed, comes up in the tray, its print goes to the paper in halftone
@@ -3394,11 +3375,6 @@ function viewTo(name, dur) {
   const step = now => { const t = Math.min(1, (now - t0) / dur), e = EASE(t); ST.vb = a.map((q, i) => q + (b[i] - q) * e); svg.setAttribute('viewBox', ST.vb.join(' ')); if (t < 1) ST.vraf = requestAnimationFrame(step); };
   ST.vraf = requestAnimationFrame(step);
 }
-function drawRoute(delay) {
-  const line = ST.map.querySelector('.route'), tr = ST.map.querySelector('.train'), L = line.getTotalLength(), t0 = performance.now() + delay, dur = 3400;
-  const step = now => { const t = Math.min(1, (now - t0) / dur); if (t >= 0) { const e = EASE(t), p = line.getPointAtLength(e * L); line.style.strokeDashoffset = 1 - e; tr.style.opacity = 1; tr.setAttribute('cx', p.x); tr.setAttribute('cy', p.y); } if (t < 1) ST.raf = requestAnimationFrame(step); };
-  ST.raf = requestAnimationFrame(step);
-}
 function stageMap(m) {
   if (!m) { if (ST.mapWrap) { dismiss(ST.mapWrap); ST.map = ST.mapWrap = ST.mapKind = null; } return; }
   if (ST.mapKind !== m.kind) {
@@ -3414,7 +3390,6 @@ function stageMap(m) {
   const svg = ST.map, F = ST.flags;
   svg.classList.toggle('faint', !!m.faint);
   if (m.view) viewTo(m.view, m.dur || 2600);
-  if (m.route && !F.route) { F.route = true; svg.classList.add('route-on'); drawRoute(1500); }
   if (m.north && !F.north) { F.north = true; later(400, () => svg.classList.add('tint')); svg.classList.add('north-on', 'arrows-on'); }
 }
 function stagePrint(f, fig) {

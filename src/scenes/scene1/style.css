@@ -242,20 +242,15 @@ button.print:hover, button.print:focus-visible { outline: 3px solid var(--ochre)
 .map path.usa, .map path.cam { fill: rgba(31,23,16,.02); stroke: rgba(31,23,16,.5); stroke-width: .8; vector-effect: non-scaling-stroke; stroke-linejoin: round; transition: fill 2.4s ease; }
 .map.tint path.usa, .map.tint path.cam { fill: rgba(222,208,176,.96); }
 .map .rail { fill: none; stroke: #1f1710; stroke-width: 1; stroke-dasharray: 2 2; vector-effect: non-scaling-stroke; opacity: .5; }
-.map .route { fill: none; stroke: #a8331a; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; }
-.map .train { fill: #a8331a; stroke: #f3ead2; stroke-width: 1; opacity: 0; }
 .map .city { fill: #1f1710; }
 .map .lb { font: italic 11px "Old Standard TT", serif; fill: #1f1710; transition: opacity 1s ease; }
 .map .lb.n { font-size: 4.3px; }
 .map .lb.us { font: 3.4px "Old Standard TT", serif; letter-spacing: .4em; }
-.map .lb.who { fill: #8e2a18; }
-.map .medal { opacity: 0; transition: opacity 1.4s ease 2.6s; }
-.map.route-on .medal { opacity: 1; }
-.map .mf { fill: #f3ede0; stroke: #1f1710; stroke-width: 1.2; }
+.map .mf { fill: #f3ede0; stroke: #1f1710; stroke-width: .5; }
 .map .n { opacity: 0; transition: opacity 1.2s ease 2.2s; }
 .map.north-on .n { opacity: 1; }
 .map.north-on .lb.us { opacity: .55; }
-.map.north-on .lb.who { transition-delay: 3s; }
+.map.north-on .medal { transition-delay: 5.4s; }
 .map .arrow { fill: none; stroke: #a8331a; stroke-width: 1.3; stroke-linecap: round; }
 .map.arrows-on .arrow { animation: draw 1.8s ease-in-out forwards; }
 .map .head { fill: #a8331a; opacity: 0; }
