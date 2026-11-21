@@ -132,7 +132,8 @@ camera.rotation.order = 'YXZ';
 // the tracks drift south behind the spawn. North-side buildings sit 3 m further back than the
 // original layout, which widens the street.
 const WIDEN = 3;
-const BERM = .16;
+// both lines alike: a low gravel bed, ties bedded in it with their tops just showing, rails standing clear on the ties
+const BERM = .07, TIE_TOP = BERM + .02, RAIL_TOP = TIE_TOP + .125;
 const bendBase = x => 2.4 * Math.sin((x - 22) / 30);
 const bendSlope = x => 0.08 * Math.cos((x - 22) / 30);
 const northCurve = x => x <= 158 ? 0 : x < 200 ? -((x - 158) ** 2) / 55 : -(42 * 42) / 55 - (84 / 55) * (x - 200);
@@ -664,15 +665,22 @@ for (let t = 0; t < 1; t += .004) { const [ax, az] = crossRoad(t), [bx, bz] = cr
 for (const [lx, l0, l1] of [[85.5, -5, -50], [114, -5, -50]]) { MK.lineWidth = 3 * mpx; MK.strokeStyle = 'rgba(255,0,0,.45)'; MK.beginPath(); MK.moveTo(mx(lx), mz(warpS(lx, l0))); MK.lineTo(mx(lx + 2), mz(warpS(lx, l1))); MK.stroke(); }
 // plaza
 MK.fillStyle = 'rgba(255,0,255,.25)'; MK.fillRect(mx(74.5), mz(-16 + bendBase(80)), 11 * mpx, 9 * mpx);
-// G is ballast beside the rails
-strokePath(trackZ, -160, 360, .5, 0, 'rgba(0,255,0,.3)', () => 5.2);
-strokePath(trackZ, -160, 360, .5, 0, 'rgba(0,255,0,1)', () => 3.5);
-// the second line: gravel only in patches where it shows through the dirt
-for (let i = 0; i < 900; i++) { const x = -150 + rnd() * 470; paintBlob(x, secondZ(x) + (rnd() - .5) * 2.4, .25 + rnd() * .8, `rgba(0,255,0,${.2 + rnd() * .35})`); }
+// G is ballast under both lines, the same bed on each, with gravel kicked out past the shoulders
+for (const [f, a, b] of [[trackZ, -160, 360], [secondZ, -150, 320]]) {
+  strokePath(f, a, b, .5, 0, 'rgba(0,255,0,.3)', () => 5.0);
+  strokePath(f, a, b, .5, 0, 'rgba(0,255,0,1)', () => 3.3);
+  for (let i = 0; i < 500; i++) { const x = a + 10 + rnd() * (b - a - 20); paintBlob(x, f(x) + (rnd() < .5 ? -1 : 1) * (1.9 + rnd() * 1.4), .2 + rnd() * .5, 'rgba(0,255,0,.3)'); }
+}
+// weathering: dirt washed over the gravel in places and the shoulders worn ragged (multiply lowers G alone)
+MK.globalCompositeOperation = 'multiply';
+for (const [f, a, b] of [[trackZ, -150, 350], [secondZ, -140, 310]]) {
+  for (let i = 0; i < 170; i++) { const x = a + rnd() * (b - a); paintBlob(x, f(x) + (rnd() - .5) * 3.2, .4 + rnd() * 1.3, `rgba(255,${Math.floor(rnd() * 60)},255,${.45 + rnd() * .45})`); }
+  for (let i = 0; i < 260; i++) { const x = a + rnd() * (b - a); paintBlob(x, f(x) + (rnd() < .5 ? -1 : 1) * (1.5 + rnd() * .9), .3 + rnd() * .7, 'rgba(255,0,255,.45)'); }
+}
+MK.globalCompositeOperation = 'lighter';
 // the beaten strip between the lines, where the riders come in
 strokePath(x => trackZ(x) + 3.7, -150, 320, .5, 0, 'rgba(255,0,0,.22)', () => 3.6);
 for (let i = 0; i < 700; i++) { const x = -150 + rnd() * 470; paintBlob(x, trackZ(x) + 2.8 + rnd() * 2.2, .12 + rnd() * .3, 'rgba(0,0,255,.18)'); }
-for (let i = 0; i < 500; i++) { const x = -150 + rnd() * 500; paintBlob(x, trackZ(x) + (rnd() < .5 ? -1 : 1) * (2 + rnd() * 1.5), .2 + rnd() * .5, 'rgba(0,255,0,.3)'); }
 // footpaths through the outskirts, ploughed fields to the south
 MK.lineWidth = 1.1 * mpx; MK.strokeStyle = 'rgba(255,0,0,.4)';
 for (let i = 0; i < 14; i++) { let x = -20 + rnd() * 150, z = 14 + rnd() * 10; MK.beginPath(); MK.moveTo(mx(x), mz(z + bendBase(x))); for (let k = 0; k < 12; k++) { x += (rnd() - .5) * 8; z += 3 + rnd() * 4; MK.lineTo(mx(x), mz(z + bendBase(x))); } MK.stroke(); }
@@ -1014,7 +1022,7 @@ box(0.09, 8.2, 0.09, C.wood, world, towerX - 2.45, 4.1, towerZ - 1.5, { surf: 'w
 // freight cars on the siding, lettered for the national railway, and a balloon-stack locomotive
 const carDecal = canvasTex(512, 160, (g, W, H) => { g.fillStyle = 'rgba(0,0,0,0)'; g.clearRect(0, 0, W, H); g.fillStyle = 'rgba(236,226,200,.85)'; g.font = '700 30px Oswald, "Arial Narrow", sans-serif'; g.textAlign = 'center'; g.fillText('N. DE M.', W * .25, H * .38); g.font = '600 22px Oswald, "Arial Narrow", sans-serif'; g.fillText('No 21407', W * .25, H * .62); g.fillText('CAP. 30000 KG', W * .78, H * .78); });
 function boxcar(x, color) {
-  const G = new THREE.Group(); G.position.set(x, 0, SECOND); world.add(G);
+  const G = new THREE.Group(); G.position.set(x, RAIL_TOP, SECOND); world.add(G);
   box(9, 2.8, 2.7, color, G, 0, 2.3, 0, { surf: 'woodorange', grain: 0, tint: .55 });
   const p = reg(new THREE.Mesh(new THREE.PlaneGeometry(9, 2.8), envMat(color, 'woodorange', { grain: 0, tint: .55, decal: carDecal }))); p.position.set(0, 2.3, -1.36); p.rotation.y = Math.PI; p.receiveShadow = true; G.add(p);
   box(9.3, .22, 3.0, 0x3b3330, G, 0, 3.8, 0, { surf: 'woodgray', grain: 1 }); box(9.3, .1, .5, C.wood, G, 0, 3.96, 0, { surf: 'woodgray', grain: 1 });
@@ -1025,7 +1033,7 @@ function boxcar(x, color) {
 // the train stands at the station end of the second line, leaving the stretch by the crossing open as in the photo
 boxcar(146, 0x9a4a30); boxcar(156, 0x7b4a33); boxcar(166, 0xa45436); boxcar(176, 0xb07a40);
 (function loco(x) {
-  const G = new THREE.Group(); G.position.set(x, 0, SECOND); world.add(G);
+  const G = new THREE.Group(); G.position.set(x, RAIL_TOP, SECOND); world.add(G);
   const IR = 0x24201e, im = o => Object.assign({ surf: 'plaster', tint: 1 }, o || {});
   cyl(1.05, 1.05, 6.4, IR, G, -.2, 2.5, 0, im({ rz: Math.PI / 2, seg: 16 }));
   for (const bx of [-1.8, .2, 2.2]) cyl(1.09, 1.09, .1, 0x8a6a3a, G, bx, 2.5, 0, im({ rz: Math.PI / 2, seg: 16 }));
@@ -1424,65 +1432,93 @@ const yawOf = (f, x) => -Math.atan(dSl(f, x));
 const lerpN = (a, b, t) => a + (b - a) * t;
 const offPt = (f, x, off) => { const s = dSl(f, x), k = 1 / Math.sqrt(1 + s * s); return [x - s * off * k, f(x) + off * k]; };
 
-// ---------- the railway: raised ballast bed, ties, rails with a worn bright head ----------
-function ballastBed(f, x0, x1, top, bot) {
-  const pos = [], step = 2;
-  for (let x = x0; x < x1; x += step) {
-    const A = [], B = [];
-    for (const [xx, arr] of [[x, A], [x + step, B]]) for (const [o, y] of [[-bot / 2, -.02], [-top / 2, BERM], [top / 2, BERM], [bot / 2, -.02]]) { const [px, pz] = offPt(f, xx, o); arr.push([px, y + terrainH(px, pz), pz]); }
-    for (let i = 0; i < 3; i++) pos.push(...A[i], ...B[i], ...A[i + 1], ...A[i + 1], ...B[i], ...B[i + 1]);
+// ---------- the railway: one build for both lines. A low bank of gravel, ties bedded in it, rails standing clear,
+// dirt washed over the tie ends and between the rails, loose stones spilled down the shoulders ----------
+const BED_PROF = [[-2.3, -.05], [-2.0, .01], [-1.7, .045], [-1.4, BERM], [1.4, BERM], [1.7, .045], [2.0, .01], [2.3, -.05]];
+const bedY = off => { const a = Math.abs(off); for (let i = 4; i < BED_PROF.length; i++) { const [o1, y1] = BED_PROF[i]; if (a <= o1) { const [o0, y0] = BED_PROF[i - 1]; return Math.max(0, y0 + (y1 - y0) * (a - o0) / (o1 - o0)); } } return 0; };
+const MASKED = x => x > -150 && x < 355;   // inside the ground mask the bed wears the ground's own gravel and dirt
+// twenty faces shaded smooth, cheap lumps for stones and washed dirt
+function smoothIco() { const g = new THREE.IcosahedronGeometry(1, 0), p = g.attributes.position, nn = new Float32Array(p.count * 3); for (let i = 0; i < p.count; i++) { const v = new THREE.Vector3().fromBufferAttribute(p, i).normalize(); nn.set([v.x, v.y, v.z], i * 3); } g.setAttribute('normal', new THREE.BufferAttribute(nn, 3)); return g; }
+const TRACK = {
+  tieGeo: new THREE.BoxGeometry(.24, .12, 2.5), tie: envMat(0x5e5246, 'woodgray', { grain: 2, tint: .3, grime: 0 }),
+  rust: envMat(0x5a3a2a, 'woodgray', { grain: 1, tint: .9, scale: 1.2, grime: 0 }), head: envMat(0x948f88, 'plaster', { tint: 1, grime: 0 }),
+  farBed: envMat(0xa69c8c, 'ballast', { scale: .8, tint: .6, grime: 0 }),
+  // a low cap of a flattened ball: sunk so only its gentle top shows, no dark rim
+  moundGeo: (() => { const g = smoothIco(); g.scale(.5, .1, .34); return g; })(), dirt: envMat(0x9c7f62, 'dirt', { tint: .5, grime: 0 }),
+  rockGeo: smoothIco(),
+  rock: envMat(0xaaa192, 'ballast', { scale: .5, tint: .45, grime: 0 })
+};
+function railway(f, x0, x1, o = {}) {
+  seed = o.seed || 81;
+  const fade = o.fade || 0, near = x => x > -70 && x < 320;
+  // an old line runs out under the dirt at its ends
+  const drop = x => fade ? (1 - Math.max(0, Math.min(1, (x - x0) / fade, (x1 - x) / fade))) * .3 : 0;
+  const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), S = new THREE.Vector3(), P = new THREE.Vector3(), E = new THREE.Euler();
+  // the bed
+  const pos = { n: [], f: [] };
+  for (let x = x0; x < x1;) {
+    const xb = Math.min(x1, x + (MASKED(x) ? 2 : 5)), A = [], B = [];
+    for (const [xx, arr] of [[x, A], [xb, B]]) for (const [off, y] of BED_PROF) { const [px, pz] = offPt(f, xx, off); arr.push([px, y - drop(xx) + terrainH(px, pz), pz]); }
+    const L = MASKED(x) ? pos.n : pos.f;
+    // wound to face up (the old bed faced down and was culled, which left the ties floating)
+    for (let i = 0; i < BED_PROF.length - 1; i++) L.push(...A[i], ...A[i + 1], ...B[i], ...A[i + 1], ...B[i + 1], ...B[i]);
+    x = xb;
   }
-  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(pos.length / 3 * 2), 2)); g.computeVertexNormals();
-  const m = reg(new THREE.Mesh(g, envMat(0xa69c8c, 'ballast', { scale: .8, tint: .6, grime: 0 }))); m.receiveShadow = true; env.add(m);
-}
-function railway(f, x0, x1) {
-  ballastBed(f, x0, x1, 3.0, 4.8);
-  const n = Math.floor((x1 - x0) / .62), ties = new THREE.InstancedMesh(new THREE.BoxGeometry(.24, .12, 2.5), envMat(0x5e5246, 'woodgray', { grain: 2, tint: .3, grime: 0 }), n);
-  const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), S = new THREE.Vector3(1, 1, 1), P = new THREE.Vector3();
-  seed = 81 + x0;
-  for (let i = 0; i < n; i++) { const x = x0 + i * .62 + (rnd() - .5) * .06, z = f(x); Q.setFromAxisAngle(UPV, yawOf(f, x) + (rnd() - .5) * .05); P.set(x, BERM + .06 + terrainH(x, z), z); M.compose(P, Q, S); ties.setMatrixAt(i, M); }
-  ties.castShadow = true; ties.receiveShadow = true; reg(ties); env.add(ties);
-  const rust = envMat(0x5a3a2a, 'woodgray', { grain: 1, tint: .9, scale: 1.2, grime: 0 }), head = envMat(0x9a958e, 'plaster', { tint: 1, grime: 0 });
+  for (const [arr, mat] of [[pos.n, groundMat], [pos.f, TRACK.farBed]]) {
+    if (!arr.length) continue;
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(arr.length / 3 * 2), 2)); g.computeVertexNormals();
+    const m = reg(new THREE.Mesh(g, mat)); m.receiveShadow = true; env.add(m);
+  }
+  // ties, tops a few centimetres proud of the gravel, a little uneven
+  const n = Math.floor((x1 - x0) / .62), ties = new THREE.InstancedMesh(TRACK.tieGeo, TRACK.tie, n);
+  for (let i = 0; i < n; i++) {
+    const x = x0 + .3 + i * .62 + (rnd() - .5) * .07, z = f(x);
+    Q.setFromEuler(E.set((rnd() - .5) * .03, yawOf(f, x) + (rnd() - .5) * .06, 0, 'YXZ')); S.set(1, 1, .94 + rnd() * .1);
+    P.set(x, TIE_TOP - .06 + (rnd() - .5) * .025 - drop(x) + terrainH(x, z), z); M.compose(P, Q, S); ties.setMatrixAt(i, M);
+  }
+  ties.receiveShadow = true; reg(ties); env.add(ties);   // bedded, so they throw no shadow of their own onto the gravel
+  // rails on the ties: rusty web and foot, a worn bright head
   for (const side of [-.72, .72]) {
-    const near = (a) => a > -70 && a < 320;
     for (let x = x0; x < x1;) {
-      const L = near(x) ? 4 : 10, [ax, az] = offPt(f, x, side), [bx, bz] = offPt(f, Math.min(x1, x + L), side), y = BERM + .12 + terrainH(ax, az);
-      segBox(env, ax, az, bx, bz, y + .045, .09, .06, 0, { mat: rust, ext: .02 });
-      segBox(env, ax, az, bx, bz, y + .115, .05, .075, 0, { mat: head, ext: .02, cast: false });
-      if (near(x)) segBox(env, ax, az, bx, bz, y + .01, .02, .15, 0, { mat: rust, cast: false });
-      x += L;
+      const xb = Math.min(x1, x + (drop(x) > 0 || drop(x + 4) > 0 ? 1 : near(x) ? 4 : 10)), [ax, az] = offPt(f, x, side), [bx, bz] = offPt(f, xb, side);
+      const y = TIE_TOP - drop((x + xb) / 2) + terrainH(ax, az);
+      if (y + .125 > .01) {
+        segBox(env, ax, az, bx, bz, y + .0425, .085, .06, 0, { mat: TRACK.rust, ext: .02 });
+        segBox(env, ax, az, bx, bz, y + .105, .04, .075, 0, { mat: TRACK.head, ext: .02, cast: false });
+        if (near(x)) segBox(env, ax, az, bx, bz, y + .01, .02, .15, 0, { mat: TRACK.rust, cast: false });
+      }
+      x = xb;
     }
   }
-}
-railway(trackZ, -640, 1100);
-// the second line: ties mostly under the dirt, rails standing a finger's width proud, gravel washed over them in places
-function sunkTrack(f, x0, x1) {
-  seed = 4242;
-  const n = Math.floor((x1 - x0) / .62), ties = new THREE.InstancedMesh(new THREE.BoxGeometry(.24, .12, 2.5), envMat(0x5e5246, 'woodgray', { grain: 2, tint: .3, grime: 0 }), n);
-  const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), S = new THREE.Vector3(1, 1, 1), P = new THREE.Vector3();
-  for (let i = 0; i < n; i++) { const x = x0 + i * .62 + (rnd() - .5) * .08, z = f(x); Q.setFromAxisAngle(UPV, yawOf(f, x) + (rnd() - .5) * .08); P.set(x, -.075 + rnd() * .07 + terrainH(x, z), z); M.compose(P, Q, S); ties.setMatrixAt(i, M); }
-  ties.receiveShadow = true; reg(ties); env.add(ties);
-  const rust = envMat(0x5a3a2a, 'woodgray', { grain: 1, tint: .9, scale: 1.2, grime: 0 }), head = envMat(0x8a857e, 'plaster', { tint: 1, grime: 0 });
-  const bury = [];
-  for (const side of [-.72, .72]) {
-    for (let x = x0; x < x1;) {
-      const near = x > -70 && x < 320, L = near ? 2 + rnd() * 2.5 : 8;
-      // here and there the rail runs under the dirt
-      if (near && rnd() < .13) { bury.push([x + L / 2, side]); x += L; continue; }
-      const [ax, az] = offPt(f, x, side), [bx, bz] = offPt(f, Math.min(x1, x + L), side), y = terrainH(ax, az) - .02;
-      segBox(env, ax, az, bx, bz, y, .09, .06, 0, { mat: rust, ext: .01, cast: false });
-      segBox(env, ax, az, bx, bz, y + .06, .04, .07, 0, { mat: head, ext: .01, cast: false });
-      x += L;
-    }
+  // weathering, only where it can be seen from town
+  const w0 = Math.max(x0 + fade, -150), w1 = Math.min(x1 - fade, 340);
+  if (w1 <= w0) return;
+  // the mounds wear the ground's own surface; a dirt spot painted into the mask under each turns it from gravel to earth
+  const mN = Math.floor((w1 - w0) / 1.6), mounds = new THREE.InstancedMesh(TRACK.moundGeo, groundMat, mN);
+  MK.globalCompositeOperation = 'multiply';
+  for (let i = 0; i < mN; i++) {
+    const x = w0 + rnd() * (w1 - w0), r = rnd(), sd = rnd() < .5 ? -1 : 1;
+    // over the tie ends, then between the rails, then banked against the outside of a rail
+    const off = r < .5 ? sd * (1.05 + rnd() * .5) : r < .8 ? (rnd() - .5) * 1.0 : sd * (.84 + rnd() * .14), [px, pz] = offPt(f, x, off);
+    const s = r < .5 ? .8 + rnd() * .9 : .55 + rnd() * .6;
+    const ang = yawOf(f, x) + (rnd() - .5) * .9; Q.setFromAxisAngle(UPV, ang); S.set(s * (.8 + rnd() * .5), s * (.8 + rnd() * .4), s * (.8 + rnd() * .5));
+    P.set(px, bedY(off) - .06 * S.y - drop(x) + terrainH(px, pz), pz); M.compose(P, Q, S); mounds.setMatrixAt(i, M);
+    MK.fillStyle = `rgba(255,${Math.floor(rnd() * 50)},255,.9)`; MK.save(); MK.translate(mx(px), mz(pz)); MK.rotate(-ang); MK.beginPath(); MK.ellipse(0, 0, .55 * S.x * mpx, .38 * S.z * mpx, 0, 0, 7); MK.fill(); MK.restore();
   }
-  // low mounds of gravel and dirt lying over the rails
-  for (let i = 0; i < 70; i++) { const x = x0 + 70 + rnd() * Math.min(380, x1 - x0 - 70); bury.push([x, rnd() < .5 ? -.72 : .72]); }
-  const mg = new THREE.IcosahedronGeometry(1, 1), mounds = new THREE.InstancedMesh(mg, envMat(0xa89a86, 'ballast', { scale: .8, tint: .55, grime: 0 }), bury.length);
-  bury.forEach(([x, side], i) => { const [px, pz] = offPt(f, x, side + (rnd() - .5) * .3); Q.setFromAxisAngle(UPV, rnd() * 3); P.set(px, terrainH(px, pz) - .02, pz); S.set(.5 + rnd() * .9, .07 + rnd() * .06, .35 + rnd() * .4); M.compose(P, Q, S); mounds.setMatrixAt(i, M); });
+  MK.globalCompositeOperation = 'source-over'; maskTex.needsUpdate = true;
   mounds.receiveShadow = true; reg(mounds); env.add(mounds);
+  const rN = Math.floor((w1 - w0) * .5), rocks = new THREE.InstancedMesh(TRACK.rockGeo, TRACK.rock, rN);
+  for (let i = 0; i < rN; i++) {
+    const x = w0 + rnd() * (w1 - w0), off = rnd() < .8 ? (rnd() < .5 ? -1 : 1) * (1.45 + rnd() * 1.3) : (rnd() - .5) * 2.4, [px, pz] = offPt(f, x, off), s = .05 + rnd() * rnd() * .11;
+    Q.setFromEuler(E.set(rnd() * 3, rnd() * 3, rnd() * 3, 'XYZ')); S.set(s * (.8 + rnd() * .5), s * (.5 + rnd() * .3), s * (.8 + rnd() * .5));
+    P.set(px, bedY(off) - s * .4 + terrainH(px, pz), pz); M.compose(P, Q, S); rocks.setMatrixAt(i, M);
+  }
+  rocks.receiveShadow = true; reg(rocks); env.add(rocks);
 }
-sunkTrack(secondZ, -160, 330);
+railway(trackZ, -640, 1100, { seed: 81 });
+// the second line, 7 m south: the same track, running out under the dirt at both ends
+railway(secondZ, -160, 330, { seed: 4242, fade: 16 });
 
 // ---------- a welcome arch across the line where the column comes in: two poles, a garland, pennants ----------
 {
