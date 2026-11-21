@@ -3238,31 +3238,34 @@ function frame(now) {
 
 // ---------- the opening: dispatches typed onto newsprint, each with its picture; then Casasola; then how to work the camera ----------
 // Narration, not dialogue: edit freely. dl = dateline, p = paragraph, cut = short rule, keys = controls, glass = the three plates.
-// fig = the picture beside a dispatch, shown as it starts typing. Real photographs first; page by page they are painted over
-// a little more (s = how far toward the painted copy), until the last one turns into the game itself.
+// fig = what the picture beside the text does as that block starts. A page keeps one stage: its map stays and moves under the
+// prints, and prints slide on and off it. Real photographs first; page by page they are painted over a little more
+// (s = how much of the painted copy shows), then printed in halftone (half), until the last one turns into the game itself.
+// After each paragraph the page waits long enough to read it and look at the picture; Continue goes on sooner.
 const COARSE = matchMedia('(pointer: coarse)').matches;
 const INTRO = [
   [
-    { dl: 'Mexico City, July 1910.', fig: { photo: 'diaz', cap: 'Porfirio Díaz', reign: true } },
+    { dl: 'Mexico City, July 1910.', fig: { map: { kind: 'route', faint: true }, print: { photo: 'diaz', cap: 'Porfirio Díaz', reign: true } } },
     { p: 'Porfirio Díaz, who first took power in 1876, is declared re-elected president. His challenger, Francisco I. Madero, spent the vote in a cell in San Luis Potosí.' },
     { cut: true },
-    { dl: 'San Antonio, Texas, October 1910.', fig: { map: 'route' } },
-    { p: 'Out on bail, Madero slips across the border and issues the Plan de San Luis Potosí. Mexicans are to rise in arms on the 20th of November.' },
-    { cut: true },
-    { dl: 'Chihuahua, winter 1910.', fig: { photo: 'remington', paint: 'remington_p', s: .35, cap: 'Federal cavalry, painted by Frederic Remington' } },
+    { dl: 'San Antonio, Texas, October 1910.', fig: { map: { kind: 'route', route: true } } },
+    { p: 'Out on bail, Madero slips across the border and issues the Plan de San Luis Potosí. Mexicans are to rise in arms on the 20th of November.' }
+  ],
+  [
+    { dl: 'Chihuahua, winter 1910.', fig: { map: { kind: 'north', view: 'vbM', dur: 11000 }, print: { photo: 'remington', paint: 'remington_p', s: .35, cap: 'Federal cavalry, painted by Frederic Remington' } } },
     { p: 'The north answers first. Pascual Orozco and Francisco Villa lead ranchers, miners and muleteers against the federal army.' },
     { cut: true },
-    { dl: 'Ciudad Juárez, 10 May 1911.', fig: { map: 'north' } },
+    { dl: 'Ciudad Juárez, 10 May 1911.', fig: { map: { kind: 'north', view: 'vbN', dur: 3000, north: true } } },
     { p: 'After two days of fighting the rebels take the border city, the decisive victory of the revolt.' }
   ],
   [
-    { dl: 'Agustín Víctor Casasola, 36, of Mexico City.', fig: { photo: 'miguel', paint: 'miguel_p', s: .5, cap: 'Miguel Casasola in his darkroom, 1925' } },
+    { dl: 'Agustín Víctor Casasola, 36, of Mexico City.', fig: { print: { photo: 'miguel', paint: 'miguel_p', s: .5, cap: 'Miguel Casasola in his darkroom, 1925' } } },
     { p: 'He started at El Imparcial setting type, became a reporter, then a press photographer. He works alongside his younger brother, Miguel.' },
     { cut: true },
-    { p: 'In the decades ahead the Casasolas will gather nearly half a million negatives, many made by other photographers and filed under the family name. Much of how the Revolution is remembered comes through that archive, kept today by the INAH in Pachuca, Hidalgo.', fig: { archive: 11, photo: 'villa', paint: 'villa_p', s: .7, cap: 'Villa and Zapata in the National Palace, December 1914. Casasola archive' } }
+    { p: 'In the decades ahead the Casasolas will gather nearly half a million negatives, many made by other photographers and filed under the family name. Much of how the Revolution is remembered comes through that archive, kept today by the INAH in Pachuca, Hidalgo.', fig: { archive: 11, print: { photo: 'villa', paint: 'villa_p', s: .7, half: .3, cap: 'Villa and Zapata in the National Palace, December 1914. Casasola archive' } } }
   ],
   [
-    { dl: 'Chihuahua, May 1911.', fig: { photo: 'mad', paint: 'mad_p', game: 'game', s: 1, hold: 7800, cap: 'Maderistas. Casasola archive' } },
+    { dl: 'Chihuahua, May 1911.', fig: { hold: 10600, print: { photo: 'mad', paint: 'mad_p', s: 1, half: .55, game: 'game', gameHalf: .32, cap: 'Maderistas. Casasola archive' } } },
     { p: 'Madero\'s riders are expected along the railway this morning. You are Casasola, with a folding plate camera and three glass plates: three photographs. You will send one of them to the newspapers.' },
     { glass: 3, fig: { process: true } },
     { keys: COARSE
@@ -3273,21 +3276,57 @@ const INTRO = [
 const INTRO_IMG = {"arch0":__BASE + "scenes/scene1/assets/intro-arch0.jpg","arch1":__BASE + "scenes/scene1/assets/intro-arch1.jpg","arch10":__BASE + "scenes/scene1/assets/intro-arch10.jpg","arch2":__BASE + "scenes/scene1/assets/intro-arch2.jpg","arch3":__BASE + "scenes/scene1/assets/intro-arch3.jpg","arch4":__BASE + "scenes/scene1/assets/intro-arch4.jpg","arch5":__BASE + "scenes/scene1/assets/intro-arch5.jpg","arch6":__BASE + "scenes/scene1/assets/intro-arch6.jpg","arch7":__BASE + "scenes/scene1/assets/intro-arch7.jpg","arch8":__BASE + "scenes/scene1/assets/intro-arch8.jpg","arch9":__BASE + "scenes/scene1/assets/intro-arch9.jpg","diaz":__BASE + "scenes/scene1/assets/intro-diaz.jpg","game":__BASE + "scenes/scene1/assets/intro-game.jpg","mad":__BASE + "scenes/scene1/assets/intro-mad.jpg","mad_p":__BASE + "scenes/scene1/assets/intro-mad_p.jpg","madero":__BASE + "scenes/scene1/assets/intro-madero.jpg","miguel":__BASE + "scenes/scene1/assets/intro-miguel.jpg","miguel_p":__BASE + "scenes/scene1/assets/intro-miguel_p.jpg","remington":__BASE + "scenes/scene1/assets/intro-remington.jpg","remington_p":__BASE + "scenes/scene1/assets/intro-remington_p.jpg","villa":__BASE + "scenes/scene1/assets/intro-villa.jpg","villa_p":__BASE + "scenes/scene1/assets/intro-villa_p.jpg"};
 // Natural Earth 1:110m outlines (public domain), equirectangular at 24°N; pt = places in the same units
 const INTRO_MAP = {"mex":"M4.8 13.5 19.3 12.4 35.5 10.9 34.3 13.6 53.7 20.5 82.8 30.3 108.3 30.2 118.4 30.2 118.4 24.4 140.6 24.4 145.3 29.4 151.8 33.8 159.4 40.0 163.6 47.3 166.8 55.0 173.4 59.2 184.0 63.4 192.1 52.4 202.6 52.1 211.6 57.7 218.0 67.3 222.4 75.5 230.0 83.4 232.8 93.2 236.4 99.8 246.3 104.2 255.4 107.2 260.4 106.8 255.4 119.1 253.2 129.2 252.3 147.9 251.0 154.8 253.2 162.4 257.2 169.2 259.8 180.1 268.3 190.5 271.2 198.5 276.2 205.4 289.8 209.1 295.1 215.0 306.3 211.1 316.1 209.7 325.7 207.1 333.7 204.7 341.8 199.0 344.9 190.9 345.9 179.1 348.2 175.0 356.8 171.3 370.3 168.1 381.7 168.6 389.4 167.4 392.5 170.4 392.1 177.1 385.2 185.4 382.1 193.9 384.5 196.4 382.6 202.4 379.4 213.4 376.1 209.8 373.5 210.0 371.0 210.2 366.4 218.6 364.1 217.0 362.6 217.6 362.7 219.7 350.8 219.5 338.9 219.6 338.9 227.4 333.1 227.5 337.9 232.1 342.6 235.4 344.0 238.4 346.1 239.3 345.8 244.0 329.4 244.1 323.2 255.5 325.0 258.1 323.5 261.4 323.2 265.5 308.7 250.4 302.2 245.8 291.7 242.2 284.6 243.2 274.3 248.5 267.8 249.9 258.8 246.2 249.2 243.5 237.3 237.1 227.7 235.1 213.2 228.6 202.5 221.9 199.3 218.2 192.1 217.3 179.0 212.9 173.7 206.5 160.0 198.6 153.6 189.7 150.5 182.9 154.8 181.6 153.5 177.6 156.4 173.9 156.5 169.1 152.2 162.8 151.0 157.2 146.7 150.2 135.4 136.3 122.6 125.3 116.4 116.6 105.4 110.9 103.0 107.5 105.0 98.8 98.5 95.5 90.9 88.7 87.7 79.0 80.8 77.8 73.4 70.4 67.4 63.6 66.9 59.3 60.0 48.7 55.5 38.0 55.7 32.6 46.4 27.1 42.1 27.7 34.8 23.8 32.8 29.5 34.9 36.2 36.1 46.7 40.5 52.5 50.0 62.1 52.1 65.4 54.1 66.4 55.8 71.2 58.0 71.0 60.6 80.1 64.5 83.6 67.2 88.6 75.2 95.7 79.5 108.7 83.3 114.9 86.8 121.4 87.5 128.8 93.7 129.3 98.8 135.6 103.5 141.9 103.2 144.4 97.8 149.5 95.5 149.5 92.1 141.0 83.8 133.0 74.6 126.2 68.0 122.7 68.4 112.4 66.5 104.8 60.4 100.5 51.6 94.2 49.9 96.0 46.7 92.4 38.8 89.0 31.3 80.9 32.2 79.8 37.5 80.6 42.2 75.4 42.7 69.1 32.8 59.1 25.3 55.2 20.6 46.5 15.9 37.3 10.0 26.1 4.8 13.5Z","usa":"M-32.0 -35.0 428.5 -35.0 428.5 48.3 427.2 47.7 414.3 54.1 412.0 53.4 405.8 46.9 397.8 43.4 383.3 45.2 372.0 43.6 362.2 44.6 356.9 46.8 359.2 50.5 359.0 56.2 361.7 58.9 359.3 60.8 354.5 58.7 349.7 61.4 340.5 60.9 330.9 53.5 319.8 55.3 310.5 52.0 302.5 53.0 291.7 56.3 280.1 66.7 267.4 72.7 260.4 79.4 257.5 85.7 257.3 95.3 258.0 102.1 260.4 106.8 255.4 107.2 246.3 104.2 236.4 99.8 232.8 93.2 230.0 83.4 222.4 75.5 218.0 67.3 211.6 57.7 202.6 52.1 192.1 52.4 184.0 63.4 173.4 59.2 166.8 55.0 163.6 47.3 159.4 40.0 151.8 33.8 145.3 29.4 140.6 24.4 118.4 24.4 118.4 30.2 108.3 30.2 82.8 30.3 53.7 20.5 34.3 13.6 35.5 10.9 19.3 12.4 4.8 13.5 2.6 6.4 -5.7 -1.7 -11.6 -3.4 -13.0 -7.4 -20.2 -8.1 -24.8 -11.9 -32.0 -12.7Z","cam":"M323.2 265.5 323.5 261.4 325.0 258.1 323.2 255.5 329.4 244.1 345.8 244.0 346.1 239.3 344.0 238.4 342.6 235.4 337.9 232.1 333.1 227.5 338.9 227.4 338.9 219.6 350.8 219.5 362.7 219.7 362.6 230.8 361.6 246.6 365.4 246.6 369.6 249.1 370.7 247.0 374.4 248.8 368.6 254.2 362.5 258.1 361.6 260.8 362.6 263.5 360.0 267.1 357.0 267.9 357.7 269.6 355.3 271.1 350.9 274.7 350.5 276.7 343.9 274.3 336.0 274.0 330.1 271.2 323.2 265.5ZM362.7 219.7 362.6 217.6 364.1 217.0 366.4 218.6 371.0 210.2 373.5 210.0 373.5 212.1 375.9 212.1 375.7 215.9 373.6 222.0 374.8 224.1 373.4 229.2 374.2 230.5 372.7 237.6 370.2 241.3 367.9 241.7 365.4 246.6 361.6 246.6 362.6 230.8 362.7 219.7Z","vb":[0,0,402.9,273.0],"pt":{"mexico":[234.9,197.0],"slp":[211.3,158.9],"monterrey":[219.9,109.3],"nlaredo":[230.1,84.3],"sanantonio":[243.1,57.1],"chihuahua":[145.9,68.2],"juarez":[141.5,24.9],"ahumada":[140.6,40.3],"jimenez":[160.9,89.2],"torreon":[180.0,111.4],"zacatecas":[190.8,150.2],"aguascalientes":[194.5,162.7],"leon":[202.3,173.3],"queretaro":[218.8,180.7],"acambaro":[214.6,188.6],"saltillo":[211.0,113.1],"guerrero":[128.2,69.3],"casasgrandes":[122.1,43.8],"sanandres":[139.4,68.6],"parral":[151.4,92.0],"ojinaga":[167.4,55.2]},"vbN":[88.2,5.6,130.5,88.4]};
+INTRO_MAP.vbM = INTRO_MAP.vb.map((q, i) => q + (INTRO_MAP.vbN[i] - q) * .45);
 const ASPECT = { diaz: .8, remington: 1.5, miguel: 360 / 470, villa: 560 / 460, mad: 1.4 };
-const FIG = { timers: [], raf: 0, cur: null, until: 0, q: 0 };
-const later = (ms, fn) => { FIG.timers.push(setTimeout(fn, ms)); };
-function figStop() { FIG.timers.forEach(clearTimeout); FIG.timers = []; cancelAnimationFrame(FIG.raf); clearTimeout(FIG.q); }
-// a picture with a slow change (hold) keeps the stage until it has played out; the next one waits its turn
-function queueFig(f) { clearTimeout(FIG.q); const w = FIG.until - performance.now(); if (w > 0) FIG.q = setTimeout(() => showFig(f), w); else showFig(f); }
-// a photographic print laid on the newsprint, as big as its proportions allow in the stage
+const EASE = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+// reading pace: about 200 words a minute, counted from when the paragraph starts typing, plus a moment for the picture
+const READ = { wps: 3.3, look: 1.4, min: 3, max: 10 };
+
+// ---- the stage ----
+const ST = { timers: [], raf: 0, vraf: 0, q: 0, map: null, mapWrap: null, mapKind: null, vb: null, flags: {}, group: null, groupKey: null, proc: null, cur: null, until: 0 };
+const later = (ms, fn) => { ST.timers.push(setTimeout(fn, ms)); };
+function stageStop() { ST.timers.forEach(clearTimeout); ST.timers = []; cancelAnimationFrame(ST.raf); cancelAnimationFrame(ST.vraf); clearTimeout(ST.q); }
+function stageReset() { stageStop(); $('figStage').innerHTML = ''; $('figCap').classList.remove('on'); Object.assign(ST, { map: null, mapWrap: null, mapKind: null, vb: null, flags: {}, group: null, groupKey: null, proc: null, cur: null, until: 0 }); }
+function addLayer(cls, html) { const v = document.createElement('div'); v.className = 'layer ' + cls; if (html) v.innerHTML = html; $('figStage').appendChild(v); requestAnimationFrame(() => requestAnimationFrame(() => v.classList.add('on'))); return v; }
+// off the stage: prints slide away to the side, maps and diagrams fade
+function dismiss(el, slide) { if (!el) return; el.classList.add(slide ? 'out' : 'gone'); setTimeout(() => el.remove(), 1500); }
+function setCap(t, delay) { const c = $('figCap'); c.classList.remove('on'); later(delay, () => { c.textContent = t || ''; c.classList.toggle('on', !!t); }); }
+// a photographic print, as big as its proportions allow in the stage
 function printEl(parent, ar, o = {}) {
   const st = $('figStage'), W = st.clientWidth, H = st.clientHeight * (o.hk || .94), w = Math.min(W * .94, H * ar), h = w / ar;
-  const p = document.createElement('div'); p.className = 'print';
+  const p = document.createElement('div'); p.className = 'print enter';
   Object.assign(p.style, { width: w + 'px', height: h + 'px', left: (W - w) / 2 + 'px', top: (o.top != null ? o.top * st.clientHeight : (st.clientHeight - h) / 2) + 'px', '--rot': (o.rot || 0) + 'deg' });
-  const inner = document.createElement('div'); inner.className = 'inner'; p.appendChild(inner); parent.appendChild(p);
+  const inner = document.createElement('div'); inner.className = 'inner kb'; p.appendChild(inner); parent.appendChild(p);
   return inner;
 }
 function layer(inner, key, cls) { const im = new Image(); im.src = INTRO_IMG[key]; im.alt = ''; im.className = cls || ''; inner.appendChild(im); return im; }
+// halftone screens, drawn once at the start of the intro: ink dots on white on a 45° grid, dot area following the
+// picture's darkness. Laid over a print with multiply, they make it look printed in a newspaper.
+const HT = {};
+function halftone(key, cell = 4.2) {
+  if (HT[key] || !INTRO_IMG[key]) return;
+  const im = new Image();
+  im.onload = () => {
+    const W = im.naturalWidth, H = im.naturalHeight, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    const g = cv.getContext('2d'); g.drawImage(im, 0, 0);
+    const px = g.getImageData(0, 0, W, H).data, L = new Float32Array(W * H), hist = new Uint32Array(256);
+    for (let i = 0; i < W * H; i++) { const l = (px[i * 4] * .3 + px[i * 4 + 1] * .59 + px[i * 4 + 2] * .11) | 0; L[i] = l; hist[l]++; }
+    let lo = 0, hi = 255, acc = 0; for (; lo < 255 && (acc += hist[lo]) < W * H * .01; lo++); acc = 0; for (; hi > 0 && (acc += hist[hi]) < W * H * .01; hi--);
+    g.fillStyle = '#fff'; g.fillRect(0, 0, W, H); g.fillStyle = '#3d3630';
+    const ca = Math.SQRT1_2, R = Math.ceil(Math.hypot(W, H) / cell / 2) + 2;
+    for (let i = -R; i <= R; i++) for (let j = -R; j <= R; j++) {
+      const u = i * cell, v = j * cell, x = u * ca - v * ca + W / 2, y = u * ca + v * ca + H / 2;
+      if (x < -cell || y < -cell || x > W + cell || y > H + cell) continue;
+      const l = L[Math.min(H - 1, Math.max(0, y | 0)) * W + Math.min(W - 1, Math.max(0, x | 0))];
+      const dark = Math.pow(1 - Math.min(1, Math.max(0, (l - lo) / Math.max(1, hi - lo))), 1.35), r = cell * .6 * Math.sqrt(dark);
+      if (r < .3) continue;
+      g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+    }
+    HT[key] = cv; HT[key + ':url'] = cv.toDataURL('image/jpeg', .85);
+  };
+  im.src = INTRO_IMG[key];
+}
+function htLayer(inner, key, before) { const src = HT[key]; if (!src) return null; const cv = document.createElement('canvas'); cv.width = src.width; cv.height = src.height; cv.getContext('2d').drawImage(src, 0, 0); cv.className = 'fx mul'; inner.insertBefore(cv, before || null); return cv; }
 // Díaz's years: 1876 to 1910, with Manuel González's term (1880 to 1884) the one break
 function reignSVG() {
   const x = y => 16 + (y - 1876) / 34 * 268, ticks = [1877, 1884, 1888, 1892, 1896, 1900, 1904, 1910];
@@ -3295,15 +3334,15 @@ function reignSVG() {
     <line class="gap" x1="${x(1880)}" y1="17" x2="${x(1884)}" y2="17"/>
     <line class="run" x1="${x(1876)}" y1="17" x2="${x(1880)}" y2="17" pathLength="1"/>
     <line class="run r2" x1="${x(1884)}" y1="17" x2="${x(1910)}" y2="17" pathLength="1"/>
-    ${ticks.map((t, i) => `<line class="tick" style="animation-delay:${.3 + (t - 1876) / 34 * 2.2}s" x1="${x(t)}" y1="11" x2="${x(t)}" y2="23"/>`).join('')}
+    ${ticks.map(t => `<line class="tick" style="animation-delay:${1.2 + (t - 1876) / 34 * 2.14}s" x1="${x(t)}" y1="11" x2="${x(t)}" y2="23"/>`).join('')}
     <text x="${x(1876)}" y="36" text-anchor="middle">1876</text><text class="late" x="${x(1910)}" y="36" text-anchor="middle">1910</text></svg>`;
 }
 const pts = ks => ks.map(k => INTRO_MAP.pt[k].join(',')).join(' ');
 function mapSVG(kind) {
-  const M = INTRO_MAP, P = M.pt, vb = M.vb.join(' ');
+  const M = INTRO_MAP, P = M.pt;
   const dot = (k, r = 2.4) => `<circle class="city" cx="${P[k][0]}" cy="${P[k][1]}" r="${r}"/>`;
   const lab = (k, t, dx, dy, a = 'start') => `<text class="lb" text-anchor="${a}" x="${P[k][0] + dx}" y="${P[k][1] + dy}">${t}</text>`;
-  let s = `<svg class="map ${kind}" viewBox="${vb}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+  let s = `<svg class="map ${kind}" viewBox="${M.vb.join(' ')}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
     <defs><clipPath id="ov-${kind}"><ellipse cx="333" cy="118" rx="27" ry="34"/></clipPath></defs>
     <rect class="sea" x="-50" y="-50" width="600" height="400"/>
     <path class="usa" d="${M.usa}"/><path class="cam" d="${M.cam}"/><path class="mex" d="${M.mex}"/>
@@ -3320,8 +3359,8 @@ function mapSVG(kind) {
     // the north rises: bands from the Guerrero district and from around Chihuahua close on the border city
     const c = (a, b, bend) => { const A = P[a], B = P[b], mx = (A[0] + B[0]) / 2 + bend[0], my = (A[1] + B[1]) / 2 + bend[1]; return `M${A[0]} ${A[1]}Q${mx} ${my} ${B[0]} ${B[1]}`; };
     const J = P.juarez;
-    s += `<path class="arrow a1" d="${c('guerrero', 'casasgrandes', [-4, 0])}T${J[0] - 1.6} ${J[1] + 1.4}"/>
-      <path class="arrow a2" d="${c('sanandres', 'juarez', [4, 2])}"/>
+    s += `<path class="arrow" d="${c('guerrero', 'casasgrandes', [-4, 0])}T${J[0] - 1.6} ${J[1] + 1.4}"/>
+      <path class="arrow" d="${c('sanandres', 'juarez', [4, 2])}"/>
       <circle class="city n" cx="${P.chihuahua[0]}" cy="${P.chihuahua[1]}" r=".9"/>
       <circle class="burst" cx="${J[0]}" cy="${J[1]}" r="2.2"/><circle class="city n" cx="${J[0]}" cy="${J[1]}" r="1"/>
       <text class="lb n" x="${J[0] + 2.2}" y="${J[1] + 3.4}">Ciudad Juárez</text><text class="lb n" x="${P.chihuahua[0] + 1.8}" y="${P.chihuahua[1] + 1.2}">Chihuahua</text>
@@ -3330,8 +3369,7 @@ function mapSVG(kind) {
   }
   return s + '</svg>';
 }
-const EASE = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-// the camera's round: a plate goes in, is exposed, comes up in the tray, its print goes to the paper
+// the camera's round: a plate goes in, is exposed, comes up in the tray, its print goes to the paper in halftone
 function processSVG() {
   return `<svg class="proc" viewBox="0 0 400 300" aria-hidden="true">
     <defs><linearGradient id="pg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3b4458"/><stop offset=".55" stop-color="#151922"/><stop offset=".7" stop-color="#46506a"/><stop offset="1" stop-color="#1a1e28"/></linearGradient>
@@ -3343,127 +3381,184 @@ function processSVG() {
       <path d="M80 18 L112 26 L112 50 L80 58 Z" fill="#1d1916"/><circle cx="118" cy="38" r="15" fill="#17130f" stroke="#c99c4a" stroke-width="3"/><circle cx="118" cy="38" r="8" fill="#2a3550"/><circle class="flash" cx="118" cy="38" r="30" fill="#fff6dc"/></g>
     <path class="flow" d="M104 66 H170"/><path class="flow" d="M218 112 V160"/><path class="flow" d="M262 214 H300"/>
     <g transform="translate(150,170)"><rect width="118" height="74" rx="6" fill="#e9e4d8" stroke="#8a8478" stroke-width="2"/><rect x="8" y="8" width="102" height="58" rx="3" fill="#cfc6b4"/><ellipse class="glow" cx="59" cy="37" rx="80" ry="60" fill="url(#safe)"/>
-      <g class="neg" transform="translate(30,16)"><rect width="58" height="42" fill="#d9d4c8"/><g class="img" clip-path="url(#prc)"><image href="${INTRO_IMG.mad_p}" width="58" height="42" preserveAspectRatio="xMidYMid slice"/></g></g></g>
+      <g class="neg" transform="translate(30,16)"><rect width="58" height="42" fill="#d9d4c8"/><g class="img" clip-path="url(#prc)"><image href="${INTRO_IMG.game}" width="58" height="42" preserveAspectRatio="xMidYMid slice"/></g></g></g>
     <g class="paper" transform="translate(304,150)"><rect width="84" height="112" fill="#efe4c8" stroke="#3a2c20" stroke-width="1.4"/><text x="42" y="17" text-anchor="middle" class="mast">EL IMPARCIAL</text><line x1="6" y1="22" x2="78" y2="22" stroke="#3a2c20"/>
       ${[0, 1, 2, 3, 4, 5].map(i => `<line x1="8" y1="${82 + i * 5}" x2="${76 - (i % 3) * 7}" y2="${82 + i * 5}" stroke="#7a6a58" stroke-width="1.6"/>`).join('')}
-      <g class="pr" transform="translate(13,28)"><rect width="58" height="42" fill="#f6efdf"/><image href="${INTRO_IMG.mad_p}" width="58" height="42" preserveAspectRatio="xMidYMid slice" class="half"/></g></g>
+      <g class="pr" transform="translate(13,28)"><rect width="58" height="42" fill="#f6efdf"/><image href="${HT['game:url'] || INTRO_IMG.game}" width="58" height="42" preserveAspectRatio="xMidYMid slice"/></g></g>
   </svg>`;
 }
-function showFig(f) {
-  const stage = $('figStage'), cap = $('figCap');
-  figStop(); FIG.cur = f; FIG.until = performance.now() + (f.hold || 0);
-  const old = [...stage.children];
-  const v = document.createElement('div'); v.className = 'vis'; stage.appendChild(v);
-  if (f.map) {
-    v.innerHTML = mapSVG(f.map);
-    const svg = v.querySelector('svg');
-    if (f.map === 'route') {
-      const line = svg.querySelector('.route'), tr = svg.querySelector('.train'), t0 = performance.now(), dur = 2600;
-      const step = now => { const t = Math.min(1, (now - t0 - 600) / dur); if (t >= 0) { const e = EASE(t), p = line.getPointAtLength(e * line.getTotalLength()); line.style.strokeDashoffset = 1 - e; tr.setAttribute('cx', p.x); tr.setAttribute('cy', p.y); } if (t < 1) FIG.raf = requestAnimationFrame(step); };
-      FIG.raf = requestAnimationFrame(step);
-    } else {
-      const a = INTRO_MAP.vb, b = INTRO_MAP.vbN, t0 = performance.now(), dur = 1900;
-      const step = now => { const t = Math.min(1, Math.max(0, (now - t0 - 400) / dur)), e = EASE(t); svg.setAttribute('viewBox', a.map((q, i) => q + (b[i] - q) * e).join(' ')); if (t < 1) FIG.raf = requestAnimationFrame(step); else svg.classList.add('zoomed'); };
-      FIG.raf = requestAnimationFrame(step);
-      later(500, () => svg.classList.add('tint'));
-      // the arrows draw in once the map has closed on the north; heads follow the line's last stretch
-      svg.querySelectorAll('.arrow').forEach((a, i) => {
-        const L = a.getTotalLength(), e = a.getPointAtLength(L), q = a.getPointAtLength(L - 2), ang = Math.atan2(e.y - q.y, e.x - q.x) * 180 / Math.PI;
-        a.style.strokeDasharray = a.style.strokeDashoffset = L; a.style.animationDelay = (2.5 + i * .5) + 's';
-        a.insertAdjacentHTML('afterend', `<path class="head" style="animation-delay:${3.7 + i * .5}s" transform="translate(${e.x} ${e.y}) rotate(${ang})" d="M1 0L-3.2 -2.2L-2.2 0L-3.2 2.2z"/>`);
-      });
-    }
-  } else if (f.process) {
-    v.innerHTML = processSVG(); v.classList.add('procv');
-  } else if (f.photo) {
-    if (f.archive) {
-      // the archive: prints from the decades ahead scattered across the table, then one of the best known on top
-      const st = stage, W = st.clientWidth, H = st.clientHeight;
-      for (let i = 0; i < f.archive; i++) {
-        const t = document.createElement('img'); t.src = INTRO_IMG['arch' + i]; t.alt = ''; t.className = 'thumb';
-        const cx = (i % 4 + .5) / 4 + (urnd() - .5) * .08, cy = (Math.floor(i / 4) + .5) / 3 + (urnd() - .5) * .1;
-        Object.assign(t.style, { left: (cx * W - W * .14) + 'px', top: (cy * H - H * .14) + 'px', width: W * .28 + 'px', '--rot': ((urnd() - .5) * 16) + 'deg', transitionDelay: (i * .12) + 's' });
-        v.appendChild(t);
-      }
-      requestAnimationFrame(() => requestAnimationFrame(() => v.querySelectorAll('.thumb').forEach(t => t.classList.add('in'))));
-    }
-    const inner = printEl(v, ASPECT[f.photo], f.reign ? { hk: .76, top: .02, rot: -.8 } : f.archive ? { hk: .78, rot: 1.2 } : { rot: f.game ? 0 : -.6 });
-    const print = inner.parentNode; if (f.archive) { print.classList.add('late'); later(f.archive * 120 + 500, () => print.classList.add('in')); }
-    layer(inner, f.photo, 'real');
-    const pa = f.paint && layer(inner, f.paint, 'paint'), ga = f.game && INTRO_IMG[f.game] && layer(inner, f.game, 'paint game');
-    inner.classList.add('kb');
-    const t1 = f.archive ? f.archive * 120 + 1700 : f.game ? 900 : 1200;
-    if (pa) later(t1, () => { pa.style.opacity = Math.min(1, f.s); });
-    if (ga) later(t1 + 2600, () => { ga.style.opacity = 1; cap.classList.remove('on'); });
-    if (f.reign) v.insertAdjacentHTML('beforeend', reignSVG());
-  }
-  cap.classList.remove('on');
-  later(f.archive ? f.archive * 120 + 900 : 260, () => { cap.textContent = f.cap || ''; cap.classList.toggle('on', !!f.cap); });
-  requestAnimationFrame(() => v.classList.add('on'));
-  setTimeout(() => old.forEach(o => o.remove()), 800);
+// the map: built once per page, then only moved (viewBox) and restyled
+function viewTo(name, dur) {
+  const svg = ST.map, a = ST.vb.slice(), b = INTRO_MAP[name], t0 = performance.now();
+  cancelAnimationFrame(ST.vraf);
+  const step = now => { const t = Math.min(1, (now - t0) / dur), e = EASE(t); ST.vb = a.map((q, i) => q + (b[i] - q) * e); svg.setAttribute('viewBox', ST.vb.join(' ')); if (t < 1) ST.vraf = requestAnimationFrame(step); };
+  ST.vraf = requestAnimationFrame(step);
 }
-const IN = { page: 0, typing: false, skip: false, cover: false, turning: false };
+function drawRoute(delay) {
+  const line = ST.map.querySelector('.route'), tr = ST.map.querySelector('.train'), L = line.getTotalLength(), t0 = performance.now() + delay, dur = 3400;
+  const step = now => { const t = Math.min(1, (now - t0) / dur); if (t >= 0) { const e = EASE(t), p = line.getPointAtLength(e * L); line.style.strokeDashoffset = 1 - e; tr.style.opacity = 1; tr.setAttribute('cx', p.x); tr.setAttribute('cy', p.y); } if (t < 1) ST.raf = requestAnimationFrame(step); };
+  ST.raf = requestAnimationFrame(step);
+}
+function stageMap(m) {
+  if (!m) { if (ST.mapWrap) { dismiss(ST.mapWrap); ST.map = ST.mapWrap = ST.mapKind = null; } return; }
+  if (ST.mapKind !== m.kind) {
+    if (ST.mapWrap) dismiss(ST.mapWrap);
+    ST.mapWrap = addLayer('maplayer', mapSVG(m.kind)); ST.map = ST.mapWrap.querySelector('svg'); ST.mapKind = m.kind; ST.vb = INTRO_MAP.vb.slice(); ST.flags = {};
+    // arrows are measured now and drawn later, each head following its line's last stretch
+    ST.map.querySelectorAll('.arrow').forEach((a, i) => {
+      const L = a.getTotalLength(), e = a.getPointAtLength(L), q = a.getPointAtLength(L - 2), ang = Math.atan2(e.y - q.y, e.x - q.x) * 180 / Math.PI;
+      a.style.strokeDasharray = a.style.strokeDashoffset = L; a.style.animationDelay = (3.4 + i * .6) + 's';
+      a.insertAdjacentHTML('afterend', `<path class="head" style="animation-delay:${5.1 + i * .6}s" transform="translate(${e.x} ${e.y}) rotate(${ang})" d="M1 0L-3.2 -2.2L-2.2 0L-3.2 2.2z"/>`);
+    });
+  }
+  const svg = ST.map, F = ST.flags;
+  svg.classList.toggle('faint', !!m.faint);
+  if (m.view) viewTo(m.view, m.dur || 2600);
+  if (m.route && !F.route) { F.route = true; svg.classList.add('route-on'); drawRoute(1500); }
+  if (m.north && !F.north) { F.north = true; later(400, () => svg.classList.add('tint')); svg.classList.add('north-on', 'arrows-on'); }
+}
+function stagePrint(f, fig) {
+  const key = f ? f.photo : null;
+  if (ST.groupKey === key) return;
+  if (ST.group) dismiss(ST.group, true);
+  ST.group = null; ST.groupKey = key;
+  if (!f) { setCap('', 0); return; }
+  const g = addLayer('pgroup');
+  ST.group = g;
+  const land = fig.archive ? fig.archive * 150 + 900 : 250;
+  if (fig.archive) {
+    // the archive: prints from the decades ahead scattered across the table, then one of the best known on top
+    const W = $('figStage').clientWidth, H = $('figStage').clientHeight;
+    for (let i = 0; i < fig.archive; i++) {
+      const t = document.createElement('img'); t.src = INTRO_IMG['arch' + i]; t.alt = ''; t.className = 'thumb';
+      const cx = (i % 4 + .5) / 4 + (urnd() - .5) * .08, cy = (Math.floor(i / 4) + .5) / 3 + (urnd() - .5) * .1;
+      Object.assign(t.style, { left: (cx * W - W * .14) + 'px', top: (cy * H - H * .14) + 'px', width: W * .28 + 'px', '--rot': ((urnd() - .5) * 16) + 'deg', transitionDelay: (.5 + i * .15) + 's' });
+      g.appendChild(t);
+    }
+    requestAnimationFrame(() => requestAnimationFrame(() => g.querySelectorAll('.thumb').forEach(t => t.classList.add('in'))));
+  }
+  const inner = printEl(g, ASPECT[f.photo], f.reign ? { hk: .74, top: .03, rot: -.8 } : fig.archive ? { hk: .78, rot: 1.2 } : { rot: f.game ? .4 : -.6 });
+  const print = inner.parentNode;
+  later(land, () => print.classList.add('in'));
+  layer(inner, f.photo);
+  const pa = f.paint && layer(inner, f.paint, 'fx'), ha = f.half && htLayer(inner, f.photo);
+  const ga = f.game && INTRO_IMG[f.game] && layer(inner, f.game, 'fx'), gh = ga && f.gameHalf && htLayer(inner, f.game);
+  if (f.reign) g.insertAdjacentHTML('beforeend', reignSVG());
+  // the slow changes: painted over, then printed in halftone, then the game's own picture
+  const tP = land + 1900;
+  if (pa) later(tP, () => { pa.style.opacity = Math.min(1, f.s); });
+  if (ha) later(tP + 2800, () => { ha.style.opacity = f.half; });
+  if (ga) later(tP + 5400, () => { ga.style.opacity = 1; if (gh) gh.style.opacity = f.gameHalf; $('figCap').classList.remove('on'); });
+  setCap(f.cap, land + 700);
+}
+function stageProcess(on) {
+  if (!on) { if (ST.proc) { dismiss(ST.proc); ST.proc = null; } return; }
+  if (!ST.proc) ST.proc = addLayer('procv', processSVG());
+}
+function showFig(fig) {
+  stageStop(); ST.cur = fig; ST.until = performance.now() + (fig.hold || 0);
+  stageMap(fig.map);
+  stagePrint(fig.print, fig);
+  stageProcess(fig.process);
+  if (fig.process) setCap('', 0);
+}
+// a picture with a slow change (hold) keeps the stage until it has played out; the next one waits its turn
+function queueFig(f) { clearTimeout(ST.q); const w = ST.until - performance.now(); if (w > 0) ST.q = setTimeout(() => showFig(f), w); else showFig(f); }
+
+// ---- the text ----
+// state: 'typing' (a click finishes the block), 'wait' (reading time; Continue goes on), 'done' (Continue turns the page)
+const IN = { page: 0, typing: false, state: 'done', skip: false, fast: false, next: null, cover: false, turning: false };
+function readWait(ms) {
+  return new Promise(res => {
+    const done = () => { clearTimeout(t); clearInterval(iv); IN.next = null; $('bIntro').classList.remove('show'); res(); };
+    const t = setTimeout(done, ms), iv = setInterval(() => { if (IN.skip) done(); }, 100); IN.next = done; $('bIntro').classList.add('show');
+  });
+}
 function introPage(i) {
   const box = $('introText'); box.innerHTML = '';
   document.querySelectorAll('#introFoot .dots span').forEach((d, k) => d.classList.toggle('on', k === i));
   $('bIntro').classList.remove('show', 'pulse');
+  stageReset();
   const parts = [];
   for (const b of INTRO[i]) {
     let pt;
-    if (b.dl || b.p) { const el = document.createElement(b.dl ? 'div' : 'p'); if (b.dl) el.className = 'dl'; box.appendChild(el); pt = { el, text: b.dl || b.p, cps: b.dl ? 90 : 62 }; }
+    if (b.dl || b.p) { const el = document.createElement(b.dl ? 'div' : 'p'); if (b.dl) el.className = 'dl'; box.appendChild(el); pt = { el, text: b.dl || b.p, cps: b.dl ? 80 : 56, para: !!b.p }; }
     else if (b.cut) { const el = document.createElement('div'); el.className = 'cut'; el.style.opacity = 0; box.appendChild(el); pt = { el, show: true }; }
     else if (b.glass) { const el = document.createElement('div'); el.className = 'glass'; el.setAttribute('aria-label', b.glass + ' glass plates'); for (let k = 0; k < b.glass; k++) el.appendChild(document.createElement('i')); box.appendChild(el); pt = { el, glass: true }; }
     else if (b.keys) { const el = document.createElement('div'); el.className = 'keys'; b.keys.forEach(([k, v]) => { const kb = document.createElement('b'), sp = document.createElement('span'); kb.textContent = k; sp.textContent = v; el.append(kb, sp); }); box.appendChild(el); pt = { el, keys: true }; }
     pt.fig = b.fig; parts.push(pt);
   }
   const caret = document.createElement('span'); caret.className = 'caret';
-  IN.typing = true; IN.skip = false; FIG.until = 0;
+  IN.typing = true; IN.state = 'typing'; IN.skip = false; IN.fast = false;
   const narrow = () => $('introBody').clientWidth < 700;
   return (async () => {
-    let lastFig = null;
-    for (const pt of parts) {
+    let lastFig = null, t0 = performance.now();
+    for (let k = 0; k < parts.length; k++) {
+      const pt = parts[k];
       if (pt.fig) { lastFig = pt.fig; if (!IN.skip) queueFig(pt.fig); }
+      if (pt.text && !pt.para) t0 = performance.now(); // a dispatch's reading time starts at its dateline
       if (narrow() && !IN.skip) pt.el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       if (pt.text) {
-        let n = 0, t0 = performance.now();
-        pt.el.textContent = ''; pt.el.appendChild(caret);
+        let n = 0; const ts = performance.now();
+        if (pt.para && !parts[k - 1]?.text) t0 = ts;
+        pt.el.textContent = ''; pt.el.appendChild(caret); IN.state = 'typing'; IN.fast = false;
         while (n < pt.text.length) {
           await new Promise(r => requestAnimationFrame(r));
-          n = IN.skip ? pt.text.length : Math.min(pt.text.length, Math.floor((performance.now() - t0) / 1000 * pt.cps));
+          n = IN.skip || IN.fast ? pt.text.length : Math.min(pt.text.length, Math.floor((performance.now() - ts) / 1000 * pt.cps));
           pt.el.textContent = pt.text.slice(0, n); pt.el.appendChild(caret);
         }
-        if (!IN.skip) await sleep(pt.el.className === 'dl' ? 120 : 260);
+        IN.fast = false;
+        if (IN.skip) continue;
+        if (!pt.para) { await sleep(160); continue; }
+        // time to read it and look at the picture, unless this is the page's last word
+        if (k < parts.length - 1) {
+          const words = pt.text.split(/\s+/).length, spent = (performance.now() - t0) / 1000;
+          IN.state = 'wait';
+          await readWait(1000 * Math.min(READ.max, Math.max(READ.min, words / READ.wps - spent * .6 + READ.look)));
+        }
       } else if (pt.show) pt.el.style.opacity = 1;
-      else if (pt.glass) { for (const g of pt.el.children) { g.classList.add('in'); if (!IN.skip) await sleep(260); } }
+      else if (pt.glass) { for (const g of pt.el.children) { g.classList.add('in'); if (!IN.skip) await sleep(320); } }
       else if (pt.keys) { pt.el.classList.add('show'); }
     }
     // skipped through: the page's last picture is the one left showing
-    if (IN.skip && lastFig && FIG.cur !== lastFig) { if (FIG.until > performance.now()) queueFig(lastFig); else showFig(lastFig); }
-    IN.typing = false;
+    if (IN.skip && lastFig && ST.cur !== lastFig) showFig(lastFig);
+    IN.typing = false; IN.state = 'done';
     $('bIntro').classList.add('show', 'pulse'); $('bIntro').focus({ preventScroll: true });
     if (narrow()) $('introFoot').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   })();
 }
 async function runIntro() {
-  const el = $('intro'); el.hidden = false; void el.offsetWidth; el.classList.add('show');
-  await sleep(600); IN.cover = true;
+  // the intro's backdrop is opaque from its first frame, so the town is never seen before the front room
+  const el = $('intro');
+  el.querySelector('.dots').innerHTML = INTRO.map(() => '<span></span>').join('');
+  el.hidden = false; $('start').hidden = true; IN.cover = true;
+  ['villa', 'mad', 'game'].forEach((k, i) => setTimeout(() => halftone(k), 300 + i * 200));
+  void el.offsetWidth; el.classList.add('show');
+  await sleep(500);
   IN.page = 0; introPage(0);
 }
-$('introSheet').addEventListener('click', e => { if (IN.typing && e.target !== $('bIntro')) IN.skip = true; });
+$('introSheet').addEventListener('click', e => { if (IN.state === 'typing' && !e.target.closest('#bIntro')) IN.fast = true; });
 window.addEventListener('keydown', e => {
-  if ($('intro').hidden || !IN.typing) return;
-  if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); IN.skip = true; }
+  if ($('intro').hidden) return;
+  if (e.key !== ' ' && e.key !== 'Enter') return;
+  if (e.target === $('bIntro')) return; // the button's own click handles it
+  e.preventDefault();
+  if (IN.state === 'typing') IN.fast = true;
+  else if (IN.state === 'wait' && IN.next) IN.next();
 });
 $('bIntro').onclick = async () => {
-  if (IN.typing || IN.turning) return;
+  if (IN.state === 'wait' && IN.next) { IN.next(); return; }
+  if (IN.state !== 'done' || IN.turning) return;
   IN.turning = true;
   $('bIntro').classList.remove('show', 'pulse');
   const sheet = $('introSheet');
-  sheet.classList.add('turn'); await sleep(350);
+  sheet.classList.add('turn'); await sleep(450);
   if (IN.page < INTRO.length - 1) { IN.page++; sheet.classList.remove('turn'); IN.turning = false; introPage(IN.page); return; }
-  // into the front room
-  figStop(); ROOM.enter(); IN.cover = false;
-  const el = $('intro'); el.classList.remove('show'); await sleep(650); el.hidden = true; sheet.classList.remove('turn'); $('figStage').innerHTML = '';
+  // into the front room: draw it a couple of times under the cover, then lift the cover
+  stageStop(); IN.cover = false; ROOM.enter();
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const el = $('intro'); el.classList.add('leave'); await sleep(950);
+  el.hidden = true; el.classList.remove('show', 'leave'); sheet.classList.remove('turn'); stageReset();
 };
 
 // ---------- zones: parts of the town built only while you're near them ----------
@@ -3739,7 +3834,9 @@ $('bStart').disabled = false;
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { watchFace = null; paintPlates(); });
 streamZones(0, true);
 requestAnimationFrame(frame);
-window.__casasola = { zones: ZONES, ROOM, IN, INTRO, MIGUEL_LINES, toStreet: () => { $('start').hidden = true; $('intro').hidden = true; IN.cover = false; state.started = true; state.room = false; state.busy = false; Object.assign(ROOM, { hasCam: true, open: true, left: true, talked: true, camDrop: 0 }); if (ROOM.live) ROOM.live.camOnTable.visible = ROOM.live.holders.visible = false; Object.assign(player, { x: 1.5, z: .4, yaw: -Math.PI / 2, pitch: 0 }); host.classList.remove('nocam'); $('dialog').classList.remove('low'); }, scene, people, renderer, renderView, camera, sun, LIGHT, rtMain, state, player, startColumn, scoreFrame, syncCapCam, shoot, toggleRaise, develop, CLOCK, clockNow, raise, FP, tier: () => tier, stepQuality };
+// the town is only drawn behind the title long enough to warm up its shaders; after that nothing renders until the front room
+setTimeout(() => { if (!state.started) IN.cover = true; }, 2500);
+window.__casasola = { zones: ZONES, ROOM, IN, ST, INTRO, MIGUEL_LINES, toStreet: () => { $('start').hidden = true; $('intro').hidden = true; IN.cover = false; state.started = true; state.room = false; state.busy = false; Object.assign(ROOM, { hasCam: true, open: true, left: true, talked: true, camDrop: 0 }); if (ROOM.live) ROOM.live.camOnTable.visible = ROOM.live.holders.visible = false; Object.assign(player, { x: 1.5, z: .4, yaw: -Math.PI / 2, pitch: 0 }); host.classList.remove('nocam'); $('dialog').classList.remove('low'); }, scene, people, renderer, renderView, camera, sun, LIGHT, rtMain, state, player, startColumn, scoreFrame, syncCapCam, shoot, toggleRaise, develop, CLOCK, clockNow, raise, FP, tier: () => tier, stepQuality };
 
 window.__casasola.kit = { THREE: typeof THREE === 'undefined' ? undefined : THREE, C: typeof C === 'undefined' ? undefined : C, OUTLINE: typeof OUTLINE === 'undefined' ? undefined : OUTLINE, IMG: typeof IMG === 'undefined' ? undefined : IMG, tex: typeof tex === 'undefined' ? undefined : tex, patch: typeof patch === 'undefined' ? undefined : patch, FRAG: typeof FRAG === 'undefined' ? undefined : FRAG, box: typeof box === 'undefined' ? undefined : box, world: typeof world === 'undefined' ? undefined : world, warpS: typeof warpS === 'undefined' ? undefined : warpS, slopeS: typeof slopeS === 'undefined' ? undefined : slopeS, warpP: typeof warpP === 'undefined' ? undefined : warpP, HORSES: typeof HORSES === 'undefined' ? undefined : HORSES, people: typeof people === 'undefined' ? undefined : people, state: typeof state === 'undefined' ? undefined : state, TIER: typeof TIER === 'undefined' ? undefined : TIER };
 return window.__casasola;
