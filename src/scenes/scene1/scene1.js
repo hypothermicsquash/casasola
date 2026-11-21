@@ -1513,7 +1513,7 @@ seed = 91;
   for (let x = -12; x > -26; x -= 1.6) { if (rnd() < .14) continue; const [ax, az] = offPt(roadC, x, roadHW(x) + .5), [bx, bz] = offPt(roadC, x - 1.6, roadHW(x - 1.6) + .5), hh = .55 + rnd() * .45; segBox(env, ax, az, bx, bz, hh / 2, hh, .55 + rnd() * .15, 0xb9a585, { surf: 'ballast', scale: .42, tint: .55, ext: .08 }); if (rnd() < .4) bush(env, (ax + bx) / 2, (az + bz) / 2 + .6, .7); }
 }
 
-// ---------- telegraph and telephone lines: crossarms, braces, green glass insulators, sagging wire ----------
+// ---------- telegraph and telephone lines: one crossarm each, braces, green glass insulators, sagging wire ----------
 const wirePos = [];
 const insMat = envMat(0x3f8a6a, 'turq', { tint: .9, grime: 0 }), poleMat = envMat(0x7a6650, 'woodgray', { grain: 0, tint: .35 }), armMat = envMat(0x7a6650, 'woodgray', { grain: 1, tint: .35 });
 function telePole(x, z, yaw, h, arms, perArm, o = {}) {
@@ -1535,16 +1535,6 @@ function telePole(x, z, yaw, h, arms, perArm, o = {}) {
   G.updateMatrixWorld(true);
   return tips.map(t => t.applyMatrix4(G.matrixWorld));
 }
-function hFrame(x, z, yaw, h) {
-  const G = new THREE.Group(); G.position.set(x, terrainH(x, z), z); G.rotation.y = yaw; env.add(G);
-  for (const s of [-1, 1]) box(.26, h + .7, .26, 0, G, 0, h / 2 - .35, s * 1.4, { mat: poleMat });
-  for (const y of [h - .5, h - 1.6]) box(.16, .2, 4.2, 0, G, 0, y, 0, { mat: armMat });
-  for (const s of [-1, 1]) { const b = box(.1, 3.4, .1, 0, G, 0, h - 3.2, 0, { mat: armMat }); b.rotation.x = s * .72; }
-  const tips = [];
-  for (const y of [h - .5, h - 1.6]) for (const zz of [-1.9, -.7, .7, 1.9]) { cyl(.05, .06, .16, 0, G, 0, y + .16, zz, { seg: 6, mat: insMat, cast: false }); tips.push(new THREE.Vector3(0, y + .22, zz)); }
-  G.updateMatrixWorld(true);
-  return tips.map(t => t.applyMatrix4(G.matrixWorld));
-}
 function span(A, B, sag, segs = 10) {
   const n = Math.min(A.length, B.length);
   for (let i = 0; i < n; i++) {
@@ -1557,12 +1547,14 @@ function span(A, B, sag, segs = 10) {
   }
 }
 seed = 101;
-{ // the railway telegraph, beyond the second line so the riders' strip is clear: four crossarms of glass, marching off in both directions
+{ // the railway telegraph, beyond the second line so the riders' strip is clear: a small town's line, one crossarm,
+  // four wires past the town and two out on the plain, marching off in both directions
   let prev = null;
+  const outer = T => [T[0], T[T.length - 1]];
   for (let x = -600; x <= 1080; x += 15) {
     const near = x > -90 && x < 330, [px, pz] = offPt(trackZ, x, 9.4);
-    const tips = telePole(px, pz, yawOf(trackZ, x), 7.4, near ? 4 : 2, near ? 6 : 4, { ins: near || Math.abs(x - 120) < 500 });
-    if (prev) span(prev, tips, near ? .42 : .5, near ? 10 : 6);
+    const tips = telePole(px, pz, yawOf(trackZ, x), 7.4, 1, near ? 4 : 2, { ins: near || Math.abs(x - 120) < 500 });
+    if (prev) { const n = Math.min(prev.length, tips.length); span(n < prev.length ? outer(prev) : prev, n < tips.length ? outer(tips) : tips, near ? .42 : .5, near ? 10 : 6); }
     prev = tips;
   }
 }
@@ -1575,11 +1567,11 @@ seed = 101;
     const inTown = x >= -8 && x <= 160;
     const [px, pz] = inTown ? [x, warpS(x, 3.9)] : offPt(roadC, x, roadHW(x) - 1.3 + (x > 160 ? 2.6 : 0));
     const yaw = inTown ? -Math.atan(slopeS(x, 3.9)) : yawOf(roadC, x);
-    const tips = x === 88 ? hFrame(px, pz, yaw, 7.6) : telePole(px, pz, yaw, 7.6, 2, 4, { armL: 1.8 });
+    const tips = telePole(px, pz, yaw, 7.6, 1, 2, { armL: 1.4 });
     if (prev) span(prev, tips, .45);
     prev = tips;
     // service wires across to the facades
-    if (inTown && [16, 52, 88, 124].includes(x)) { const a = tips[0], b = new THREE.Vector3(x + 1.5, 4.0, warpS(x + 1.5, -5.1)); span([a], [b], .3, 8); }
+    if (inTown && [16, 88].includes(x)) { const a = tips[0], b = new THREE.Vector3(x + 1.5, 4.0, warpS(x + 1.5, -5.1)); span([a], [b], .3, 8); }
   });
 }
 const wireGeo = new THREE.BufferGeometry(); wireGeo.setAttribute('position', new THREE.Float32BufferAttribute(wirePos, 3));
