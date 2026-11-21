@@ -1143,22 +1143,37 @@ function lpVariant(base, id, o) {
   const b = lpBy(base), D = Object.assign({}, b, o, { id, face: Object.assign({}, b.face, o.face || {}), skull: Object.assign({}, b.skull, o.skull || {}), expr: o.expr || b.expr, pose: Object.assign({}, b.pose, o.pose || {}) });
   LPP.DRAFTS.push(D); return D;
 }
-// The face atlas holds 31 designs (8 expression tiles each; the last tile is the white one), so scene 1 adds only three
-// and reuses the slots of designs it never shows standing (the Maderista rider, the federal soldier, Madero on foot).
+// Variants that keep their base's face take no space in the face atlas (faceOf); the atlas holds 31 distinct faces.
+function lpVariant(base, id, o) {
+  const b = lpBy(base), D = Object.assign({}, b, { faceOf: o.face ? undefined : base }, o, { id, face: Object.assign({}, b.face, o.face || {}), skull: Object.assign({}, b.skull, o.skull || {}), expr: o.expr || b.expr, pose: Object.assign({}, b.pose, o.pose || {}) });
+  LPP.DRAFTS.push(D); return D;
+}
 lpVariant('clerk', 'jefe', { name: 'Jefe político', important: true, coat: 0x2b2b33, lapel: 0x3a3a44, pants: 0x2b2b33, hat: 'bowler', hatC: 0x161414, face: { glasses: false, mustache: 'full' } });
 lpVariant('rebel', 'rural', { name: 'Rural', important: false, shirt: 0x9a8f78, pants: 0x8a7f68, hatC: 0x7a6a4e, hatC2: 0x6e5e44, neckerchief: 0x2a2a2a, bandolier: 0x5a4030 });
 // in the saddle: thighs round the barrel, hands on the reins; Madero waves
 const RIDE = { hipR: [-1.2, 0, -.45], hipL: [-1.2, 0, .45], knR: [1.0, 0, 0], knL: [1.0, 0, 0], shR: [-.4, 0, -.1], shL: [-.4, 0, .1], elR: [-.8, 0, 0], elL: [-.8, 0, 0] };
-lpVariant('soldadera', 'soldadera_ride', { important: true, pose: RIDE });
-function lpInto(slot, base, id, o) { const k = LPP.DRAFTS.findIndex(D => D.id === slot), D = lpVariant(base, id, o); LPP.DRAFTS.pop(); LPP.DRAFTS[k] = D; return D; }
-lpInto('rebel', 'rebel', 'rider1', { pose: RIDE });
-lpInto('federal', 'rider1', 'rider2', { shirt: 0xf2ebd9, pants: 0x9a8a68, hatC: 0xd8bb78, hatC2: 0xc4a463, neckerchief: 0x2e4a6e, pose: RIDE });
-lpInto('madero', 'madero', 'madero_ride', { pose: Object.assign({}, RIDE, { shR: [0, 0, -2.6], elR: [-.3, 0, 0] }) });
-if (LPP.DRAFTS.length > 31) console.warn('people: more designs than the face atlas holds', LPP.DRAFTS.length);
+const SADDLE = { important: true, pose: RIDE, cane: null };
+lpVariant('rebel', 'rider1', SADDLE);
+lpVariant('rebel', 'rider2', Object.assign({ shirt: 0xf2ebd9, pants: 0x9a8a68, hatC: 0xd8bb78, hatC2: 0xc4a463, neckerchief: 0x2e4a6e }, SADDLE));
+lpVariant('campesino2', 'rider3', Object.assign({ bandolier: 0x8a6a3a, hatC: 0xb89a5c, pants: 0x6b4f36 }, SADDLE));
+lpVariant('campesino3', 'rider4', Object.assign({ bandolier: 0x6d4b30, shirt: 0xc8b48c, pants: 0x3c4b66 }, SADDLE));
+lpVariant('worker2', 'rider5', Object.assign({ bandolier: 0x8a6a3a, shirt: 0x56677e, sleeve: 0x56677e, placket: 0x4a5a70, hat: 'charro', hatC: 0x6e5a3e, brim: 1.8 }, SADDLE));
+lpVariant('madero', 'madero_ride', Object.assign({}, SADDLE, { pose: Object.assign({}, RIDE, { shR: [0, 0, -2.6], elR: [-.3, 0, 0] }) }));
+lpVariant('soldadera', 'soldadera_ride', SADDLE);
+lpVariant('soldadera', 'soldadera2', { skirt: 0x2f4180, hemC: 0x22305e, rebozo: 0x8a3a2a, rebozoC: 0xc07a5a });
+lpVariant('soldadera', 'soldadera3', { skirt: 0x4b5b3a, hemC: 0x3a462c, rebozo: 0x1e1e24, rebozoC: 0x4a4a58, hat: null });
+// on the ground: women sit back on their heels with their hands out to the goods, men kneel to rest
+const REACH = { shR: [-.4, 0, -.12], shL: [-.4, 0, .12], elR: [-.9, 0, 0], elL: [-.9, 0, 0] };
+const KNEEL = Object.assign({ spine: [.05, 0, 0], head: [-.05, 0, 0], hipR: [-1.45, 0, -.12], hipL: [-1.45, 0, .12], knR: [2.75, 0, 0], knL: [2.75, 0, 0] }, REACH);
+['vendor', 'vendor2', 'marketwoman', 'abuela', 'campesino', 'campesino3', 'oldman'].forEach(b => lpVariant(b, b + '_sit', { pose: KNEEL, onGround: true, cane: null }));
 
 const SPOTS = [];
 function spot(id, key, x, z, ry, o) {
   const D = lpBy(id), s = Object.assign({ id, key, x, z, y: 0, ry, r: D.hat === 'sombrero' || D.hat === 'charro' ? .45 : D.skirt ? .32 : .28 }, o || {});
+  // standing on the banqueta (top .16) or its kerb (.2); balcony spots give their own y
+  if (!(o && 'y' in o) && x > -12 && x < 160 && z > -5 && z < -3.16) s.y += z > -3.34 ? .2 : .16;
+  // kneeling: the root drops so the shins lie on the ground
+  if (D.onGround) { s.y -= .42 * D.h - .19 * D.h * .62; s.r = .5; }
   SPOTS.push(s); return s;
 }
 seed = 99;
@@ -1168,10 +1183,15 @@ function goods(x, z) {
   const cols = [C.maize, 0x5f7d3a, C.terracotta, 0xd36f2b];
   for (let i = 0; i < 7; i++) { const m = reg(new THREE.Mesh(new THREE.SphereGeometry(.09 + rnd() * .05, 8, 6), toon(cols[(rnd() * 4) | 0]))); m.position.set(x - .45 + rnd() * .9, .1, z - .25 + rnd() * .5); world.add(m); }
 }
-// edge of town: women selling behind their goods, campesinos standing by the wall
+// edge of town: women kneeling at their goods, campesinos resting by the wall
 { const W = ['vendor', 'marketwoman', 'vendor2', 'abuela', 'vendor'], M = ['campesino', 'oldman', 'campesino3']; let w = 0, m = 0;
   [[3, 'vendors'], [7.5, 'campesinos'], [12, 'vendors'], [17, 'campesinos'], [21.5, 'vendors'], [27, 'vendors'], [32, 'campesinos'], [36.5, 'vendors']].forEach(([x, key]) => {
-    spot(key === 'vendors' ? W[w++ % W.length] : M[m++ % M.length], key, x, key === 'vendors' ? -3.9 : -4.3, face.s);
+    const id = (key === 'vendors' ? W[w++ % W.length] : M[m++ % M.length]) + '_sit', D = lpBy(id);
+    spot(id, key, x, -3.9, face.s);
+    // a seated woman's skirt spreads on the ground around her; the kit's skirt cone sinks under it
+    if (D.skirt) { const k = D.h / 1.5 * (D.skirtW || 1);
+      const sk = reg(new THREE.Mesh(new THREE.CylinderGeometry(.17 * k, .4 * k, .17 * k, 10, 1, true), toon(D.skirt))); sk.position.set(x, .16 + .085 * k, -3.84); world.add(sk);
+      const hem = reg(new THREE.Mesh(new THREE.CylinderGeometry(.4 * k, .42 * k, .035, 10, 1, true), toon(D.hemC || D.skirt))); hem.position.set(x, .177, -3.84); world.add(hem); }
     goods(x + .1, -3.0);
   }); }
 // standing campesinos and women shopping, laborers, children
@@ -1270,7 +1290,7 @@ const RIDER_Z = [8.3, 11.3, 9.9, 12.5, 10.6, 8.6, 11.0, 12.3, 9.6, 11.9, 8.2, 10
 const riderCoats = ['bay', 'darkbay', 'chestnut', 'buckskin', 'grullo', 'gray', 'madero', 'sorrel', 'roan', 'pinto', 'palomino', 'bay', 'darkbay', 'buckskin', 'chestnut', 'grullo'];
 for (let i = 0; i < 16; i++) {
   const madero = i === 6;
-  rider({ key: madero ? 'madero' : 'riders', id: madero ? 'madero_ride' : 'rider' + (i % 2 + 1), x: 205 + i * 1.75 + rnd() * 1.1, z: RIDER_Z[i], speed: 7.2, coat: riderCoats[i], tack: madero ? 'gala' : i % 3 === 0 ? 'plain' : 'ranchero', seed: i + 1, rifle: !madero && i % 2 === 0 });
+  rider({ key: madero ? 'madero' : 'riders', id: madero ? 'madero_ride' : 'rider' + (i % 5 + 1), x: 205 + i * 1.75 + rnd() * 1.1, z: RIDER_Z[i], speed: 7.2, coat: riderCoats[i], tack: madero ? 'gala' : i % 3 === 0 ? 'plain' : 'ranchero', seed: i + 1, rifle: !madero && i % 2 === 0 });
 }
 // soldaderas: two riding, the rest walking behind the column
 rider({ key: 'soldaderas', id: 'soldadera_ride', x: 236, z: 10.2, speed: 7.2, coat: 'bay', tack: 'plain', seed: 21 });
@@ -1280,7 +1300,7 @@ for (let i = 0; i < 7; i++) {
   g.position.set(244 + i * 2.2, 0, warpS(244 + i * 2.2, zs));
   g.userData = { speed: 7.2, phase: rnd() * 6, walking: true, noWarp: true, zs, y0: 0, person: true };
   world.add(g); column.push(g); g.visible = false;
-  COLUMN_SPOTS.push({ id: ['soldadera', 'vendor2', 'soldadera', 'marketwoman'][i % 4], key: 'soldaderas', g, ry: -Math.PI / 2 });
+  COLUMN_SPOTS.push({ id: ['soldadera', 'soldadera2', 'vendor2', 'soldadera3', 'soldadera', 'marketwoman', 'soldadera2'][i], key: 'soldaderas', g, ry: -Math.PI / 2 });
 }
 
 // ---------- dust: painted puffs kicked up by the column, plus the plume that announces it ----------

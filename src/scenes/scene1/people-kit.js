@@ -498,13 +498,24 @@ const FACE_STATES = [{ lx: 0 }, { lx: -1 }, { lx: 1 }, null, { brow: .25, browY:
 const AS = 2048, T = 128, COLS = AS / T, TILE = (T - 2) / AS;
 const tileUV = (i, out) => (out || new THREE.Vector2()).set(((i % COLS) * T + 1) / AS, 1 - (((i / COLS) | 0) * T + T - 1) / AS);
 let atlasTex = null, WHITE = null; const designCache = new Map();
+// Atlas slots: 8 tiles per painted face, last tile is white, so (256 - 1) / 8 = 31 faces fit.
+// A design with faceOf: 'baseId' reuses its base's face tiles and takes no atlas space (pose-only or colour-only variants).
+const FACE_CAP = ((COLS * COLS - 1) / 8) | 0; let SLOT = null;
+function faceRoot(D) { const seen = new Set(); while (D && D.faceOf && !seen.has(D)) { seen.add(D); const b = DRAFTS.find(x => x.id === D.faceOf); if (!b) { console.warn('people-kit: faceOf "' + D.faceOf + '" not found for ' + D.id); break; } D = b; } return D; }
+function assignSlots() { SLOT = new Map(); let n = 0; const painted = [];
+  DRAFTS.forEach(D => { const R = faceRoot(D); if (SLOT.has(R)) return; if (R.faceOf) { SLOT.set(R, -1); return; }
+    if (n >= FACE_CAP) { console.error('people-kit: face atlas full (' + FACE_CAP + ' faces). ' + R.id + ' reuses face slot 0; give it faceOf to share a face.'); SLOT.set(R, -1); return; }
+    SLOT.set(R, n); painted.push(R); n++; });
+  DRAFTS.forEach(D => { const R = faceRoot(D), s = SLOT.get(R); SLOT.set(D, s < 0 ? 0 : s); });
+  return painted; }
+const faceTile = d => (SLOT.get(DRAFTS[d]) || 0) * 8;
 function buildAtlas() {
   if (atlasTex) return; const atlas = document.createElement('canvas'); atlas.width = atlas.height = AS;
   const ag = atlas.getContext('2d'); ag.fillStyle = '#fff'; ag.fillRect(0, 0, AS, AS);
   const tmp = document.createElement('canvas'); tmp.width = tmp.height = FS;
   WHITE = tileUV(COLS * COLS - 1).add(new THREE.Vector2(.5 * T / AS, .5 * T / AS));
-  DRAFTS.forEach((D, d) => { const F = Object.assign({ skin: D.skin, hair: D.hairCss }, D.face, D.bigMustache ? { mustache: null } : {}), base = Object.assign({}, EXPR.neutral, D.expr || {});
-    FACE_STATES.forEach((st, k) => { const i = d * 8 + k; paintFace(tmp, F, Object.assign({}, base, st || {}), st === null); ag.drawImage(tmp, (i % COLS) * T, ((i / COLS) | 0) * T, T, T); }); });
+  assignSlots().forEach(D => { const d0 = SLOT.get(D) * 8, F = Object.assign({ skin: D.skin, hair: D.hairCss }, D.face, D.bigMustache ? { mustache: null } : {}), base = Object.assign({}, EXPR.neutral, D.expr || {});
+    FACE_STATES.forEach((st, k) => { const i = d0 + k; paintFace(tmp, F, Object.assign({}, base, st || {}), st === null); ag.drawImage(tmp, (i % COLS) * T, ((i / COLS) | 0) * T, T, T); }); });
   atlasTex = new THREE.CanvasTexture(atlas); atlasTex.anisotropy = 2;
 }
 function faceMat(skinning, tile) {
@@ -541,7 +552,7 @@ function merge(fig, L) {
 function design(D, d, L) {
   if (designCache.has(d)) return designCache.get(d);
   const hi = merge(figure(D), L); LOWDET = true; const mid = merge(figure(D), L); LOWDET = false;
-  const out = { hi, mid, midMat: faceMat(false, d * 8) }; designCache.set(d, out); return out;
+  const out = { hi, mid, midMat: faceMat(false, faceTile(d)) }; designCache.set(d, out); return out;
 }
 function createCrowd({ scene, renderer, spots, near = 18, mid: MIDD = 45, eyes = 25, lightDir = new THREE.Vector3(2, 5, 6) }) {
   buildAtlas(); const L = lightDir.clone().normalize(), N = spots.length;
@@ -568,7 +579,7 @@ function createCrowd({ scene, renderer, spots, near = 18, mid: MIDD = 45, eyes =
     const root = new THREE.Group(); root.position.set(sp.x || 0, sp.y || 0, sp.z || 0); root.rotation.y = sp.ry || 0; scene.add(root);
     const bones = ds.hi.bones.map(b => { const o = new THREE.Bone(); o.name = b.k; o.position.copy(b.pos); o.quaternion.copy(b.quat); return o; });
     ds.hi.bones.forEach((b, k) => { if (b.parent >= 0) bones[b.parent].add(bones[k]); });
-    const hi = new THREE.SkinnedMesh(ds.hi.geo, faceMat(true, p.d * 8)); bones.forEach((b, k) => { if (ds.hi.bones[k].parent < 0) hi.add(b); });
+    const hi = new THREE.SkinnedMesh(ds.hi.geo, faceMat(true, faceTile(p.d))); bones.forEach((b, k) => { if (ds.hi.bones[k].parent < 0) hi.add(b); });
     hi.updateMatrixWorld(true); hi.bind(new THREE.Skeleton(bones)); hi.castShadow = !!p.D.important; root.add(hi);
     const midM = new THREE.Mesh(ds.mid.geo, ds.midMat); midM.castShadow = !!p.D.important; root.add(midM);
     const J = {}; bones.forEach(b => J[b.name] = b);
@@ -591,7 +602,7 @@ function createCrowd({ scene, renderer, spots, near = 18, mid: MIDD = 45, eyes =
       if (p.blink > 0) p.blink -= dt;
       if (p.talking) { p.nextBeat -= dt; if (p.nextBeat < 0) { p.nextBeat = 1.1 + Math.random() * 1.4; p.beat = 4 + ((Math.random() * 4) | 0); p.turn = p.D.important && Math.random() < .55 ? (Math.random() - .5) * .5 : 0; } }
       const st = p.blink > 0 ? 3 : p.talking ? p.beat : p.lx;
-      tileUV(p.d * 8 + st, p.hi.material.userData.off.value);
+      tileUV(faceTile(p.d) + st, p.hi.material.userData.off.value);
       if (p.J.head) { p.yaw += (p.turn - p.yaw) * Math.min(1, dt * 4); p.J.head.rotation.y = p.headY + p.yaw; } });
     imp.instanceMatrix.needsUpdate = true; blob.instanceMatrix.needsUpdate = true;
   }
