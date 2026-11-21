@@ -8,10 +8,14 @@ async function boot() {
   const id = new URLSearchParams(location.search).get('scene') || FIRST;
   const def = SCENES[id] || SCENES[FIRST];
   const mod = await def.load();
+  // this streamer runs the zones; the scene's own fallback streamer (for the single-file prototype) stands down
+  window.__casasolaZoneHost = true;
   const game = await mod.start();
 
   const kit = { ...game.kit, scene: game.scene, camera: game.camera, renderer: game.renderer };
-  const zm = new ZoneManager({ zones: mod.zones, kit, getPlayer: () => game.player });
+  // zones listed in the scene folder, plus any the scene script registers itself (scene 1's house interior)
+  const zones = [...(mod.zones || []), ...(game.zones || [])];
+  const zm = new ZoneManager({ zones, kit, getPlayer: () => game.player });
   await zm.prime();
 
   const debug = new URLSearchParams(location.search).get('zones') === 'debug';

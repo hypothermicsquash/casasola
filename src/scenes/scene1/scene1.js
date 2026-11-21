@@ -18,7 +18,7 @@ const C = {
 const OUTLINE = 0x2a1a10;
 
 // ---------- your textures, made seamless offline and decoded before anything is built ----------
-const TEX_SRC = { dirt: __BASE + 'scenes/scene1/tex/dirt.jpg', dust: __BASE + 'scenes/scene1/tex/dust.jpg', ballast: __BASE + 'scenes/scene1/tex/ballast.jpg', plaster: __BASE + 'scenes/scene1/tex/plaster.jpg', blue: __BASE + 'scenes/scene1/tex/blue.jpg', paleblue: __BASE + 'scenes/scene1/tex/paleblue.jpg', yellow: __BASE + 'scenes/scene1/tex/yellow.jpg', orange: __BASE + 'scenes/scene1/tex/orange.jpg', green: __BASE + 'scenes/scene1/tex/green.jpg', turq: __BASE + 'scenes/scene1/tex/turq.jpg', woodgray: __BASE + 'scenes/scene1/tex/woodgray.jpg', woodorange: __BASE + 'scenes/scene1/tex/woodorange.jpg', woodbrown: __BASE + 'scenes/scene1/tex/woodbrown.jpg', leaf: __BASE + 'scenes/scene1/tex/leaf.jpg', bush1: __BASE + 'scenes/scene1/tex/bush1.webp', bush2: __BASE + 'scenes/scene1/tex/bush2.webp', cactus: __BASE + 'scenes/scene1/tex/cactus.webp', canvas: __BASE + 'scenes/scene1/assets/paper2.jpg', paper: __BASE + 'scenes/scene1/assets/paper.jpg', speck: __BASE + 'scenes/scene1/assets/speck.jpg' };
+const TEX_SRC = { dirt: __BASE + 'scenes/scene1/tex/dirt.jpg', dust: __BASE + 'scenes/scene1/tex/dust.jpg', ballast: __BASE + 'scenes/scene1/tex/ballast.jpg', plaster: __BASE + 'scenes/scene1/tex/plaster.jpg', blue: __BASE + 'scenes/scene1/tex/blue.jpg', paleblue: __BASE + 'scenes/scene1/tex/paleblue.jpg', yellow: __BASE + 'scenes/scene1/tex/yellow.jpg', orange: __BASE + 'scenes/scene1/tex/orange.jpg', green: __BASE + 'scenes/scene1/tex/green.jpg', turq: __BASE + 'scenes/scene1/tex/turq.jpg', woodgray: __BASE + 'scenes/scene1/tex/woodgray.jpg', woodorange: __BASE + 'scenes/scene1/tex/woodorange.jpg', woodbrown: __BASE + 'scenes/scene1/tex/woodbrown.jpg', leaf: __BASE + 'scenes/scene1/tex/leaf.jpg', bush1: __BASE + 'scenes/scene1/tex/bush1.webp', bush2: __BASE + 'scenes/scene1/tex/bush2.webp', cactus: __BASE + 'scenes/scene1/tex/cactus.webp', canvas: __BASE + 'scenes/scene1/assets/paper2.jpg', paper: __BASE + 'scenes/scene1/assets/paper.jpg', speck: __BASE + 'scenes/scene1/assets/speck.jpg', tile: __BASE + 'scenes/scene1/assets/tile-terracotta.jpg' };
 const TMEAN = {"dirt": [0.6163, 0.4661, 0.3411], "dust": [0.9565, 0.9499, 0.9338], "ballast": [0.4731, 0.4365, 0.3937], "plaster": [0.9194, 0.9194, 0.9194], "blue": [0.465, 0.7194, 0.868], "paleblue": [0.7714, 0.8228, 0.879], "yellow": [0.9383, 0.8109, 0.268], "orange": [0.9715, 0.5085, 0.2165], "green": [0.3153, 0.4094, 0.3151], "turq": [0.2325, 0.526, 0.6511], "woodgray": [0.3266, 0.2859, 0.2331], "woodorange": [0.7254, 0.4876, 0.3199], "woodbrown": [0.558, 0.4028, 0.2751], "leaf": [0.4105, 0.4512, 0.2166]};
 const IMG = {};
 await Promise.all(Object.keys(TEX_SRC).map(k => new Promise(res => { const im = new Image(); im.onload = im.onerror = () => res(); im.src = TEX_SRC[k]; IMG[k] = im; })));
@@ -89,11 +89,13 @@ const UI = {};
   UI.kraft = kraftCanvas(512, 512);
 }
 const texCache = {};
+// shared things (cached materials, textures) are left alone when a zone frees what it built; r128 textures have no userData of their own
+const markShared = o => { o.userData = o.userData || {}; o.userData.shared = true; return o; };
 function tex(k, clamp) {
   const ck = k + (clamp ? 'c' : '');
   if (texCache[ck]) return texCache[ck];
   const t = new THREE.Texture(IMG[k]);
-  t.wrapS = t.wrapT = clamp ? THREE.ClampToEdgeWrapping : THREE.RepeatWrapping; t.anisotropy = 8; t.needsUpdate = true;
+  t.wrapS = t.wrapT = clamp ? THREE.ClampToEdgeWrapping : THREE.RepeatWrapping; t.anisotropy = 8; t.needsUpdate = true; markShared(t);
   return (texCache[ck] = t);
 }
 
@@ -149,7 +151,10 @@ const LIGHT = {
   uDustCol: { value: new THREE.Color(.77, .66, .5) },
   uFogMax: { value: .9 },
   uFogFall: { value: 360 },
-  uCloud: { value: new THREE.Vector3(0, 0, .42) }
+  uCloud: { value: new THREE.Vector3(0, 0, .42) },
+  // the front room's box (centre x, z, cos, sin of its turn; half width, half depth, height, on): indoor shading
+  uRoom: { value: new THREE.Vector4(0, 0, 1, 0) },
+  uRoomE: { value: new THREE.Vector4(0, 0, 0, 0) }
 };
 // aerial perspective: never quite swallows the mountains, thins with height
 const FOG_FRAG = `
@@ -171,6 +176,7 @@ varying vec3 vWN;
 varying vec2 vDUv;
 uniform float uFogMax; uniform float uFogFall;
 uniform vec3 uCloud; uniform float uSunI; uniform vec3 uLightCol; uniform vec3 uShadowMul; uniform vec3 uShadowBlue; uniform vec3 uDustCol; uniform float uBlueAmt;
+uniform vec4 uRoom; uniform vec4 uRoomE;
 ` + GLSL_NOISE;
 const VERT_WORLD = `#include <fog_vertex>
 vDUv = uv;
@@ -205,8 +211,18 @@ float sunL = clamp(gSun, 0.0, 1.0);
 sunL *= 1.0 - uCloud.z * smoothstep(.5, .68, fbm((vWPos.xz + uCloud.xy) * .0062));
 float lumA = dot(albC, vec3(.299, .587, .114));
 vec3 shadowTone = mix(albC * uShadowMul, uShadowBlue * (lumA * .86 + .05), uBlueAmt);
+// inside the front room the shade keeps its local colour, with a little light bounced in from the door
+float inRm = 0.0;
+if (uRoomE.w > .5) {
+  vec2 dq = vWPos.xz - uRoom.xy, lq = vec2(dq.x * uRoom.z - dq.y * uRoom.w, dq.x * uRoom.w + dq.y * uRoom.z);
+  inRm = (1.0 - smoothstep(uRoomE.x, uRoomE.x + .12, abs(lq.x))) * (1.0 - smoothstep(uRoomE.y, uRoomE.y + .12, abs(lq.y))) * (1.0 - smoothstep(uRoomE.z, uRoomE.z + .12, vWPos.y));
+  vec3 ln = vec3(vWN.x * uRoom.z - vWN.z * uRoom.w, vWN.y, vWN.x * uRoom.w + vWN.z * uRoom.z);
+  float fill = .42 * smoothstep(-.02, .42, dot(ln, vec3(.4, -.44, .8))) + .2 * smoothstep(-.02, .42, dot(ln, vec3(.15, .74, .66)));
+  sunL = clamp(sunL + inRm * fill, 0.0, 1.0);
+  shadowTone = mix(shadowTone, mix(albC * vec3(.64, .61, .68), vec3(.6, .64, .86) * (lumA * .86 + .05), .24), inRm);
+}
 shadowTone *= mix(vec3(1.07, .97, .88), vec3(.95, 1.0, 1.07), vWN.y * .5 + .5);
-vec3 litTone = albC * uLightCol;
+vec3 litTone = albC * mix(uLightCol, vec3(1.16, 1.02, .8), inRm);
 float edgeL = sunL * (1.0 - sunL) * 4.0;
 vec3 outgoingLight = mix(shadowTone, litTone, sunL) + albC * vec3(.09, .035, -.02) * edgeL + totalEmissiveRadiance;
 `;
@@ -306,7 +322,7 @@ function toon(color, map) {
   const k = 'p' + color + (map ? map.uuid : '');
   if (matCache.has(k)) return matCache.get(k);
   const m = patch(new THREE.MeshToonMaterial({ color, map: map || null }), map ? 'map' : 'plain', map ? { uGrime: { value: .7 } } : {});
-  matCache.set(k, m); return m;
+  m.userData.shared = true; matCache.set(k, m); return m;
 }
 const SURF = {
   plaster: { scale: .45, tint: .9 }, blue: { scale: .4, tint: .5 }, paleblue: { scale: .4, tint: .5 }, yellow: { scale: .4, tint: .5 },
@@ -340,12 +356,28 @@ function envMat(color, key, o = {}) {
   const u = { uTex: { value: tex(key) }, uTexMean: { value: new THREE.Vector3(...TMEAN[key]) }, uScale: { value: scale }, uTint: { value: tint }, uGrime: { value: grime } };
   if (o.decal) u.uDecal = { value: o.decal };
   patch(m, 'tri', u, 'g' + grain + (o.decal ? 'd' : ''));
-  if (!o.decal) matCache.set(ck, m);
+  if (!o.decal) { m.userData.shared = true; matCache.set(ck, m); }
   return m;
 }
-const outlineMat = new THREE.MeshBasicMaterial({ color: OUTLINE, side: THREE.BackSide });
+const outlineMat = new THREE.MeshBasicMaterial({ color: OUTLINE, side: THREE.BackSide }); outlineMat.userData.shared = true;
 const allMeshes = [];
 function reg(mesh) { allMeshes.push(mesh); mesh.userData.mat = mesh.material; return mesh; }
+// one mesh from geometries that share a material (already in the parent's frame)
+function mergeGeos(geos, mat) {
+  let count = 0; geos.forEach(g => { count += g.attributes.position.count; });
+  const P = new Float32Array(count * 3), N = new Float32Array(count * 3), U = new Float32Array(count * 2); let off = 0;
+  geos.forEach(g => { P.set(g.attributes.position.array, off * 3); N.set(g.attributes.normal.array, off * 3); if (g.attributes.uv) U.set(g.attributes.uv.array, off * 2); off += g.attributes.position.count; g.dispose(); });
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(P, 3)); geo.setAttribute('normal', new THREE.BufferAttribute(N, 3)); geo.setAttribute('uv', new THREE.BufferAttribute(U, 2));
+  geo.computeBoundingSphere();
+  const m = new THREE.Mesh(geo, mat); m.castShadow = true; m.receiveShadow = true; return m;
+}
+// a group's meshes merged into one per material, in the group's own frame
+function mergeGroup(root) {
+  root.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(root.matrixWorld).invert(), rel = new THREE.Matrix4(), by = new Map();
+  root.traverse(o => { if (!o.isMesh) return; const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone(); g.applyMatrix4(rel.multiplyMatrices(inv, o.matrixWorld)); if (!by.has(o.material)) by.set(o.material, []); by.get(o.material).push(g); });
+  const out = new THREE.Group(); by.forEach((list, mat) => out.add(mergeGeos(list, mat))); return out;
+}
 const grainFor = (w, h, d) => { const m = Math.max(w, h, d); return m === h ? 0 : m === w ? 1 : 2; };
 function box(w, h, d, color, parent, x, y, z, opts = {}) {
   const g = new THREE.BoxGeometry(w, h, d);
@@ -384,7 +416,7 @@ function cyl(rt, rb, h, color, parent, x, y, z, opts = {}) {
 function canvasTex(w, h, paint) {
   const c = document.createElement('canvas'); c.width = w; c.height = h;
   const g = c.getContext('2d'); paint(g, w, h);
-  const t = new THREE.CanvasTexture(c); t.anisotropy = 8; return t;
+  const t = new THREE.CanvasTexture(c); t.anisotropy = 8; t.userData = {}; return t;
 }
 let seed = 7;
 function rnd() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
@@ -475,7 +507,9 @@ function facadeDecal(w, h, spec) {
         g.strokeStyle = 'rgba(25,15,8,.55)'; g.lineWidth = 1.5; for (let x = x0 + ow / 6; x < x1; x += ow / 6) { g.beginPath(); g.moveTo(x, yt); g.lineTo(x, yb); g.stroke(); }
         g.lineWidth = 3; g.beginPath(); g.moveTo((x0 + x1) / 2, yt); g.lineTo((x0 + x1) / 2, yb); g.stroke();
         g.fillStyle = 'rgba(30,22,16,.85)'; for (let y = yt + 10; y < yb - 4; y += (yb - yt) / 5) for (const fx of [.25, .75]) { g.beginPath(); g.arc(x0 + ow * fx, y, 1.8, 0, 7); g.fill(); }
-        if (spec.open || rnd() < .35) { const half = rnd() < .5; g.fillStyle = 'rgba(14,10,8,.94)'; g.fillRect(half ? x0 : x0 + ow / 2, yt, ow / 2, yb - yt); }
+        // spec.open: both leaves swung in (the house you start in). Same draws from rnd() either way, so the rest of the town is unchanged.
+        const ajar = rnd() < .35;
+        if (ajar || spec.open) { const half = ajar ? rnd() < .5 : false; g.fillStyle = 'rgba(14,10,8,.94)'; if (spec.open) g.fillRect(x0, yt, ow, yb - yt); else g.fillRect(half ? x0 : x0 + ow / 2, yt, ow / 2, yb - yt); }
       } else {
         g.fillStyle = '#16110e'; g.fillRect(x0, yt - ow, ow, yb - yt + ow);
         const cg = g.createLinearGradient(0, yt, 0, yb); cg.addColorStop(0, 'rgba(0,0,0,.35)'); cg.addColorStop(1, 'rgba(80,62,50,.3)'); g.fillStyle = cg; g.fillRect(x0, yt - ow, ow, yb - yt + ow);
@@ -692,10 +726,10 @@ function building(x0, x1, h, color, o = {}) {
   const key = o.key || surfKey(color);
   const G = new THREE.Group(); G.position.set(cx, 0, zf); (o.parent || world).add(G);
   if (o.at) { G.position.set(o.at[0], o.at[3] || 0, o.at[1]); G.rotation.y = o.at[2]; }
-  box(w, h, d, color, G, 0, h / 2, -d / 2, { surf: key, grain: 0 });
+  if (!o.hollow) box(w, h, d, color, G, 0, h / 2, -d / 2, { surf: key, grain: 0 });
   const dec = facadeDecal(w, h, Object.assign({}, o, { key }));
-  const pl = reg(new THREE.Mesh(new THREE.PlaneGeometry(w, h), envMat(color, key, { decal: dec.tex })));
-  pl.position.set(0, h / 2, .015); pl.receiveShadow = true; G.add(pl);
+  if (o.hollow) hollowShell(G, w, h, d, color, key, dec, o.hollow);
+  else { const pl = reg(new THREE.Mesh(new THREE.PlaneGeometry(w, h), envMat(color, key, { decal: dec.tex }))); pl.position.set(0, h / 2, .015); pl.receiveShadow = true; G.add(pl); }
   const lx = ox => ox - w / 2;
   const top = o.parapet || 'cap', dk = shade(color, .88);
   if (top === 'cap') { box(w + .16, .22, .5, dk, G, 0, h + .04, -.18, { surf: key }); box(w + .3, .1, .64, shade(color, .8), G, 0, h - .14, -.14, { surf: key }); }
@@ -738,6 +772,30 @@ function building(x0, x1, h, color, o = {}) {
     for (const sx of [-1, 1]) segBox(G, lx(o.awningX || w / 2) + sx * aw / 2, 0, lx(o.awningX || w / 2) + sx * aw / 2, 1.7, 2.55, .04, .04, C.iron, { surf: 'plaster', tint: 1 });
   }
   return G;
+}
+
+// a house you can walk into: walls round a room (spec T thick, room D deep and H high) with the doors and windows cut through,
+// the plastered face cut round them too, and the rest of the house behind the room left solid
+function hollowShell(G, w, h, d, color, key, dec, hs) {
+  const T = hs.T, D = hs.D, RB = T + D, lx = ox => ox - w / 2;
+  const ops = dec.openings.map(op => ({ x0: lx(op.x) - op.w / 2, x1: lx(op.x) + op.w / 2, y0: op.y0, y1: op.y0 + op.h })).sort((a, b) => a.x0 - b.x0);
+  const wall = (bw, bh, bd, x, y, z) => box(bw, bh, bd, color, G, x, y, z, { surf: key, grain: 0 });
+  let x = -w / 2;
+  for (const op of ops) {
+    if (op.x0 > x) wall(op.x0 - x, h, T, (x + op.x0) / 2, h / 2, -T / 2);
+    if (op.y0 > 0) wall(op.x1 - op.x0, op.y0, T, (op.x0 + op.x1) / 2, op.y0 / 2, -T / 2);
+    wall(op.x1 - op.x0, h - op.y1, T, (op.x0 + op.x1) / 2, (op.y1 + h) / 2, -T / 2);
+    x = op.x1;
+  }
+  if (x < w / 2) wall(w / 2 - x, h, T, (x + w / 2) / 2, h / 2, -T / 2);
+  for (const sx of [-1, 1]) wall(T, h, D, sx * (w / 2 - T / 2), h / 2, -T - D / 2);
+  wall(w, h, d - RB, 0, h / 2, -RB - (d - RB) / 2);
+  wall(w - 2 * T, h - hs.H, D, 0, (hs.H + h) / 2, -T - D / 2);
+  const sh = new THREE.Shape(); sh.moveTo(-w / 2, 0); sh.lineTo(w / 2, 0); sh.lineTo(w / 2, h); sh.lineTo(-w / 2, h); sh.closePath();
+  for (const op of ops) { const p = new THREE.Path(); p.moveTo(op.x0, op.y0); p.lineTo(op.x0, op.y1); p.lineTo(op.x1, op.y1); p.lineTo(op.x1, op.y0); p.closePath(); sh.holes.push(p); }
+  const geo = new THREE.ShapeGeometry(sh), uv = geo.attributes.uv, pos = geo.attributes.position;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, (pos.getX(i) + w / 2) / w, pos.getY(i) / h);
+  const pl = reg(new THREE.Mesh(geo, envMat(color, key, { decal: dec.tex }))); pl.position.set(0, 0, .015); pl.receiveShadow = true; G.add(pl);
 }
 
 // low back-street houses, jacales, railway frame houses, and the farm things around a town
@@ -891,7 +949,9 @@ const cactus = (parent, x, z, h = 1.8, y = 0) => card('cactus', parent, x, y, z,
 // ---------- the street, laid out straight (bent afterwards) ----------
 seed = 11;
 building(-12, 0, 3.0, C.adobe, { openings: 2, parapet: 'adobe', vigas: true, holes: 6, band: false });
-building(0, 8, 3.2, C.ochre, { openings: 2, parapet: 'cap' });
+// the Casasolas' lodging: hollow, its door at x 6 opens into the front room where the game begins (ROOM)
+const HOUSE_SPEC = { T: .45, D: 4.6, H: 3.0 };
+const ochreHouse = building(0, 8, 3.2, C.ochre, { openings: 2, parapet: 'cap', open: true, hollow: HOUSE_SPEC });
 building(8, 15, 3.0, C.rose, { openings: 2, parapet: 'adobe', vigas: true, holes: 3 });
 building(15, 24, 3.4, C.plasterW, { openings: 3, brick: true, arch: true, parapet: 'pretil' });
 building(24, 31, 3.1, 0x8fa287, { key: 'green', openings: 2, parapet: 'cap', ghost: 'TIENDA DE ROPA' });
@@ -994,7 +1054,7 @@ cartAt(world, 33, 2.6, 0.1, { load: 0xc9ac64 });
 // a wheel leaning on a wall, a ladder against the adobe at the edge of town
 { const w = cyl(.7, .7, .1, 0x5d4a38, world, 20.5, .72, -4.85, { seg: 14, surf: 'woodgray', rx: Math.PI / 2 }); w.rotation.y = .25; w.rotation.x = Math.PI / 2 - .15; }
 for (const s of [-1, 1]) { const b = box(.08, 3.2, .08, C.wood, world, -6 + s * .25, 1.55, -4.6, { surf: 'woodgray' }); b.rotation.x = -.18; }
-for (let y = .3; y < 3; y += .38) box(.5, .05, .05, C.wood, world, -6, y, -4.62 + y * .18, { surf: 'woodgray' });
+for (let y = .3; y < 3; y += .38) box(.58, .05, .05, C.wood, world, -6, y, -4.6 - (y - 1.55) * Math.tan(.18), { surf: 'woodgray' }); // through the rails, leaning with them
 seed = 31;
 for (const [x, z, h] of [[-11, -3.4, 1.0], [7.4, -3.5, .7], [39.5, -3.4, .9], [85.4, -4.0, 1.1], [112.6, -4.1, 1.2], [113.9, -4.6, .9], [159.3, -3.6, 1.0], [101.4, -3.6, .6]]) bush(world, x, z, h);
 for (const [x, z] of [[-9.5, 4.6], [3, 4.8], [18, 4.9], [42, 4.8], [70, 4.9], [83, 4.7], [104, 4.9]]) bush(world, x, z, .7 + rnd() * .5);
@@ -1627,10 +1687,15 @@ const SUN_DIR = new THREE.Vector3(38, 54, 40).normalize();
 const SUN_AZ0 = Math.atan2(SUN_DIR.z, SUN_DIR.x), SUN_EL0 = Math.asin(SUN_DIR.y);
 function sunAt(f) { const az = SUN_AZ0 - .34 * f, el = SUN_EL0 + .1 * f; SUN_DIR.set(Math.cos(el) * Math.cos(az), Math.sin(el), Math.cos(el) * Math.sin(az)); }
 const _lv = new THREE.Vector3();
+// in and near the front room the shadow map closes in on the house (sharp light through the door and window bars)
+const SHADOW_FOCUS = { k: 0, x: 0, z: 0, ext: 11 };
 function updateSun(cam) {
-  const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
-  let cx = cam.position.x + fx * 38, cz = cam.position.z + fz * 38;
-  const snap = TIER[tier].ext * 2 / TIER[tier].shadow * 2; cx = Math.round(cx / snap) * snap; cz = Math.round(cz / snap) * snap;
+  const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw), F = SHADOW_FOCUS;
+  let cx = cam.position.x + fx * 38, cz = cam.position.z + fz * 38, e = TIER[tier].ext;
+  if (F.k > 0) { cx += (F.x - cx) * F.k; cz += (F.z - cz) * F.k; e += (F.ext - e) * F.k; }
+  const sc = sun.shadow.camera;
+  if (Math.abs(sc.right - e) > 1e-3) { sc.left = -e; sc.right = e; sc.top = e; sc.bottom = -e; sc.updateProjectionMatrix(); }
+  const snap = e * 2 / TIER[tier].shadow * 2; cx = Math.round(cx / snap) * snap; cz = Math.round(cz / snap) * snap;
   sun.target.position.set(cx, 0, cz); sun.position.copy(sun.target.position).addScaledVector(SUN_DIR, 200);
   sun.target.updateMatrixWorld(); renderer.shadowMap.needsUpdate = true;
 }
@@ -1981,13 +2046,34 @@ const FP = (() => {
     // leave out the bulb dangling on its cable
     return nx > s.x0 && nx < s.x1 && ny > s.y0 + (s.y1 - s.y0) * .25 && ny < s.y1;
   }
-  return { LAYER, rig, model, pose, hit, setHover: v => { hoverT = v; } };
+  // the same camera as a thing in the world (on the table, in Miguel's hand): ordinary depth, no cable or bulb, one mesh per material
+  const propMats = new Map();
+  function propMat(m) {
+    if (propMats.has(m)) return propMats.get(m);
+    const p = patch(new THREE.MeshToonMaterial({ color: m.color.getHex(), map: m.map }), 'map', { uGrime: { value: 0 } }, 'fpp');
+    if (m.emissiveMap) { p.emissive = new THREE.Color(0xffffff); p.emissiveMap = m.emissiveMap; }
+    p.side = m.side; p.userData.shared = true;
+    for (const t of [m.map, m.emissiveMap]) if (t) markShared(t);
+    propMats.set(m, p); return p;
+  }
+  function prop() {
+    model.updateMatrixWorld(true);
+    const inv = new THREE.Matrix4().copy(model.matrixWorld).invert(), rel = new THREE.Matrix4(), by = new Map(), out = new THREE.Group();
+    model.traverse(o => {
+      if (!o.isMesh || o.material === M.rubber || o.position.y < -.12) return;
+      const g = (o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone()).applyMatrix4(rel.multiplyMatrices(inv, o.matrixWorld));
+      const pm = propMat(o.material); if (!by.has(pm)) by.set(pm, []); by.get(pm).push(g);
+    });
+    by.forEach((list, mat) => out.add(mergeGeos(list, mat)));
+    return out;
+  }
+  return { LAYER, rig, model, pose, hit, prop, setHover: v => { hoverT = v; } };
 })();
 
 // ---------- player ----------
 const player = { x: 1.5, y: 0, z: 0.4, yaw: -Math.PI / 2, pitch: 0, vantage: null };
 const keys = {};
-const state = { started: false, raised: false, plates: 3, photos: [], columnStarted: false, columnT: 0, columnDone: false, unlocked: { balcony: false, tower: false }, elapsed: 0, busy: false, knowsTime: false };
+const state = { started: false, raised: false, plates: 3, photos: [], columnStarted: false, columnT: 0, columnDone: false, unlocked: { balcony: false, tower: false }, elapsed: 0, busy: false, knowsTime: false, room: false };
 // game clock: one real second is eight on the watch. 11:04 at the start, column due at 11:40 (about four and a half minutes of play)
 // for now the column rides in 30 s after the start: ten watch minutes at twenty times speed
 const CLOCK = { start: 11 * 3600 + 30 * 60, arrive: 11 * 3600 + 40 * 60, plume: 11 * 3600 + 36 * 60, scale: 20 };
@@ -2007,11 +2093,15 @@ function placeCamera() {
 
 // ---------- input ----------
 const $ = id => document.getElementById(id);
-let dragging = false, lastX = 0, lastY = 0, downX = 0, downY = 0;
+let dragging = false, dragId = null, lastX = 0, lastY = 0, downX = 0, downY = 0;
+function endDrag() { dragging = false; dragId = null; }
 const cvs = renderer.domElement;
 function inFinder(x, y) { const r = host.getBoundingClientRect(); return Math.abs(x - r.left - r.width / 2) < finderRect.w / 2 && Math.abs(y - r.top - r.height / 2) < finderRect.h / 2; }
-cvs.addEventListener('pointerdown', e => { dragging = true; lastX = downX = e.clientX; lastY = downY = e.clientY; cvs.setPointerCapture(e.pointerId); });
+cvs.addEventListener('pointerdown', e => { if (dragging && e.pointerId !== dragId) return; dragging = true; dragId = e.pointerId; lastX = downX = e.clientX; lastY = downY = e.clientY; try { cvs.setPointerCapture(e.pointerId); } catch (_) {} });
 cvs.addEventListener('pointermove', e => {
+  // a release the page never heard (let go outside the frame, a screenshot tool, a tab switch): no button down, no drag
+  if (dragging && e.pointerType !== 'touch' && e.buttons === 0) endDrag();
+  if (dragging && e.pointerId !== dragId) return;
   if (!dragging) {
     const hot = state.started && !state.busy && !state.raised && FP.hit(e.clientX, e.clientY);
     FP.setHover(hot); host.classList.toggle('hot', hot);
@@ -2023,16 +2113,26 @@ cvs.addEventListener('pointermove', e => {
   player.pitch = Math.max(-1.1, Math.min(1.0, player.pitch));
   lastX = e.clientX; lastY = e.clientY;
 });
+cvs.addEventListener('pointercancel', e => { if (e.pointerId === dragId) endDrag(); });
+cvs.addEventListener('lostpointercapture', e => { if (e.pointerId === dragId) endDrag(); });
 cvs.addEventListener('pointerup', e => {
-  dragging = false;
+  if (e.pointerId !== dragId) return;
+  endDrag();
   if (!state.started || state.busy || Math.hypot(e.clientX - downX, e.clientY - downY) >= 6) return;
   if (!state.raised && FP.hit(e.clientX, e.clientY)) { toggleRaise(); FP.setHover(false); host.classList.remove('hot'); }
   else if (state.raised && e.pointerType === 'mouse' && e.button === 0 && inFinder(e.clientX, e.clientY)) shoot();
 });
 cvs.addEventListener('contextmenu', e => { e.preventDefault(); if (state.raised && !state.busy) toggleRaise(); });
+// walking keys go by their place on the keyboard, so Shift, Option or another layout can't leave one held down
+const MOVE_KEYS = { KeyW: 'w', KeyA: 'a', KeyS: 's', KeyD: 'd', ArrowUp: 'arrowup', ArrowDown: 'arrowdown', ArrowLeft: 'arrowleft', ArrowRight: 'arrowright' };
+const keyName = e => MOVE_KEYS[e.code] || (e.key || '').toLowerCase();
+function releaseAll() { for (const k in keys) keys[k] = false; endDrag(); }
+window.addEventListener('blur', releaseAll);
+document.addEventListener('visibilitychange', () => { if (document.hidden) releaseAll(); });
 window.addEventListener('keydown', e => {
   if (!state.started || state.busy) return;
-  const k = e.key.toLowerCase(); keys[k] = true;
+  if (e.metaKey || e.ctrlKey) return; // shortcuts; a Mac also drops the key-ups of keys let go while Cmd is down
+  const k = keyName(e); keys[k] = true;
   if (k === 'r' && !e.repeat) toggleRaise();
   else if (k === 'escape' && state.raised) toggleRaise();
   else if (k === ' ') { e.preventDefault(); if (state.raised) shoot(); }
@@ -2040,10 +2140,11 @@ window.addEventListener('keydown', e => {
   else if (k === 'enter') { if (state.photos.length) develop(); }
   if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
 });
-window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+window.addEventListener('keyup', e => { keys[keyName(e)] = false; if (e.key === 'Meta' || e.key === 'Alt' || e.key === 'Control') releaseAll(); });
 function hold(btn, key) {
-  const on = e => { e.preventDefault(); keys[key] = true; }, off = () => { keys[key] = false; };
-  btn.addEventListener('pointerdown', on); btn.addEventListener('pointerup', off); btn.addEventListener('pointerleave', off); btn.addEventListener('pointercancel', off);
+  const on = e => { e.preventDefault(); keys[key] = true; try { btn.setPointerCapture(e.pointerId); } catch (_) {} }, off = () => { keys[key] = false; };
+  btn.addEventListener('pointerdown', on);
+  for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) btn.addEventListener(ev, off);
 }
 hold($('bFwd'), 'w'); hold($('bBack'), 's');
 $('bLower').onclick = () => { if (state.raised) toggleRaise(); };
@@ -2337,10 +2438,10 @@ function updatePlates() {
 }
 // ---------- raising the camera: it comes up to the eye, the view eases into the plate's silver-gray, the frame closes in ----------
 function toggleRaise() {
-  if (state.busy) return;
+  if (state.busy || !ROOM.hasCam) return;
   state.raised = !state.raised;
   $('bLower').hidden = !state.raised;
-  $('bulb').classList.toggle('show', state.raised);
+  $('bulb').classList.toggle('show', state.raised && ROOM.open);
   updatePlates();
 }
 const _dbs = new THREE.Vector2();
@@ -2371,8 +2472,10 @@ function nearest() {
   return null;
 }
 function interact() {
+  if (state.room) return ROOM.interact();
   const a = nearest(); if (!a) return;
   if (a.type === 'talk') {
+    $('dlgNote').hidden = $('dlgRes').hidden = false;
     $('dlgName').textContent = a.n.name; $('dlgNote').textContent = a.n.note; $('dlgRes').textContent = a.n.res; $('dialog').hidden = false; state.busy = true;
     if (a.n.unlock) state.unlocked[a.n.unlock] = true;
     if (a.n.tellsTime && !state.knowsTime) { state.knowsTime = true; chime(); }
@@ -2384,7 +2487,7 @@ function interact() {
     player.vantage = null; player.y = 0; player.x = player.ret.x; player.z = player.ret.z;
   }
 }
-$('dlgClose').onclick = () => { $('dialog').hidden = true; state.busy = false; };
+$('dlgClose').onclick = () => { $('dialog').hidden = true; if (ROOM.talking) ROOM.next(); else state.busy = false; };
 
 // ---------- photo capture and pixel scoring ----------
 const PW = 840, PH = 600, IW = 210, IH = 150;
@@ -2456,6 +2559,7 @@ function capturePhoto() {
   return c;
 }
 function shoot() {
+  if (!ROOM.open) return; // no plates spent before Miguel sends you out
   if (!state.raised || raise.t < 1 || state.plates <= 0 || state.busy) return;
   syncCapCam();
   const score = scoreFrame();
@@ -3054,10 +3158,10 @@ function stepQuality() {
 }
 function frame(now) {
   const rawDt = (now - last) / 1000, dt = Math.min(.05, rawDt); last = now;
-  if (state.seqCover) { requestAnimationFrame(frame); return; }
+  if (state.seqCover || IN.cover) { requestAnimationFrame(frame); return; }
   let moving = false;
   if (state.started && !state.busy) {
-    state.elapsed += dt;
+    if (ROOM.left) state.elapsed += dt; // the watch only starts once you're out in the street
     if (perf.wait > 0) perf.wait -= dt; else if (AUTO_Q && tier < 2) { perf.acc += rawDt; perf.n++; if (perf.n >= 90) { if (perf.acc / perf.n > 1 / 32) { stepQuality(); perf.wait = 2; } perf.acc = 0; perf.n = 0; } }
     if (!player.vantage) {
       let f = 0, s = 0;
@@ -3065,26 +3169,37 @@ function frame(now) {
       if (keys.a) s -= 1; if (keys.d) s += 1;
       if (keys.arrowleft) player.yaw += 1.8 * dt; if (keys.arrowright) player.yaw -= 1.8 * dt;
       moving = f !== 0 || s !== 0;
-      const sp = (state.raised ? SPEED * .45 : SPEED) * dt;
+      const sp = (state.raised ? SPEED * .45 : SPEED) * (state.room ? .62 : 1) * dt;
       const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
       // walk in the bent world; the path itself is kept in straight coordinates
       const mdx = (fx * f + -fz * s) * sp, mdz = (fz * f + fx * s) * sp;
+      const prev = ROOM.local(player.x, player.z);
       player.z += mdz - bendSlope(player.x) * mdx; player.x += mdx;
-      // the one path: street from the edge of town onto the station platform
-      player.x = Math.max(-8, Math.min(161, player.x));
-      // at the crossing you can walk out over the main line into the strip between the lines, where the photo was taken
-      const zmax = player.x > 115 ? 6.2 : player.x > 86 && player.x < 97 ? 12.6 : player.x > 84 && player.x < 99 ? 4.4 : 3.6;
-      player.z = Math.max(-5.9, Math.min(zmax, player.z));
-      player.y = player.x > 115 && player.z > 4.3 ? .45 : player.z > 6.4 && player.z < 9.6 ? BERM : 0;
+      // in and against the house its walls and doorway decide; everywhere else, the one path along the street
+      if (!ROOM.collide(prev)) {
+        // the street from the edge of town onto the station platform
+        player.x = Math.max(-8, Math.min(161, player.x));
+        // at the crossing you can walk out over the main line into the strip between the lines, where the photo was taken
+        const zmax = player.x > 115 ? 6.2 : player.x > 86 && player.x < 97 ? 12.6 : player.x > 84 && player.x < 99 ? 4.4 : 3.6;
+        // up onto the step of the house you started in, and in through its door
+        const L = ROOM.local(player.x, player.z), atDoor = Math.abs(L.x - ROOM.DOOR.x) < ROOM.DOOR.w / 2 && L.z < ROOM.Z0 + ROOM.T + 1.6;
+        const zmin = atDoor ? -Infinity : -5.9 - 1.6 * Math.min(1, Math.max(0, 1 - (Math.abs(player.x - 6) - .4) / 1.0));
+        player.z = Math.max(zmin, Math.min(zmax, player.z));
+        player.y = player.x > 115 && player.z > 4.3 ? .45 : player.z > 6.4 && player.z < 9.6 ? BERM : 0;
+      }
     }
     ambientDust(dt);
-    const clk = clockNow();
-    if (!state.columnStarted && clk >= CLOCK.arrive) startColumn();
-    const a = nearest();
-    const pr = $('prompt');
-    if (a && !state.raised && raise.t === 0) { const txt = a.type === 'talk' ? 'Talk' : a.type === 'climb' ? 'Climb up' : 'Come down'; if (pr.dataset.t !== txt) { pr.dataset.t = txt; pr.innerHTML = '<kbd>E</kbd>' + txt; } pr.classList.add('show'); }
-    else pr.classList.remove('show');
+    if (!state.columnStarted && clockNow() >= CLOCK.arrive) startColumn();
+    if (!state.room) {
+      const a = nearest();
+      const pr = $('prompt');
+      if (a && !state.raised && raise.t === 0) { const txt = a.type === 'talk' ? 'Talk' : a.type === 'climb' ? 'Climb up' : 'Come down'; if (pr.dataset.t !== txt) { pr.dataset.t = txt; pr.innerHTML = '<kbd>E</kbd>' + txt; } pr.classList.add('show'); }
+      else pr.classList.remove('show');
+    }
   }
+  if (state.started) { ROOM.track(); if (state.room) ROOM.prompt(); }
+  ROOM.update(dt, now);
+  streamZones(dt);
   // the morning moves: the sun swings, cloud shadows cross the street, the sky drifts
   // the sun keeps its old pace (its full swing spans 36 watch minutes), so the shorter wait only shows the last part of it
   sunAt((clockNow() - (CLOCK.arrive - 2160)) / 2160);
@@ -3114,19 +3229,517 @@ function frame(now) {
   if (state.columnStarted && !state.columnDone) crowd.forEach(c => { const near = column.some(g => Math.abs(g.position.x - c.position.x) < 14); const arm = c.userData.arms && c.userData.arms[1]; if (arm) arm.rotation.z = near ? 2.4 + Math.sin(t * 8 + c.userData.phase) * .3 : 0; });
   updateRaise(dt);
   FP.pose(raise.t, dt, moving, t);
+  // indoors the camera is Miguel's until he hands it over; then it comes up from below into your hands
+  if (!ROOM.hasCam) FP.rig.visible = false; else if (ROOM.camDrop > 0) FP.rig.position.y -= ROOM.camDrop;
   placeCamera();
   renderView();
   requestAnimationFrame(frame);
 }
 
+// ---------- the opening: dispatches typed onto newsprint, each with its picture; then Casasola; then how to work the camera ----------
+// Narration, not dialogue: edit freely. dl = dateline, p = paragraph, cut = short rule, keys = controls, glass = the three plates.
+// fig = the picture beside a dispatch, shown as it starts typing. Real photographs first; page by page they are painted over
+// a little more (s = how far toward the painted copy), until the last one turns into the game itself.
+const COARSE = matchMedia('(pointer: coarse)').matches;
+const INTRO = [
+  [
+    { dl: 'Mexico City, July 1910.', fig: { photo: 'diaz', cap: 'Porfirio Díaz', reign: true } },
+    { p: 'Porfirio Díaz, who first took power in 1876, is declared re-elected president. His challenger, Francisco I. Madero, spent the vote in a cell in San Luis Potosí.' },
+    { cut: true },
+    { dl: 'San Antonio, Texas, October 1910.', fig: { map: 'route' } },
+    { p: 'Out on bail, Madero slips across the border and issues the Plan de San Luis Potosí. Mexicans are to rise in arms on the 20th of November.' },
+    { cut: true },
+    { dl: 'Chihuahua, winter 1910.', fig: { photo: 'remington', paint: 'remington_p', s: .35, cap: 'Federal cavalry, painted by Frederic Remington' } },
+    { p: 'The north answers first. Pascual Orozco and Francisco Villa lead ranchers, miners and muleteers against the federal army.' },
+    { cut: true },
+    { dl: 'Ciudad Juárez, 10 May 1911.', fig: { map: 'north' } },
+    { p: 'After two days of fighting the rebels take the border city, the decisive victory of the revolt.' }
+  ],
+  [
+    { dl: 'Agustín Víctor Casasola, 36, of Mexico City.', fig: { photo: 'miguel', paint: 'miguel_p', s: .5, cap: 'Miguel Casasola in his darkroom, 1925' } },
+    { p: 'He started at El Imparcial setting type, became a reporter, then a press photographer. He works alongside his younger brother, Miguel.' },
+    { cut: true },
+    { p: 'In the decades ahead the Casasolas will gather nearly half a million negatives, many made by other photographers and filed under the family name. Much of how the Revolution is remembered comes through that archive, kept today by the INAH in Pachuca, Hidalgo.', fig: { archive: 11, photo: 'villa', paint: 'villa_p', s: .7, cap: 'Villa and Zapata in the National Palace, December 1914. Casasola archive' } }
+  ],
+  [
+    { dl: 'Chihuahua, May 1911.', fig: { photo: 'mad', paint: 'mad_p', game: 'game', s: 1, hold: 7800, cap: 'Maderistas. Casasola archive' } },
+    { p: 'Madero\'s riders are expected along the railway this morning. You are Casasola, with a folding plate camera and three glass plates: three photographs. You will send one of them to the newspapers.' },
+    { glass: 3, fig: { process: true } },
+    { keys: COARSE
+      ? [['Walk, Back', 'Move'], ['Drag', 'Look around'], ['Tap the camera', 'Raise it'], ['Squeeze the bulb', 'Expose a plate'], ['Tap the tag', 'Talk']]
+      : [['W A S D', 'Walk'], ['Drag', 'Look around'], ['R, or click the camera', 'Raise it'], ['Space, or click', 'Expose a plate'], ['E', 'Talk']] }
+  ]
+];
+const INTRO_IMG = {"arch0":__BASE + "scenes/scene1/assets/intro-arch0.jpg","arch1":__BASE + "scenes/scene1/assets/intro-arch1.jpg","arch10":__BASE + "scenes/scene1/assets/intro-arch10.jpg","arch2":__BASE + "scenes/scene1/assets/intro-arch2.jpg","arch3":__BASE + "scenes/scene1/assets/intro-arch3.jpg","arch4":__BASE + "scenes/scene1/assets/intro-arch4.jpg","arch5":__BASE + "scenes/scene1/assets/intro-arch5.jpg","arch6":__BASE + "scenes/scene1/assets/intro-arch6.jpg","arch7":__BASE + "scenes/scene1/assets/intro-arch7.jpg","arch8":__BASE + "scenes/scene1/assets/intro-arch8.jpg","arch9":__BASE + "scenes/scene1/assets/intro-arch9.jpg","diaz":__BASE + "scenes/scene1/assets/intro-diaz.jpg","game":__BASE + "scenes/scene1/assets/intro-game.jpg","mad":__BASE + "scenes/scene1/assets/intro-mad.jpg","mad_p":__BASE + "scenes/scene1/assets/intro-mad_p.jpg","madero":__BASE + "scenes/scene1/assets/intro-madero.jpg","miguel":__BASE + "scenes/scene1/assets/intro-miguel.jpg","miguel_p":__BASE + "scenes/scene1/assets/intro-miguel_p.jpg","remington":__BASE + "scenes/scene1/assets/intro-remington.jpg","remington_p":__BASE + "scenes/scene1/assets/intro-remington_p.jpg","villa":__BASE + "scenes/scene1/assets/intro-villa.jpg","villa_p":__BASE + "scenes/scene1/assets/intro-villa_p.jpg"};
+// Natural Earth 1:110m outlines (public domain), equirectangular at 24°N; pt = places in the same units
+const INTRO_MAP = {"mex":"M4.8 13.5 19.3 12.4 35.5 10.9 34.3 13.6 53.7 20.5 82.8 30.3 108.3 30.2 118.4 30.2 118.4 24.4 140.6 24.4 145.3 29.4 151.8 33.8 159.4 40.0 163.6 47.3 166.8 55.0 173.4 59.2 184.0 63.4 192.1 52.4 202.6 52.1 211.6 57.7 218.0 67.3 222.4 75.5 230.0 83.4 232.8 93.2 236.4 99.8 246.3 104.2 255.4 107.2 260.4 106.8 255.4 119.1 253.2 129.2 252.3 147.9 251.0 154.8 253.2 162.4 257.2 169.2 259.8 180.1 268.3 190.5 271.2 198.5 276.2 205.4 289.8 209.1 295.1 215.0 306.3 211.1 316.1 209.7 325.7 207.1 333.7 204.7 341.8 199.0 344.9 190.9 345.9 179.1 348.2 175.0 356.8 171.3 370.3 168.1 381.7 168.6 389.4 167.4 392.5 170.4 392.1 177.1 385.2 185.4 382.1 193.9 384.5 196.4 382.6 202.4 379.4 213.4 376.1 209.8 373.5 210.0 371.0 210.2 366.4 218.6 364.1 217.0 362.6 217.6 362.7 219.7 350.8 219.5 338.9 219.6 338.9 227.4 333.1 227.5 337.9 232.1 342.6 235.4 344.0 238.4 346.1 239.3 345.8 244.0 329.4 244.1 323.2 255.5 325.0 258.1 323.5 261.4 323.2 265.5 308.7 250.4 302.2 245.8 291.7 242.2 284.6 243.2 274.3 248.5 267.8 249.9 258.8 246.2 249.2 243.5 237.3 237.1 227.7 235.1 213.2 228.6 202.5 221.9 199.3 218.2 192.1 217.3 179.0 212.9 173.7 206.5 160.0 198.6 153.6 189.7 150.5 182.9 154.8 181.6 153.5 177.6 156.4 173.9 156.5 169.1 152.2 162.8 151.0 157.2 146.7 150.2 135.4 136.3 122.6 125.3 116.4 116.6 105.4 110.9 103.0 107.5 105.0 98.8 98.5 95.5 90.9 88.7 87.7 79.0 80.8 77.8 73.4 70.4 67.4 63.6 66.9 59.3 60.0 48.7 55.5 38.0 55.7 32.6 46.4 27.1 42.1 27.7 34.8 23.8 32.8 29.5 34.9 36.2 36.1 46.7 40.5 52.5 50.0 62.1 52.1 65.4 54.1 66.4 55.8 71.2 58.0 71.0 60.6 80.1 64.5 83.6 67.2 88.6 75.2 95.7 79.5 108.7 83.3 114.9 86.8 121.4 87.5 128.8 93.7 129.3 98.8 135.6 103.5 141.9 103.2 144.4 97.8 149.5 95.5 149.5 92.1 141.0 83.8 133.0 74.6 126.2 68.0 122.7 68.4 112.4 66.5 104.8 60.4 100.5 51.6 94.2 49.9 96.0 46.7 92.4 38.8 89.0 31.3 80.9 32.2 79.8 37.5 80.6 42.2 75.4 42.7 69.1 32.8 59.1 25.3 55.2 20.6 46.5 15.9 37.3 10.0 26.1 4.8 13.5Z","usa":"M-32.0 -35.0 428.5 -35.0 428.5 48.3 427.2 47.7 414.3 54.1 412.0 53.4 405.8 46.9 397.8 43.4 383.3 45.2 372.0 43.6 362.2 44.6 356.9 46.8 359.2 50.5 359.0 56.2 361.7 58.9 359.3 60.8 354.5 58.7 349.7 61.4 340.5 60.9 330.9 53.5 319.8 55.3 310.5 52.0 302.5 53.0 291.7 56.3 280.1 66.7 267.4 72.7 260.4 79.4 257.5 85.7 257.3 95.3 258.0 102.1 260.4 106.8 255.4 107.2 246.3 104.2 236.4 99.8 232.8 93.2 230.0 83.4 222.4 75.5 218.0 67.3 211.6 57.7 202.6 52.1 192.1 52.4 184.0 63.4 173.4 59.2 166.8 55.0 163.6 47.3 159.4 40.0 151.8 33.8 145.3 29.4 140.6 24.4 118.4 24.4 118.4 30.2 108.3 30.2 82.8 30.3 53.7 20.5 34.3 13.6 35.5 10.9 19.3 12.4 4.8 13.5 2.6 6.4 -5.7 -1.7 -11.6 -3.4 -13.0 -7.4 -20.2 -8.1 -24.8 -11.9 -32.0 -12.7Z","cam":"M323.2 265.5 323.5 261.4 325.0 258.1 323.2 255.5 329.4 244.1 345.8 244.0 346.1 239.3 344.0 238.4 342.6 235.4 337.9 232.1 333.1 227.5 338.9 227.4 338.9 219.6 350.8 219.5 362.7 219.7 362.6 230.8 361.6 246.6 365.4 246.6 369.6 249.1 370.7 247.0 374.4 248.8 368.6 254.2 362.5 258.1 361.6 260.8 362.6 263.5 360.0 267.1 357.0 267.9 357.7 269.6 355.3 271.1 350.9 274.7 350.5 276.7 343.9 274.3 336.0 274.0 330.1 271.2 323.2 265.5ZM362.7 219.7 362.6 217.6 364.1 217.0 366.4 218.6 371.0 210.2 373.5 210.0 373.5 212.1 375.9 212.1 375.7 215.9 373.6 222.0 374.8 224.1 373.4 229.2 374.2 230.5 372.7 237.6 370.2 241.3 367.9 241.7 365.4 246.6 361.6 246.6 362.6 230.8 362.7 219.7Z","vb":[0,0,402.9,273.0],"pt":{"mexico":[234.9,197.0],"slp":[211.3,158.9],"monterrey":[219.9,109.3],"nlaredo":[230.1,84.3],"sanantonio":[243.1,57.1],"chihuahua":[145.9,68.2],"juarez":[141.5,24.9],"ahumada":[140.6,40.3],"jimenez":[160.9,89.2],"torreon":[180.0,111.4],"zacatecas":[190.8,150.2],"aguascalientes":[194.5,162.7],"leon":[202.3,173.3],"queretaro":[218.8,180.7],"acambaro":[214.6,188.6],"saltillo":[211.0,113.1],"guerrero":[128.2,69.3],"casasgrandes":[122.1,43.8],"sanandres":[139.4,68.6],"parral":[151.4,92.0],"ojinaga":[167.4,55.2]},"vbN":[88.2,5.6,130.5,88.4]};
+const ASPECT = { diaz: .8, remington: 1.5, miguel: 360 / 470, villa: 560 / 460, mad: 1.4 };
+const FIG = { timers: [], raf: 0, cur: null, until: 0, q: 0 };
+const later = (ms, fn) => { FIG.timers.push(setTimeout(fn, ms)); };
+function figStop() { FIG.timers.forEach(clearTimeout); FIG.timers = []; cancelAnimationFrame(FIG.raf); clearTimeout(FIG.q); }
+// a picture with a slow change (hold) keeps the stage until it has played out; the next one waits its turn
+function queueFig(f) { clearTimeout(FIG.q); const w = FIG.until - performance.now(); if (w > 0) FIG.q = setTimeout(() => showFig(f), w); else showFig(f); }
+// a photographic print laid on the newsprint, as big as its proportions allow in the stage
+function printEl(parent, ar, o = {}) {
+  const st = $('figStage'), W = st.clientWidth, H = st.clientHeight * (o.hk || .94), w = Math.min(W * .94, H * ar), h = w / ar;
+  const p = document.createElement('div'); p.className = 'print';
+  Object.assign(p.style, { width: w + 'px', height: h + 'px', left: (W - w) / 2 + 'px', top: (o.top != null ? o.top * st.clientHeight : (st.clientHeight - h) / 2) + 'px', '--rot': (o.rot || 0) + 'deg' });
+  const inner = document.createElement('div'); inner.className = 'inner'; p.appendChild(inner); parent.appendChild(p);
+  return inner;
+}
+function layer(inner, key, cls) { const im = new Image(); im.src = INTRO_IMG[key]; im.alt = ''; im.className = cls || ''; inner.appendChild(im); return im; }
+// Díaz's years: 1876 to 1910, with Manuel González's term (1880 to 1884) the one break
+function reignSVG() {
+  const x = y => 16 + (y - 1876) / 34 * 268, ticks = [1877, 1884, 1888, 1892, 1896, 1900, 1904, 1910];
+  return `<svg class="reign" viewBox="0 0 300 40" aria-hidden="true">
+    <line class="gap" x1="${x(1880)}" y1="17" x2="${x(1884)}" y2="17"/>
+    <line class="run" x1="${x(1876)}" y1="17" x2="${x(1880)}" y2="17" pathLength="1"/>
+    <line class="run r2" x1="${x(1884)}" y1="17" x2="${x(1910)}" y2="17" pathLength="1"/>
+    ${ticks.map((t, i) => `<line class="tick" style="animation-delay:${.3 + (t - 1876) / 34 * 2.2}s" x1="${x(t)}" y1="11" x2="${x(t)}" y2="23"/>`).join('')}
+    <text x="${x(1876)}" y="36" text-anchor="middle">1876</text><text class="late" x="${x(1910)}" y="36" text-anchor="middle">1910</text></svg>`;
+}
+const pts = ks => ks.map(k => INTRO_MAP.pt[k].join(',')).join(' ');
+function mapSVG(kind) {
+  const M = INTRO_MAP, P = M.pt, vb = M.vb.join(' ');
+  const dot = (k, r = 2.4) => `<circle class="city" cx="${P[k][0]}" cy="${P[k][1]}" r="${r}"/>`;
+  const lab = (k, t, dx, dy, a = 'start') => `<text class="lb" text-anchor="${a}" x="${P[k][0] + dx}" y="${P[k][1] + dy}">${t}</text>`;
+  let s = `<svg class="map ${kind}" viewBox="${vb}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+    <defs><clipPath id="ov-${kind}"><ellipse cx="333" cy="118" rx="27" ry="34"/></clipPath></defs>
+    <rect class="sea" x="-50" y="-50" width="600" height="400"/>
+    <path class="usa" d="${M.usa}"/><path class="cam" d="${M.cam}"/><path class="mex" d="${M.mex}"/>
+    <polyline class="rail" points="${pts(['juarez', 'ahumada', 'chihuahua', 'jimenez', 'torreon', 'zacatecas', 'aguascalientes', 'leon', 'queretaro', 'mexico'])}"/>
+    <polyline class="rail" points="${pts(['mexico', 'acambaro', 'slp', 'saltillo', 'monterrey', 'nlaredo', 'sanantonio'])}"/>`;
+  if (kind === 'route') {
+    s += `<polyline class="route" pathLength="1" points="${pts(['slp', 'saltillo', 'monterrey', 'nlaredo', 'sanantonio'])}"/>
+      ${dot('mexico', 3)}${dot('slp')}${dot('sanantonio')}
+      ${lab('mexico', 'Mexico City', 6, 4)}${lab('slp', 'San Luis Potosí', -6, 4, 'end')}${lab('sanantonio', 'San Antonio', 6, -2)}
+      <circle class="train" r="3.2" cx="${P.slp[0]}" cy="${P.slp[1]}"/>
+      <g class="medal"><ellipse cx="333" cy="118" rx="29.5" ry="36.5" class="mf"/><image href="${INTRO_IMG.madero}" x="304" y="82" width="58" height="72" clip-path="url(#ov-${kind})" preserveAspectRatio="xMidYMid slice"/>
+      <text class="lb" x="333" y="167" text-anchor="middle">Madero</text></g>`;
+  } else {
+    // the north rises: bands from the Guerrero district and from around Chihuahua close on the border city
+    const c = (a, b, bend) => { const A = P[a], B = P[b], mx = (A[0] + B[0]) / 2 + bend[0], my = (A[1] + B[1]) / 2 + bend[1]; return `M${A[0]} ${A[1]}Q${mx} ${my} ${B[0]} ${B[1]}`; };
+    const J = P.juarez;
+    s += `<path class="arrow a1" d="${c('guerrero', 'casasgrandes', [-4, 0])}T${J[0] - 1.6} ${J[1] + 1.4}"/>
+      <path class="arrow a2" d="${c('sanandres', 'juarez', [4, 2])}"/>
+      <circle class="city n" cx="${P.chihuahua[0]}" cy="${P.chihuahua[1]}" r=".9"/>
+      <circle class="burst" cx="${J[0]}" cy="${J[1]}" r="2.2"/><circle class="city n" cx="${J[0]}" cy="${J[1]}" r="1"/>
+      <text class="lb n" x="${J[0] + 2.2}" y="${J[1] + 3.4}">Ciudad Juárez</text><text class="lb n" x="${P.chihuahua[0] + 1.8}" y="${P.chihuahua[1] + 1.2}">Chihuahua</text>
+      <text class="lb n us" x="${J[0] + 6}" y="${J[1] - 6}">TEXAS</text>
+      <text class="lb n who" text-anchor="end" x="${P.guerrero[0] - 1.5}" y="${P.guerrero[1] + 4.5}">Orozco</text><text class="lb n who" x="${P.sanandres[0] + 1}" y="${P.sanandres[1] + 4.5}">Villa</text>`;
+  }
+  return s + '</svg>';
+}
+const EASE = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+// the camera's round: a plate goes in, is exposed, comes up in the tray, its print goes to the paper
+function processSVG() {
+  return `<svg class="proc" viewBox="0 0 400 300" aria-hidden="true">
+    <defs><linearGradient id="pg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3b4458"/><stop offset=".55" stop-color="#151922"/><stop offset=".7" stop-color="#46506a"/><stop offset="1" stop-color="#1a1e28"/></linearGradient>
+      <radialGradient id="safe" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ff5a3a" stop-opacity=".55"/><stop offset="1" stop-color="#ff5a3a" stop-opacity="0"/></radialGradient>
+      <clipPath id="prc"><rect x="0" y="0" width="58" height="42"/></clipPath></defs>
+    <g class="stack">${[0, 1, 2].map(i => `<g transform="translate(${30 + i * 7},${54 - i * 7})"><rect width="54" height="40" fill="#6b3f22"/><rect x="5" y="5" width="44" height="30" fill="url(#pg)"/></g>`).join('')}</g>
+    <g class="pl"><rect width="54" height="40" fill="#6b3f22"/><rect x="5" y="5" width="44" height="30" fill="url(#pg)"/></g>
+    <g class="cam" transform="translate(178,36)"><rect x="0" y="6" width="80" height="62" fill="#2b2622"/><rect x="2" y="8" width="76" height="58" fill="none" stroke="#a9a49a" stroke-width="2"/>
+      <path d="M80 18 L112 26 L112 50 L80 58 Z" fill="#1d1916"/><circle cx="118" cy="38" r="15" fill="#17130f" stroke="#c99c4a" stroke-width="3"/><circle cx="118" cy="38" r="8" fill="#2a3550"/><circle class="flash" cx="118" cy="38" r="30" fill="#fff6dc"/></g>
+    <path class="flow" d="M104 66 H170"/><path class="flow" d="M218 112 V160"/><path class="flow" d="M262 214 H300"/>
+    <g transform="translate(150,170)"><rect width="118" height="74" rx="6" fill="#e9e4d8" stroke="#8a8478" stroke-width="2"/><rect x="8" y="8" width="102" height="58" rx="3" fill="#cfc6b4"/><ellipse class="glow" cx="59" cy="37" rx="80" ry="60" fill="url(#safe)"/>
+      <g class="neg" transform="translate(30,16)"><rect width="58" height="42" fill="#d9d4c8"/><g class="img" clip-path="url(#prc)"><image href="${INTRO_IMG.mad_p}" width="58" height="42" preserveAspectRatio="xMidYMid slice"/></g></g></g>
+    <g class="paper" transform="translate(304,150)"><rect width="84" height="112" fill="#efe4c8" stroke="#3a2c20" stroke-width="1.4"/><text x="42" y="17" text-anchor="middle" class="mast">EL IMPARCIAL</text><line x1="6" y1="22" x2="78" y2="22" stroke="#3a2c20"/>
+      ${[0, 1, 2, 3, 4, 5].map(i => `<line x1="8" y1="${82 + i * 5}" x2="${76 - (i % 3) * 7}" y2="${82 + i * 5}" stroke="#7a6a58" stroke-width="1.6"/>`).join('')}
+      <g class="pr" transform="translate(13,28)"><rect width="58" height="42" fill="#f6efdf"/><image href="${INTRO_IMG.mad_p}" width="58" height="42" preserveAspectRatio="xMidYMid slice" class="half"/></g></g>
+  </svg>`;
+}
+function showFig(f) {
+  const stage = $('figStage'), cap = $('figCap');
+  figStop(); FIG.cur = f; FIG.until = performance.now() + (f.hold || 0);
+  const old = [...stage.children];
+  const v = document.createElement('div'); v.className = 'vis'; stage.appendChild(v);
+  if (f.map) {
+    v.innerHTML = mapSVG(f.map);
+    const svg = v.querySelector('svg');
+    if (f.map === 'route') {
+      const line = svg.querySelector('.route'), tr = svg.querySelector('.train'), t0 = performance.now(), dur = 2600;
+      const step = now => { const t = Math.min(1, (now - t0 - 600) / dur); if (t >= 0) { const e = EASE(t), p = line.getPointAtLength(e * line.getTotalLength()); line.style.strokeDashoffset = 1 - e; tr.setAttribute('cx', p.x); tr.setAttribute('cy', p.y); } if (t < 1) FIG.raf = requestAnimationFrame(step); };
+      FIG.raf = requestAnimationFrame(step);
+    } else {
+      const a = INTRO_MAP.vb, b = INTRO_MAP.vbN, t0 = performance.now(), dur = 1900;
+      const step = now => { const t = Math.min(1, Math.max(0, (now - t0 - 400) / dur)), e = EASE(t); svg.setAttribute('viewBox', a.map((q, i) => q + (b[i] - q) * e).join(' ')); if (t < 1) FIG.raf = requestAnimationFrame(step); else svg.classList.add('zoomed'); };
+      FIG.raf = requestAnimationFrame(step);
+      later(500, () => svg.classList.add('tint'));
+      // the arrows draw in once the map has closed on the north; heads follow the line's last stretch
+      svg.querySelectorAll('.arrow').forEach((a, i) => {
+        const L = a.getTotalLength(), e = a.getPointAtLength(L), q = a.getPointAtLength(L - 2), ang = Math.atan2(e.y - q.y, e.x - q.x) * 180 / Math.PI;
+        a.style.strokeDasharray = a.style.strokeDashoffset = L; a.style.animationDelay = (2.5 + i * .5) + 's';
+        a.insertAdjacentHTML('afterend', `<path class="head" style="animation-delay:${3.7 + i * .5}s" transform="translate(${e.x} ${e.y}) rotate(${ang})" d="M1 0L-3.2 -2.2L-2.2 0L-3.2 2.2z"/>`);
+      });
+    }
+  } else if (f.process) {
+    v.innerHTML = processSVG(); v.classList.add('procv');
+  } else if (f.photo) {
+    if (f.archive) {
+      // the archive: prints from the decades ahead scattered across the table, then one of the best known on top
+      const st = stage, W = st.clientWidth, H = st.clientHeight;
+      for (let i = 0; i < f.archive; i++) {
+        const t = document.createElement('img'); t.src = INTRO_IMG['arch' + i]; t.alt = ''; t.className = 'thumb';
+        const cx = (i % 4 + .5) / 4 + (urnd() - .5) * .08, cy = (Math.floor(i / 4) + .5) / 3 + (urnd() - .5) * .1;
+        Object.assign(t.style, { left: (cx * W - W * .14) + 'px', top: (cy * H - H * .14) + 'px', width: W * .28 + 'px', '--rot': ((urnd() - .5) * 16) + 'deg', transitionDelay: (i * .12) + 's' });
+        v.appendChild(t);
+      }
+      requestAnimationFrame(() => requestAnimationFrame(() => v.querySelectorAll('.thumb').forEach(t => t.classList.add('in'))));
+    }
+    const inner = printEl(v, ASPECT[f.photo], f.reign ? { hk: .76, top: .02, rot: -.8 } : f.archive ? { hk: .78, rot: 1.2 } : { rot: f.game ? 0 : -.6 });
+    const print = inner.parentNode; if (f.archive) { print.classList.add('late'); later(f.archive * 120 + 500, () => print.classList.add('in')); }
+    layer(inner, f.photo, 'real');
+    const pa = f.paint && layer(inner, f.paint, 'paint'), ga = f.game && INTRO_IMG[f.game] && layer(inner, f.game, 'paint game');
+    inner.classList.add('kb');
+    const t1 = f.archive ? f.archive * 120 + 1700 : f.game ? 900 : 1200;
+    if (pa) later(t1, () => { pa.style.opacity = Math.min(1, f.s); });
+    if (ga) later(t1 + 2600, () => { ga.style.opacity = 1; cap.classList.remove('on'); });
+    if (f.reign) v.insertAdjacentHTML('beforeend', reignSVG());
+  }
+  cap.classList.remove('on');
+  later(f.archive ? f.archive * 120 + 900 : 260, () => { cap.textContent = f.cap || ''; cap.classList.toggle('on', !!f.cap); });
+  requestAnimationFrame(() => v.classList.add('on'));
+  setTimeout(() => old.forEach(o => o.remove()), 800);
+}
+const IN = { page: 0, typing: false, skip: false, cover: false, turning: false };
+function introPage(i) {
+  const box = $('introText'); box.innerHTML = '';
+  document.querySelectorAll('#introFoot .dots span').forEach((d, k) => d.classList.toggle('on', k === i));
+  $('bIntro').classList.remove('show', 'pulse');
+  const parts = [];
+  for (const b of INTRO[i]) {
+    let pt;
+    if (b.dl || b.p) { const el = document.createElement(b.dl ? 'div' : 'p'); if (b.dl) el.className = 'dl'; box.appendChild(el); pt = { el, text: b.dl || b.p, cps: b.dl ? 90 : 62 }; }
+    else if (b.cut) { const el = document.createElement('div'); el.className = 'cut'; el.style.opacity = 0; box.appendChild(el); pt = { el, show: true }; }
+    else if (b.glass) { const el = document.createElement('div'); el.className = 'glass'; el.setAttribute('aria-label', b.glass + ' glass plates'); for (let k = 0; k < b.glass; k++) el.appendChild(document.createElement('i')); box.appendChild(el); pt = { el, glass: true }; }
+    else if (b.keys) { const el = document.createElement('div'); el.className = 'keys'; b.keys.forEach(([k, v]) => { const kb = document.createElement('b'), sp = document.createElement('span'); kb.textContent = k; sp.textContent = v; el.append(kb, sp); }); box.appendChild(el); pt = { el, keys: true }; }
+    pt.fig = b.fig; parts.push(pt);
+  }
+  const caret = document.createElement('span'); caret.className = 'caret';
+  IN.typing = true; IN.skip = false; FIG.until = 0;
+  const narrow = () => $('introBody').clientWidth < 700;
+  return (async () => {
+    let lastFig = null;
+    for (const pt of parts) {
+      if (pt.fig) { lastFig = pt.fig; if (!IN.skip) queueFig(pt.fig); }
+      if (narrow() && !IN.skip) pt.el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      if (pt.text) {
+        let n = 0, t0 = performance.now();
+        pt.el.textContent = ''; pt.el.appendChild(caret);
+        while (n < pt.text.length) {
+          await new Promise(r => requestAnimationFrame(r));
+          n = IN.skip ? pt.text.length : Math.min(pt.text.length, Math.floor((performance.now() - t0) / 1000 * pt.cps));
+          pt.el.textContent = pt.text.slice(0, n); pt.el.appendChild(caret);
+        }
+        if (!IN.skip) await sleep(pt.el.className === 'dl' ? 120 : 260);
+      } else if (pt.show) pt.el.style.opacity = 1;
+      else if (pt.glass) { for (const g of pt.el.children) { g.classList.add('in'); if (!IN.skip) await sleep(260); } }
+      else if (pt.keys) { pt.el.classList.add('show'); }
+    }
+    // skipped through: the page's last picture is the one left showing
+    if (IN.skip && lastFig && FIG.cur !== lastFig) { if (FIG.until > performance.now()) queueFig(lastFig); else showFig(lastFig); }
+    IN.typing = false;
+    $('bIntro').classList.add('show', 'pulse'); $('bIntro').focus({ preventScroll: true });
+    if (narrow()) $('introFoot').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  })();
+}
+async function runIntro() {
+  const el = $('intro'); el.hidden = false; void el.offsetWidth; el.classList.add('show');
+  await sleep(600); IN.cover = true;
+  IN.page = 0; introPage(0);
+}
+$('introSheet').addEventListener('click', e => { if (IN.typing && e.target !== $('bIntro')) IN.skip = true; });
+window.addEventListener('keydown', e => {
+  if ($('intro').hidden || !IN.typing) return;
+  if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); IN.skip = true; }
+});
+$('bIntro').onclick = async () => {
+  if (IN.typing || IN.turning) return;
+  IN.turning = true;
+  $('bIntro').classList.remove('show', 'pulse');
+  const sheet = $('introSheet');
+  sheet.classList.add('turn'); await sleep(350);
+  if (IN.page < INTRO.length - 1) { IN.page++; sheet.classList.remove('turn'); IN.turning = false; introPage(IN.page); return; }
+  // into the front room
+  figStop(); ROOM.enter(); IN.cover = false;
+  const el = $('intro'); el.classList.remove('show'); await sleep(650); el.hidden = true; sheet.classList.remove('turn'); $('figStage').innerHTML = '';
+};
+
+// ---------- zones: parts of the town built only while you're near them ----------
+// Same contract and distances as the game build's ZoneManager (game/src/engine/zones.js): a zone is a ground box in
+// path coordinates plus load() -> a module whose load(kit) returns { group, update?, dispose? }. The game build runs its
+// own ZoneManager over window.__casasola.zones and sets window.__casasolaZoneHost; then this streamer stands down.
+const ZONES = [];
+const ZS = { preload: 40, keep: 70, every: .25, acc: 0 };
+const zoneDist = (z, x, y) => Math.hypot(Math.max(z.x0 - x, 0, x - z.x1), Math.max(z.z0 - y, 0, y - z.z1));
+function freeZone(live) {
+  if (!live) return; if (live.dispose) live.dispose(); if (!live.group) return;
+  live.group.traverse(o => {
+    if (o.geometry && !o.geometry.userData.shared) o.geometry.dispose();
+    const mats = Array.isArray(o.material) ? o.material : o.material ? [o.material] : [];
+    for (const m of mats) { if (m.userData.shared) continue; for (const k in m) { const v = m[k]; if (v && v.isTexture && !(v.userData && v.userData.shared)) v.dispose(); } m.dispose(); }
+  });
+}
+function zoneEnter(z) {
+  if (z.state === 'live' || z.state === 'loading') return z.pending;
+  z.state = 'loading'; const ticket = z.ticket = (z.ticket || 0) + 1;
+  return (z.pending = z.load().then(m => m.load({})).then(live => {
+    if (z.ticket !== ticket || z.state !== 'loading') { freeZone(live); return; }
+    if (live.group) scene.add(live.group); z.live = live; z.state = 'live';
+  }).catch(e => { console.error('zone ' + z.id + ' failed to load', e); if (z.ticket === ticket) z.state = 'idle'; }));
+}
+function zoneLeave(z) {
+  if (z.state === 'loading') { z.state = 'idle'; z.ticket++; return; }
+  if (z.state !== 'live') return;
+  if (z.live.group && z.live.group.parent) z.live.group.parent.remove(z.live.group);
+  freeZone(z.live); z.live = null; z.state = 'idle';
+}
+function streamZones(dt, now) {
+  if (window.__casasolaZoneHost) return;
+  for (const z of ZONES) if (z.state === 'live' && z.live.update) z.live.update(dt);
+  if (!now && (ZS.acc += dt) < ZS.every) return;
+  ZS.acc = 0;
+  for (const z of ZONES) { const d = zoneDist(z, player.x, player.z); if (d <= ZS.preload) zoneEnter(z); else if (d > ZS.keep) zoneLeave(z); }
+}
+
+// ---------- the front room of the ochre house on the main street: whitewashed adobe, a table, your tile floor ----------
+// It is part of the town: the house is built hollow (building() spec `hollow`) and you walk in and out through its real door.
+// The furnishings and Miguel are a zone, built while you are near the house and freed when you are far up the street.
+// Miguel hands over the camera here; the doorway stays shut to you until he's done.
+// Dialogue: the user writes every line. Fill `line` and the card shows it instead of the bracketed note.
+const MIGUEL_LINES = [
+  { note: '[Dialogue to be written. Miguel greets Agustín. Only the basics: Madero\'s riders are expected along the tracks this morning.]', line: '' },
+  { note: '[Dialogue to be written. Miguel hands over the camera.]', line: '', then: 'give' },
+  { note: '[Dialogue to be written. How to raise the camera and look through it.]', line: '', then: 'practice' },
+  { note: '[Dialogue to be written. The essentials again: three plates, one exposure each, squeeze the bulb.]', line: '' },
+  { note: '[Dialogue to be written. The best print goes to the newspapers.]', line: '' },
+  { note: '[Dialogue to be written. Sends Agustín out; the townspeople will know the rest.]', line: '', then: 'open' }
+];
+const MIGUEL_AGAIN = { note: '[Dialogue to be written. What Miguel says if you talk to him again.]', line: '' };
+FRAG.tile = { pars: 'uniform sampler2D uTile; uniform vec2 uRep;\n', alb: `
+  { // each 30 cm tile is one of the nine in your photo, turned a random quarter, so the floor never visibly repeats
+    vec2 p = vDUv * uRep * 3.0, cell = floor(p), q = fract(p) - .5;
+    float h = hash12(cell * 1.37 + 4.1), r = floor(hash12(cell.yx * 2.11 + 1.3) * 4.0);
+    q = r < 1.0 ? q : r < 2.0 ? vec2(-q.y, q.x) : r < 3.0 ? -q : vec2(q.y, -q.x);
+    float k = floor(h * 9.0);
+    vec3 t = texture2D(uTile, (vec2(mod(k, 3.0), floor(k / 3.0)) + q + .5) / 3.0).rgb;
+    diffuseColor.rgb *= t * (.93 + .1 * vnoise(vWPos.xz * 1.3)); }` };
+const ROOM = (() => {
+  const T = HOUSE_SPEC.T, D = HOUSE_SPEC.D, H = HOUSE_SPEC.H, W = 8 - 2 * T, X0 = W / 2, Z0 = D / 2;
+  const DOOR = { x: 2, w: 1.25, h: 2.35 }, WIN = { x: -2, w: .95, y0: 1.0, h: 1.3 };
+  // the room's frame is the house's own (bent with the street), moved back to the middle of the floor:
+  // x runs along the facade, z points out to the street, the front wall's inner face is at z = Z0
+  ochreHouse.updateMatrixWorld(true);
+  const RP = new THREE.Vector3(), RQ = new THREE.Quaternion();
+  ochreHouse.matrixWorld.clone().multiply(new THREE.Matrix4().makeTranslation(0, 0, -T - Z0)).decompose(RP, RQ, new THREE.Vector3());
+  const ang = new THREE.Euler().setFromQuaternion(RQ, 'YXZ').y, ca = Math.cos(ang), sa = Math.sin(ang);
+  const local = (px, pz) => { const X = px - RP.x, Z = warpP(px, pz) - RP.z; return { x: X * ca - Z * sa, z: X * sa + Z * ca }; };
+  const toPath = (lx, lz) => { const X = RP.x + lx * ca + lz * sa, Z = RP.z - lx * sa + lz * ca; return { x: X, z: Z - bendBase(X) }; };
+  const yawTo = (from, lx, lz) => Math.atan2(-(lx - from.x), -(lz - from.z)) + ang;
+  // the room's box for the indoor shading in COMPOSE: shade keeps its local colour, a little bounce from the door
+  LIGHT.uRoom.value.set(RP.x, RP.z, ca, sa); LIGHT.uRoomE.value.set(X0, Z0, H, 0);
+  const center = (() => { const p = toPath(0, 1.2); return { x: p.x, z: warpP(p.x, p.z) }; })();
+  const R = { hasCam: false, camDrop: .5, open: false, left: false, beat: -1, step: null, face: false, talked: false, talking: false, stepT: 0, live: null, inside: false, DOOR, X0, Z0, T, local, toPath, center };
+  let readyRes; R.ready = new Promise(r => { readyRes = r; });
+  const TB = { x: -.2, z: -.6, w: 1.5, d: .85 };
+  const MIG = { x: 1.2, z: -1.25 };
+
+  // ---- the furnishings: everything static merges into one mesh per material ----
+  function build() {
+    const seed0 = seed, n0 = allMeshes.length;
+    const g = new THREE.Group(); g.position.copy(RP); g.quaternion.copy(RQ); g.userData.noMerge = true;
+    const st = new THREE.Group(); g.add(st);
+    const wall = envMat(0xf1ebde, 'plaster', { grain: 0, tint: .95, grime: .45 });
+    const wb = (w, h, d, x, y, z) => box(w, h, d, 0, st, x, y, z, { mat: wall });
+    // whitewash over the adobe: thin linings on the inside faces of the house's walls
+    const zf = Z0 - .012, wl = WIN.x - WIN.w / 2, wr = WIN.x + WIN.w / 2, dl = DOOR.x - DOOR.w / 2, dr = DOOR.x + DOOR.w / 2;
+    wb(wl + X0, H, .024, (-X0 + wl) / 2, H / 2, zf);
+    wb(WIN.w, WIN.y0, .024, WIN.x, WIN.y0 / 2, zf); wb(WIN.w, H - WIN.y0 - WIN.h, .024, WIN.x, (WIN.y0 + WIN.h + H) / 2, zf);
+    wb(dl - wr, H, .024, (wr + dl) / 2, H / 2, zf);
+    wb(DOOR.w, H - DOOR.h, .024, DOOR.x, (DOOR.h + H) / 2, zf);
+    wb(X0 - dr, H, .024, (dr + X0) / 2, H / 2, zf);
+    wb(W, H, .024, 0, H / 2, -Z0 + .012);
+    for (const sx of [-1, 1]) wb(.024, H, D, sx * (X0 - .012), H / 2, 0);
+    // ceiling: planks on round vigas
+    box(W, .2, D, 0x8d7258, st, 0, H + .085, 0, { surf: 'woodgray', grain: 1, tint: .5 });
+    for (let x = -X0 + .45; x < X0; x += .78) cyl(.085, .1, D, C.wood, st, x, H - .09, 0, { rx: Math.PI / 2, seg: 7, surf: 'woodbrown', tint: .45 });
+    // the floor: your terracotta tiles
+    const tileT = tex('tile'); tileT.anisotropy = 8;
+    const floorM = patch(new THREE.MeshToonMaterial({ color: 0xffffff }), 'tile', { uTile: { value: tileT }, uRep: { value: new THREE.Vector2(W / .9, D / .9) } });
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(W, D), floorM); floor.rotation.x = -Math.PI / 2; floor.position.y = .012; floor.receiveShadow = true; g.add(floor);
+    box(DOOR.w, .03, T, 0x9a8f80, st, DOOR.x, .015, Z0 + T / 2, { surf: 'plaster', tint: .7 });
+    box(WIN.w, .04, T, 0xd9d0bf, st, WIN.x, WIN.y0 + .02, Z0 + T / 2, { surf: 'plaster', tint: .8 });
+    // shutters and door leaves folded back into the room
+    const leaf = (hx, w, h, y0, dir, ang, col) => { const p = new THREE.Group(); p.position.set(hx, 0, Z0 - .02); p.rotation.y = dir * ang; st.add(p); box(w, h, .05, col, p, dir * w / 2, y0 + h / 2, -.03, { surf: 'woodbrown', grain: 0, tint: .55 }); for (const fy of [.25, .75]) box(w * .8, .05, .02, shade(col, .8), p, dir * w / 2, y0 + h * fy, -.065, { surf: 'woodbrown', tint: .6 }); };
+    leaf(wl, WIN.w / 2, WIN.h, WIN.y0, 1, 2.6, 0x6b4a32); leaf(wr, WIN.w / 2, WIN.h, WIN.y0, -1, -2.6, 0x6b4a32);
+    leaf(dl, DOOR.w / 2, DOOR.h, 0, 1, 2.4, 0x5c3d27); leaf(dr, DOOR.w / 2, DOOR.h, 0, -1, -2.4, 0x5c3d27);
+    // table and chairs
+    box(TB.w, .06, TB.d, 0x7a5232, st, TB.x, .76, TB.z, { surf: 'woodbrown', grain: 1, tint: .55 });
+    for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) box(.07, .73, .07, 0x6a4628, st, TB.x + sx * (TB.w / 2 - .08), .365, TB.z + sz * (TB.d / 2 - .08), { surf: 'woodbrown' });
+    box(TB.w - .2, .1, .04, 0x6a4628, st, TB.x, .68, TB.z + TB.d / 2 - .08, { surf: 'woodbrown', grain: 1 });
+    const chair = (x, z, ry) => { const c = new THREE.Group(); c.position.set(x, 0, z); c.rotation.y = ry; st.add(c); box(.42, .04, .4, 0x8a6a44, c, 0, .45, 0, { surf: 'woodorange', grain: 1 }); for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) box(.04, sz < 0 ? .95 : .45, .04, 0x6a4a2c, c, sx * .18, sz < 0 ? .475 : .225, sz * .17, { surf: 'woodbrown' }); for (const y of [.68, .86]) box(.4, .05, .025, 0x6a4a2c, c, 0, y, -.17, { surf: 'woodbrown', grain: 1 }); };
+    chair(-.65, -1.3, 0); chair(-1.45, .05, -1.9);
+    // bench along the back wall, a shelf, the water jar on its stand, a print of the Virgin, hats on pegs by the door
+    box(2.0, .06, .38, 0x7f6142, st, -2.35, .44, -Z0 + .22, { surf: 'woodgray', grain: 1, tint: .5 });
+    for (const sx of [-.85, .85]) box(.06, .41, .32, 0x6a4a2c, st, -2.35 + sx, .205, -Z0 + .22, { surf: 'woodbrown' });
+    box(1.1, .04, .24, 0x7a5232, st, 1.5, 1.72, -Z0 + .12, { surf: 'woodbrown', grain: 1 });
+    for (const [x, h, c] of [[1.15, .16, 0xb5603a], [1.4, .12, 0xe0d6c0], [1.62, .2, 0xa9482a], [1.85, .1, 0xb5603a]]) cyl(h * .45, h * .38, h, c, st, x, 1.74 + h / 2, -Z0 + .12, { seg: 10, surf: 'orange', tint: .6 });
+    const jar = new THREE.Mesh(new THREE.SphereGeometry(.24, 14, 10), envMat(0xb2603c, 'orange', { tint: .6 })); jar.position.set(3.0, .72, -1.85); jar.scale.y = 1.08; st.add(jar);
+    cyl(.09, .12, .14, 0xa9572f, st, 3.0, 1.0, -1.85, { seg: 10, surf: 'orange', tint: .6 });
+    for (let k = 0; k < 3; k++) { const a = k * 2.094; box(.05, .5, .05, 0x6a4a2c, st, 3.0 + Math.cos(a) * .17, .25, -1.85 + Math.sin(a) * .17, { surf: 'woodbrown' }); }
+    for (const [x, kind, col] of [[3.05, 'bowler', 0x231a14], [3.35, 'flat', 0x9a7a4a]]) { const hp = new THREE.Group(); hp.position.set(x, 1.72, Z0 - .2); hp.rotation.x = -1.2; st.add(hp); hat(hp, kind, col, 0); box(.03, .03, .14, 0x5a3a24, st, x, 1.78, Z0 - .07, { surf: 'woodbrown' }); }
+    const print = new THREE.Mesh(new THREE.PlaneGeometry(.46, .62), patch(new THREE.MeshToonMaterial({ map: canvasTex(184, 248, (c, w, h) => {
+      c.fillStyle = '#3a2416'; c.fillRect(0, 0, w, h); c.fillStyle = '#e9dcb8'; c.fillRect(12, 12, w - 24, h - 24);
+      const cx = w / 2, cy = h * .52; for (let a = 0; a < 40; a++) { const an = a / 40 * Math.PI * 2; c.strokeStyle = 'rgba(201,150,60,.8)'; c.lineWidth = 2; c.beginPath(); c.moveTo(cx + Math.cos(an) * 26, cy + Math.sin(an) * 52); c.lineTo(cx + Math.cos(an) * 46, cy + Math.sin(an) * 86); c.stroke(); }
+      c.fillStyle = '#b4453a'; c.beginPath(); c.ellipse(cx, cy + 6, 22, 52, 0, 0, 7); c.fill();
+      c.fillStyle = '#2f6a5e'; c.beginPath(); c.moveTo(cx, cy - 58); c.quadraticCurveTo(cx - 40, cy, cx - 22, cy + 62); c.lineTo(cx + 22, cy + 62); c.quadraticCurveTo(cx + 40, cy, cx, cy - 58); c.fill();
+      c.fillStyle = '#c99a72'; c.beginPath(); c.arc(cx, cy - 44, 8, 0, 7); c.fill();
+    }) }), 'map', { uGrime: { value: 0 } }, 'pr'));
+    print.position.set(-2.35, 1.6, -Z0 + .03); print.receiveShadow = true; g.add(print);
+    const paper = new THREE.Mesh(new THREE.PlaneGeometry(.46, .32), patch(new THREE.MeshToonMaterial({ map: canvasTex(256, 180, (c, w, h) => { if (IMG.paper.naturalWidth) c.drawImage(IMG.paper, 0, 0, w, h); else { c.fillStyle = '#ddd0b0'; c.fillRect(0, 0, w, h); } c.fillStyle = 'rgba(30,22,15,.85)'; c.font = '700 22px "Abril Fatface", Georgia, serif'; c.textAlign = 'center'; c.fillText('EL TIEMPO', w / 2, 30); c.fillRect(14, 38, w - 28, 2); for (let y = 50; y < h - 8; y += 7) for (let x = 14; x < w - 20; x += 58) c.fillRect(x, y, 50 - (y * 7 % 13), 2); }) }), 'map', { uGrime: { value: 0 } }, 'pr'));
+    paper.rotation.x = -Math.PI / 2; paper.rotation.z = .25; paper.position.set(-.7, .792, -.72); paper.receiveShadow = true; g.add(paper);
+    g.add(mergeGroup(st)); g.remove(st);
+    // on the table: the camera itself, open on its bed, and the three plate holders
+    const camOnTable = FP.prop(); camOnTable.position.set(.3, .79 + .078, -.5); camOnTable.rotation.y = -2.5; g.add(camOnTable);
+    const hs = new THREE.Group(); for (let k = 0; k < 3; k++) { const h = box(.15, .016, .2, 0x4a2e1e, hs, -.12 + k * .03, .798 + k * .017, -.46 + k * .01, { surf: 'woodbrown', tint: .6 }); h.rotation.y = .2 - k * .15; }
+    const holders = mergeGroup(hs); g.add(holders);
+    // Miguel Casasola: vest, white shirt, dark trousers, as in his darkroom portrait
+    const mig = figure({ x: MIG.x, z: MIG.z, ry: -.9, skin: 0xbf8f68, shirt: 0xece6da, vest: 0x2b2622, pants: 0x34302e, hair: true });
+    world.remove(mig); people.splice(people.indexOf(mig), 1); g.add(mig);
+    const arm = mig.userData.arms[0], arm0 = arm.position.clone();
+    const handCam = FP.prop(); handCam.position.set(0, -.4, .06); handCam.rotation.set(1.3, Math.PI, 0); handCam.visible = false; arm.add(handCam);
+    const setArm = a => { arm.rotation.x = a; arm.position.set(arm0.x, arm0.y + .3 - .3 * Math.cos(a), arm0.z - .3 * Math.sin(a)); };
+    camOnTable.visible = holders.visible = !R.hasCam;
+    // the meshes the photo passes need to know about: drop what was registered while building, register what's left
+    allMeshes.splice(n0);
+    const meshes = []; g.traverse(o => { if (o.isMesh) { if (!o.userData.mat) o.userData.mat = o.material; allMeshes.push(o); meshes.push(o); } });
+    seed = seed0;
+    R.live = { g, mig, arm, setArm, handCam, camOnTable, holders };
+    LIGHT.uRoomE.value.w = 1; readyRes();
+    return { group: g, dispose() { for (const m of meshes) { const i = allMeshes.indexOf(m); if (i >= 0) allMeshes.splice(i, 1); } if (R.live && R.live.g === g) R.live = null; LIGHT.uRoomE.value.w = 0; } };
+  }
+  // the zone, in path coordinates (the game build streams it with its ZoneManager; standalone, streamZones() does)
+  R.zone = { id: 'house-interior', x0: 0, x1: 8, z0: -14, z1: -7.5, load: () => Promise.resolve({ load: async () => build() }) };
+
+  // ---- walking: the room's walls and furniture in room coordinates; the street takes over a step outside ----
+  const blocks = [[TB.x - TB.w / 2, TB.x + TB.w / 2, TB.z - TB.d / 2, TB.z + TB.d / 2], [-3.4, -1.3, -Z0, -Z0 + .45], [2.7, 3.3, -2.2, -1.5]];
+  const CW = DOOR.w / 2 - .22;
+  R.collide = prev => {
+    const r = .3, outer = Z0 + T; let { x, z } = local(player.x, player.z);
+    if (z >= outer + r || Math.abs(x) > X0 + T + .6) return false;
+    const band = p => p.z > Z0 - r && p.z < outer + r;
+    if (z > Z0 - r) {
+      // the wall: only the doorway goes through, and only once Miguel has sent you out
+      if (R.open && (Math.abs(x - DOOR.x) <= CW || (band(prev) && Math.abs(prev.x - DOOR.x) <= CW + 1e-3))) x = Math.max(DOOR.x - CW, Math.min(DOOR.x + CW, x));
+      else z = prev.z < Z0 + T / 2 ? Z0 - r : outer + r;
+    }
+    if (z <= Z0 - r) {
+      x = Math.max(-X0 + r, Math.min(X0 - r, x)); z = Math.max(-Z0 + r, z);
+      for (const [x0, x1, z0, z1] of blocks) {
+        const a = x0 - r, b = x1 + r, c = z0 - r, d = z1 + r;
+        if (x > a && x < b && z > c && z < d) { const m = [x - a, b - x, z - c, d - z], k = m.indexOf(Math.min(...m)); if (k === 0) x = a; else if (k === 1) x = b; else if (k === 2) z = c; else z = d; }
+      }
+      const dx = x - MIG.x, dz = z - MIG.z, dd = Math.hypot(dx, dz);
+      if (dd < .62) { x = MIG.x + dx / (dd || 1) * .62; z = MIG.z + dz / (dd || 1) * .62; }
+    }
+    const p = toPath(x, z); player.x = p.x; player.z = p.z;
+    return true;
+  };
+  // where the player is: in the room, in the doorway, out; the first step outside starts the morning
+  R.track = () => {
+    const L = local(player.x, player.z);
+    state.room = L.z < Z0 + T * .5 && Math.abs(L.x) < X0 + T;
+    R.atDoor = Math.abs(L.x - DOOR.x) < DOOR.w / 2 && L.z < Z0 + T + 1.6;
+    if (R.open && !R.left && L.z > Z0 + T) { R.left = true; $('dialog').classList.remove('low'); }
+    // the sun's shadow map closes in on the house while you're in it (sharp light through the door), and opens out over the street as you leave
+    SHADOW_FOCUS.k = !R.live || Math.abs(L.x) > X0 + 4 ? 0 : 1 - sstep(Z0 + T, Z0 + T + 5, L.z);
+    return L;
+  };
+  SHADOW_FOCUS.x = center.x; SHADOW_FOCUS.z = center.z;
+  R.near = () => {
+    if (!R.live || !R.talked) return null;
+    const L = local(player.x, player.z);
+    return state.room && Math.hypot(L.x - MIG.x, L.z - MIG.z) < 1.9 ? 'talk' : null;
+  };
+  function say(b) {
+    if (!b) { state.busy = false; R.face = false; R.talking = false; return; }
+    $('dlgName').textContent = 'Miguel Casasola';
+    $('dlgNote').textContent = b.line ? '' : b.note; $('dlgNote').hidden = !!b.line;
+    $('dlgRes').textContent = b.line || ''; $('dlgRes').hidden = !b.line;
+    $('dialog').hidden = false; state.busy = true; R.face = true; R.talking = true; $('dlgClose').focus({ preventScroll: true });
+  }
+  R.say = say;
+  R.next = async () => {
+    const b = R.beat >= 0 ? MIGUEL_LINES[R.beat] : null;
+    if (!b) { state.busy = false; R.face = false; R.talking = false; return; }
+    if (b.then === 'give') await R.give();
+    if (b.then === 'practice') { state.busy = false; R.face = false; R.talking = false; R.step = 'raise'; R.stepT = 0; return; }
+    if (b.then === 'open') { R.open = true; R.talked = true; R.beat = -1; state.busy = false; R.face = false; R.talking = false; return; }
+    R.beat++; await sleep(140); say(MIGUEL_LINES[R.beat]);
+  };
+  R.give = async () => {
+    const L = R.live;
+    if (L) {
+      await tween(520, e => L.setArm(-1.3 * e), EZ.io);
+      L.camOnTable.visible = false; L.handCam.visible = true;
+      await tween(380, e => L.setArm(-1.3 - .15 * Math.sin(Math.PI * e)), EZ.io);
+      await sleep(180);
+      L.handCam.visible = false; L.holders.visible = false;
+    }
+    R.hasCam = true; host.classList.remove('nocam'); updatePlates();
+    if (L) tween(480, e => L.setArm(-1.3 * (1 - e)), EZ.io);
+    await tween(700, e => { R.camDrop = .5 * (1 - e); }, EZ.out);
+  };
+  // Miguel watches you; the raise-and-lower practice, then the rest of the talk
+  R.update = (dt, now) => {
+    const t = now / 1000, Lv = R.live;
+    if (Lv) {
+      const P = local(player.x, player.z), mig = Lv.mig;
+      const tgt = Math.atan2(P.x - mig.position.x, P.z - mig.position.z);
+      let d = tgt - mig.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); mig.rotation.y += d * Math.min(1, dt * 4);
+      mig.scale.y = 1 + Math.sin(t * 1.7) * .006;
+      if (R.face) {
+        let dy = yawTo(P, mig.position.x, mig.position.z) - player.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); player.yaw += dy * Math.min(1, dt * 3.2);
+        player.pitch += (-.1 - player.pitch) * Math.min(1, dt * 3);
+      }
+    }
+    if (R.step === 'raise' && state.raised && raise.t >= 1) { if (!R.stepT) R.stepT = now; if (now - R.stepT > 900) { R.step = 'lower'; R.stepT = 0; } }
+    else if (R.step === 'lower' && !state.raised && raise.t === 0) { R.step = null; R.beat++; setTimeout(() => say(MIGUEL_LINES[R.beat]), 350); state.busy = true; }
+  };
+  R.prompt = () => {
+    const pr = $('prompt'); let html = null;
+    if (R.step === 'raise' && !state.raised) html = COARSE ? 'Tap the camera' : '<kbd>R</kbd>Raise the camera';
+    else if (R.step === 'lower' && state.raised) html = COARSE ? 'Lower the camera' : '<kbd>R</kbd>Lower the camera';
+    else if (!state.busy && !state.raised && R.near() === 'talk') html = (COARSE ? '' : '<kbd>E</kbd>') + 'Talk';
+    if (html) { if (pr.dataset.t !== html) { pr.dataset.t = html; pr.innerHTML = html; } pr.classList.add('show'); } else pr.classList.remove('show');
+  };
+  R.interact = () => { if (R.near() === 'talk') { R.beat = -1; say(MIGUEL_AGAIN); } };
+  // after the opening pages: you're standing in the front room, facing your brother
+  R.enter = async () => {
+    if (state.started) return;
+    state.started = true; state.busy = true;
+    host.classList.add('nocam'); $('dialog').classList.add('low');
+    const at = { x: -.45, z: .85 }, p = toPath(at.x, at.z);
+    Object.assign(player, { x: p.x, z: p.z, y: 0, pitch: -.08, vantage: null });
+    player.yaw = yawTo(at, MIG.x, MIG.z) + .3;
+    R.track();
+    if (!R.live) await R.ready;
+    R.beat = 0; setTimeout(() => say(MIGUEL_LINES[0]), 1300);
+  };
+  return R;
+})();
+ZONES.push(ROOM.zone);
+
 // ---------- start ----------
-$('bStart').onclick = () => { $('start').hidden = true; state.started = true; cvs.focus && cvs.focus(); };
+$('bStart').onclick = () => { $('start').hidden = true; runIntro(); };
 window.addEventListener('resize', () => { resize(); paintPlates(); paintBulb(); watchFace = null; });
 resize(); updatePlates(); paintBulb();
 $('bStart').disabled = false;
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { watchFace = null; paintPlates(); });
+streamZones(0, true);
 requestAnimationFrame(frame);
-window.__casasola = { scene, people, renderer, renderView, camera, sun, LIGHT, rtMain, state, player, startColumn, scoreFrame, syncCapCam, shoot, toggleRaise, develop, CLOCK, clockNow, raise, FP, tier: () => tier, stepQuality };
+window.__casasola = { zones: ZONES, ROOM, IN, INTRO, MIGUEL_LINES, toStreet: () => { $('start').hidden = true; $('intro').hidden = true; IN.cover = false; state.started = true; state.room = false; state.busy = false; Object.assign(ROOM, { hasCam: true, open: true, left: true, talked: true, camDrop: 0 }); if (ROOM.live) ROOM.live.camOnTable.visible = ROOM.live.holders.visible = false; Object.assign(player, { x: 1.5, z: .4, yaw: -Math.PI / 2, pitch: 0 }); host.classList.remove('nocam'); $('dialog').classList.remove('low'); }, scene, people, renderer, renderView, camera, sun, LIGHT, rtMain, state, player, startColumn, scoreFrame, syncCapCam, shoot, toggleRaise, develop, CLOCK, clockNow, raise, FP, tier: () => tier, stepQuality };
 
 window.__casasola.kit = { THREE: typeof THREE === 'undefined' ? undefined : THREE, C: typeof C === 'undefined' ? undefined : C, OUTLINE: typeof OUTLINE === 'undefined' ? undefined : OUTLINE, IMG: typeof IMG === 'undefined' ? undefined : IMG, tex: typeof tex === 'undefined' ? undefined : tex, patch: typeof patch === 'undefined' ? undefined : patch, FRAG: typeof FRAG === 'undefined' ? undefined : FRAG, box: typeof box === 'undefined' ? undefined : box, world: typeof world === 'undefined' ? undefined : world, warpS: typeof warpS === 'undefined' ? undefined : warpS, slopeS: typeof slopeS === 'undefined' ? undefined : slopeS, warpP: typeof warpP === 'undefined' ? undefined : warpP, HORSES: typeof HORSES === 'undefined' ? undefined : HORSES, people: typeof people === 'undefined' ? undefined : people, state: typeof state === 'undefined' ? undefined : state, TIER: typeof TIER === 'undefined' ? undefined : TIER };
 return window.__casasola;

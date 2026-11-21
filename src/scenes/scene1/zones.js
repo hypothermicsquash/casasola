@@ -5,8 +5,10 @@
 //
 // To add one: make zones/<name>.js exporting `async function load(kit)` that builds into a THREE.Group
 // and returns { group, update?, dispose? }, then add an entry below with its ground box.
+// The ochre house's front room (Miguel, the table, the camera) is registered by scene1.js itself as the zone
+// 'house-interior' (window.__casasola.zones), because it is built from the template's own figures and props;
+// main.js streams it together with the zones listed here.
 export const zones = [
-  // { id: 'house-interior', x0: 20, x1: 28, z0: -14, z1: -6, load: () => import('./zones/house-interior.js') },
 ];
 
 // ?zones=debug adds a marker post that streams in near the crossing, to watch loading and unloading work

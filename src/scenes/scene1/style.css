@@ -88,7 +88,8 @@ body { margin: 0; background: #24180f var(--leather, none) center / 380px; color
 
 #start { position: fixed; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; padding: 24px 16px; overflow-y: auto;
   background: radial-gradient(ellipse at 50% 45%, rgba(30,22,40,.25), rgba(18,12,8,.82) 75%), var(--speckBg, none) center / cover; background-blend-mode: normal, multiply; }
-#start .card { width: min(420px, 100%); box-sizing: border-box; }
+#start .card { width: min(420px, 100%); box-sizing: border-box; text-align: center; }
+#start .title { margin-bottom: 18px; }
 .title { font-family: var(--display); font-weight: 400; font-size: clamp(48px, 10vw, 84px); line-height: .95; margin: 0 0 4px; color: #2a1a10; letter-spacing: .01em; }
 .keys { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; font-size: 18px; margin: 18px 0 20px; }
 .keys b { font-family: var(--fellsc); font-weight: 400; color: #7d2f18; white-space: nowrap; }
@@ -180,4 +181,112 @@ button.print:hover, button.print:focus-visible { outline: 3px solid var(--ochre)
 .m-imparcial { font-family: "Abril Fatface", Georgia, serif; text-transform: uppercase; letter-spacing: .02em; }
 .m-pais { font-family: "UnifrakturMaguntia", "Old English Text MT", serif; }
 .m-hogar { font-family: "Old Standard TT", Georgia, serif; font-weight: 700; text-transform: uppercase; color: #f1e7cf !important; -webkit-text-stroke: .045em #1d1712; text-shadow: .06em .06em 0 #1d1712; letter-spacing: .03em; }
+/* ---------- the opening: wire dispatches typed onto newsprint, then how to work the camera ---------- */
+#intro { position: fixed; inset: 0; z-index: 7; display: flex; align-items: center; justify-content: center; padding: 24px 16px; box-sizing: border-box; overflow-y: auto;
+  background: #1b130d var(--leather, none) center / 380px; opacity: 0; transition: opacity .6s; }
+#intro.show { opacity: 1; }
+#introSheet { position: relative; width: min(1000px, 100%); box-sizing: border-box; margin: auto; padding: 30px 40px 24px; color: #1f1710;
+  background: #ece0c0 var(--paper, none) center / cover; background-blend-mode: multiply;
+  box-shadow: inset 0 0 50px rgba(120,82,30,.38), 6px 8px 0 rgba(30,30,70,.45), 0 24px 50px rgba(0,0,0,.5);
+  font: 17.5px/1.47 "Old Standard TT", Georgia, serif; text-shadow: 0 0 .6px rgba(31,23,16,.55); transition: opacity .35s, transform .35s; }
+#introSheet.turn { opacity: 0; transform: translateY(-10px) rotate(-.4deg); }
+#introSheet::before { content: ""; position: absolute; left: 40px; right: 40px; top: 16px; border-top: 4px double #1f1710; }
+#introBody { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr); gap: 34px; align-items: start; padding-top: 8px; }
+#introText { min-height: 25em; padding-top: 2px; }
+#introText .dl { margin: 13px 0 2px; font: 700 14px/1.25 "Old Standard TT", serif; letter-spacing: .09em; text-transform: uppercase; }
+#introText .dl:first-child { margin-top: 4px; }
+#introText p { margin: 0; text-wrap: pretty; }
+#introText .cut { width: 56px; border-top: 1px solid rgba(31,23,16,.7); margin: 12px auto 0; }
+/* the pictures: real prints first, painted over a little more page by page, until the last is the game */
+#introFig { position: relative; padding-top: 6px; }
+#figStage { position: relative; aspect-ratio: 4 / 3; }
+#figStage .vis { position: absolute; inset: 0; opacity: 0; transition: opacity .7s; }
+#figStage .vis.on { opacity: 1; }
+#figCap { min-height: 1.4em; margin-top: 10px; font: italic 14px/1.35 "Old Standard TT", serif; opacity: 0; transition: opacity .5s; }
+#figCap.on { opacity: .85; }
+#figStage .print { position: absolute; box-sizing: border-box; padding: 7px; background: #f3ede0; transform: rotate(var(--rot));
+  box-shadow: 0 1px 2px rgba(0,0,0,.25), 5px 7px 0 rgba(30,30,70,.3), 0 12px 26px rgba(40,25,10,.3); }
+#figStage .print.late { opacity: 0; transform: translateY(-26px) rotate(calc(var(--rot) * 3)) scale(1.04); transition: opacity .6s, transform .8s cubic-bezier(.2,1.25,.4,1); }
+#figStage .print.late.in { opacity: 1; transform: rotate(var(--rot)); }
+#figStage .inner { position: relative; width: 100%; height: 100%; overflow: hidden; background: #2a221a; }
+#figStage .inner img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+#figStage .inner img.paint { opacity: 0; transition: opacity 2.3s ease-in-out; }
+#figStage .inner.kb img { animation: kb 16s ease-out forwards; }
+@keyframes kb { from { transform: none; } to { transform: scale(1.08) translate(-1.2%, -.8%); } }
+#figStage .thumb { position: absolute; box-sizing: border-box; border: 4px solid #f1ebdc; height: auto; box-shadow: 2px 3px 0 rgba(30,30,70,.28), 0 6px 12px rgba(40,25,10,.25);
+  opacity: 0; transform: translateY(-34px) rotate(calc(var(--rot) * 2)) scale(1.1); transition: opacity .4s, transform .6s cubic-bezier(.2,1.3,.4,1); }
+#figStage .thumb.in { opacity: 1; transform: rotate(var(--rot)); }
+#figStage svg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; }
+#figStage svg.map { overflow: hidden; }
+#figStage .reign { top: auto; bottom: 0; left: 3%; width: 94%; height: auto; }
+.reign line { stroke: #1f1710; }
+.reign .run { stroke: #8e2a18; stroke-width: 6; stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw .26s linear .3s forwards; }
+.reign .r2 { animation: draw 1.68s linear .82s forwards; }
+.reign .gap { stroke-width: 1.2; stroke-dasharray: 2 3; opacity: .55; }
+.reign .tick { stroke-width: 1.3; opacity: 0; animation: fadein .2s forwards; }
+.reign text { font: 700 10px "Old Standard TT", serif; fill: #1f1710; letter-spacing: .05em; }
+.reign .late { opacity: 0; animation: fadein .3s 2.5s forwards; }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+@keyframes fadein { to { opacity: 1; } }
+.map .sea { fill: transparent; transition: fill 1.8s; }
+.map.tint .sea { fill: rgba(64,88,138,.2); }
+.map path.mex { fill: rgba(31,23,16,.07); stroke: #1f1710; stroke-width: 1.1; vector-effect: non-scaling-stroke; stroke-linejoin: round; transition: fill 1.8s; }
+.map.tint path.mex { fill: rgba(212,156,84,.5); }
+.map path.usa, .map path.cam { fill: rgba(31,23,16,.02); stroke: rgba(31,23,16,.5); stroke-width: .8; vector-effect: non-scaling-stroke; stroke-linejoin: round; transition: fill 1.8s; }
+.map.tint path.usa, .map.tint path.cam { fill: rgba(222,208,176,.96); }
+.map .rail { fill: none; stroke: #1f1710; stroke-width: 1; stroke-dasharray: 2 2; vector-effect: non-scaling-stroke; opacity: .5; }
+.map .route { fill: none; stroke: #a8331a; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; }
+.map .train { fill: #a8331a; stroke: #f3ead2; stroke-width: 1; }
+.map .city { fill: #1f1710; }
+.map .lb { font: italic 11px "Old Standard TT", serif; fill: #1f1710; }
+.map .lb.n { font-size: 4.3px; }
+.map .lb.us { font: 3.4px "Old Standard TT", serif; letter-spacing: .4em; opacity: .55; }
+.map .medal { opacity: 0; animation: fadein .9s 1.4s forwards; }
+.map .mf { fill: #f3ede0; stroke: #1f1710; stroke-width: 1.2; }
+.map .arrow { fill: none; stroke: #a8331a; stroke-width: 1.3; stroke-linecap: round; animation: draw 1.3s ease-in-out forwards; }
+.map .head { fill: #a8331a; opacity: 0; animation: fadein .2s forwards; }
+.map .lb.n, .map .city.n { opacity: 0; animation: fadein .5s 2.3s forwards; }
+.map .lb.who { fill: #8e2a18; animation-delay: 2.7s; }
+.map .burst { fill: none; stroke: #a8331a; stroke-width: .6; opacity: 0; transform-box: fill-box; transform-origin: center; animation: burst 1.6s ease-out 4.3s infinite; }
+@keyframes burst { 0% { opacity: .9; transform: scale(.6); } 100% { opacity: 0; transform: scale(3.2); } }
+/* how a plate becomes a newspaper picture, drawn in the game's own colours */
+.proc .pl { animation: plate 7s infinite; }
+@keyframes plate { 0%, 6% { transform: translate(44px, 40px); opacity: 0; } 10% { transform: translate(44px, 40px); opacity: 1; } 24% { transform: translate(190px, 52px) scale(.7); opacity: 1; } 27%, 100% { transform: translate(190px, 52px) scale(.7); opacity: 0; } }
+.proc .flash { opacity: 0; animation: flash 7s infinite; }
+@keyframes flash { 0%, 29% { opacity: 0; } 31% { opacity: .95; } 39%, 100% { opacity: 0; } }
+.proc .neg .img { opacity: 0; animation: dev 7s infinite; }
+@keyframes dev { 0%, 42% { opacity: 0; } 62%, 92% { opacity: 1; } 100% { opacity: 0; } }
+.proc .glow { animation: glow 3.5s ease-in-out infinite; }
+@keyframes glow { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+.proc .pr { opacity: 0; animation: prn 7s infinite; }
+@keyframes prn { 0%, 66% { opacity: 0; } 76%, 94% { opacity: 1; } 100% { opacity: 0; } }
+.proc .half { filter: grayscale(1) contrast(1.3); }
+.proc .flow { fill: none; stroke: #1f1710; stroke-width: 2; stroke-dasharray: 4 5; opacity: .5; animation: march 1s linear infinite; }
+@keyframes march { to { stroke-dashoffset: -9; } }
+.proc .mast { font: 700 8.6px "Old Standard TT", serif; letter-spacing: .03em; fill: #1f1710; }
+.proc .stack, .proc .cam, .proc .paper { filter: drop-shadow(3px 4px 0 rgba(30,30,70,.32)); }
+#introText .keys { margin: 16px 0 4px; font: 17px/1.3 "Old Standard TT", serif; opacity: 0; transition: opacity .5s; }
+#introText .keys.show { opacity: 1; }
+#introText .keys b { font: 700 13px/1.6 "Old Standard TT", serif; letter-spacing: .07em; text-transform: uppercase; color: #1f1710; }
+#introText .glass { display: flex; gap: 12px; margin: 14px 0 0; }
+#introText .glass i { width: 56px; height: 42px; box-sizing: border-box; border: 5px solid #6b3f22; background: linear-gradient(135deg, #2b3140 0%, #10131a 55%, #2f3646 70%, #151820 100%);
+  box-shadow: inset 0 0 0 1px rgba(255,240,210,.25), 3px 4px 0 rgba(30,30,70,.35); opacity: 0; transform: translateY(-14px) rotate(-4deg); transition: opacity .25s, transform .3s cubic-bezier(.2,1.4,.4,1); }
+#introText .glass i.in { opacity: 1; transform: none; }
+.caret { display: inline-block; width: .5em; height: 1em; margin-left: 1px; vertical-align: -.12em; background: rgba(31,23,16,.85); animation: caret .9s steps(1) infinite; }
+@keyframes caret { 50% { opacity: 0; } }
+#introFoot { display: flex; justify-content: flex-end; align-items: center; gap: 14px; margin-top: 18px; padding-top: 12px; border-top: 1px solid rgba(31,23,16,.55); }
+#introFoot .dots { margin-right: auto; display: flex; gap: 7px; }
+#introFoot .dots span { width: 8px; height: 8px; border: 1.5px solid #1f1710; transform: rotate(45deg); }
+#introFoot .dots span.on { background: #1f1710; }
+#bIntro { opacity: 0; pointer-events: none; transition: opacity .3s, transform .08s, filter .15s; }
+#bIntro.show { opacity: 1; pointer-events: auto; }
+@media (max-width: 760px) { #introBody { grid-template-columns: minmax(0, 1fr); gap: 10px; } #introText { min-height: 0; }
+  #introFig { position: sticky; top: -26px; z-index: 1; margin: 0 -8px; padding: 6px 8px 4px; background: #ece0c0 var(--paper, none) center / 640px; background-blend-mode: multiply; box-shadow: 0 10px 10px -10px rgba(80,60,30,.35); }
+  #figStage { width: min(100%, calc(33vh * 4 / 3)); margin: 0 auto; } #figCap { text-align: center; margin-top: 6px; font-size: 13px; } }
+@media (max-width: 600px) { #introSheet { padding: 26px 20px 18px; font-size: 16px; } #introSheet::before { left: 20px; right: 20px; } }
+@media (prefers-reduced-motion: reduce) { #figStage .inner.kb img, .map .burst { animation: none !important; } }
+#dialog.low { bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }
+/* stepping from the dim front room into the noon street */
+#game.nocam .hud { opacity: 0; }
+.hud { transition: opacity .6s; }
 @media (prefers-reduced-motion: reduce) { #watch.chime, .btn.pulse, #bulb.squeeze { animation: none; } }

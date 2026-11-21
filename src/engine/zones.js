@@ -71,11 +71,12 @@ function dispose(live) {
   if (live.dispose) live.dispose();
   if (!live.group) return;
   live.group.traverse(o => {
-    if (o.geometry && !o.geometry.userData.shared) o.geometry.dispose();
+    if (o.geometry && !(o.geometry.userData && o.geometry.userData.shared)) o.geometry.dispose();
     const mats = Array.isArray(o.material) ? o.material : o.material ? [o.material] : [];
     for (const m of mats) {
-      if (m.userData.shared) continue;
-      for (const k in m) { const v = m[k]; if (v && v.isTexture && !v.userData.shared) v.dispose(); }
+      if (m.userData && m.userData.shared) continue;
+      // r128 textures have no userData unless something gave them one
+      for (const k in m) { const v = m[k]; if (v && v.isTexture && !(v.userData && v.userData.shared)) v.dispose(); }
       m.dispose();
     }
   });
