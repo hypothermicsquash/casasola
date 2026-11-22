@@ -2465,10 +2465,12 @@ function updateRaise(dt) {
 }
 
 // ---------- interaction: unlocks, climbing ----------
+// Dialogue is the user's (doc, 2026-11-22). T(spanish, english) is a glossed Spanish term, EM(text) a word the user bolded.
+const T = (t, en) => ({ t, en }), EM = t => ({ b: t });
 const NPCS = [
-  { P: CAST.of(hotelSpot), name: 'Hotel owner', unlock: 'balcony', tellsTime: true, res: 'Balcony unlocked.', note: '[Dialogue to be written. Lets you onto the balcony and mentions when the column is expected: 11:40.]' },
-  { P: CAST.of(operatorSpot), name: 'Telegraph operator', tellsTime: true, res: '', note: '[Dialogue to be written. Has the column\'s expected time off the wire: 11:40.]' },
-  { P: CAST.of(foremanSpot), name: 'Railway foreman', unlock: 'tower', res: 'Water tower unlocked.', note: '[Dialogue to be written. Lets you climb the water tower.]' },
+  { P: CAST.of(hotelSpot), name: 'Hotel owner', unlock: 'balcony', res: 'Balcony unlocked.', say: ['A ', T('fotógrafo', 'photographer'), ', well! I suppose for the photo, we can let you up on the ', EM('balcony'), '.'] },
+  { P: CAST.of(operatorSpot), name: 'Telegraph operator', tellsTime: true, res: '', say: [T('Sí', 'Yes'), ', Madero’s expected at ', EM('11:40'), '.'] },
+  { P: CAST.of(foremanSpot), name: 'Railway foreman', unlock: 'tower', res: 'Water tower unlocked.', say: ['Did you hear about Madero?!?!?! Well, I guess everyone did. You’re a ', T('fotógrafo', 'photographer'), '?? Go, get on the ', EM('water tower'), '- it’ll have a great view!'] },
   { P: CAST.of(oldSpot), convo: 'opening' }, { P: CAST.of(youngSpot), convo: 'opening' },
   { P: CAST.of(tomasSpot), convo: 'tomas' }
 ];
@@ -2485,8 +2487,8 @@ function interact() {
   const a = nearest(); if (!a) return;
   if (a.type === 'talk' && a.n.convo) runConvo(TALKS[a.n.convo]);
   else if (a.type === 'talk') {
-    dlgPlain(); $('dlgNote').hidden = $('dlgRes').hidden = false;
-    $('dlgName').textContent = a.n.name; $('dlgNote').textContent = a.n.note; $('dlgRes').textContent = a.n.res; $('dialog').hidden = false; state.busy = true;
+    dlgPlain(); $('dlgNote').hidden = true; $('dlgRes').hidden = !a.n.res;
+    $('dlgName').textContent = a.n.name; fillLine($('dlgText'), a.n.say); $('dlgText').hidden = false; $('dlgRes').textContent = a.n.res; $('dialog').hidden = false; state.busy = true;
     if (a.n.unlock) state.unlocked[a.n.unlock] = true;
     a.n.P.setTalking(true); state.talkP = a.n.P; talkTo = a.n.P;
     if (a.n.tellsTime && !state.knowsTime) { state.knowsTime = true; chime(); }
@@ -2504,7 +2506,6 @@ $('dlgClose').onclick = () => { if (CONVO.wait) { const r = CONVO.wait; CONVO.wa
 // A choice with `note` instead of lines has no answer written yet.
 const OBJECTIVE = 'Explore the village and photograph scenes that reveal how the Mexican Revolution affected everyday life.';
 // Every line is the user's: English, with words from the user's own Spanish translation kept in (2026-11-22). T(spanish, english) is a gloss.
-const T = (t, en) => ({ t, en });
 const TALKS = {
   opening: {
     people: { old: CAST.of(oldSpot), young: CAST.of(youngSpot) }, objective: OBJECTIVE,
@@ -2517,24 +2518,22 @@ const TALKS = {
     choices: [
       { say: ['Do you think Madero will change Mexico?'],
         reply: [{ who: 'old', name: 'Older villager', say: [T('Todos lo esperamos', 'We all hope so'), '. But what good is ', T('la libertad', 'freedom'), ' if our families are still going hungry?'] }] },
-      { say: ['What time will Madero arrive?'], tellsTime: true,
-        reply: [{ who: 'old', name: 'Older villager', note: '[Dialogue to be written. Says when Madero is expected: 11:40.]' }] },
       { say: ['I want to photograph what’s happening.'],
-        reply: [{ who: 'old', name: 'Older villager', note: '[Dialogue to be written. Answers Agustín wanting to photograph what is happening.]' }] }
+        reply: [{ who: 'old', name: 'Older villager', say: ['Well! Then do so well. Make ', T('la foto', 'the photo'), ' count.'] }] }
     ]
   },
   tomas: {
     people: { tomas: CAST.of(tomasSpot) }, ask: 'Choose a question for Tomás', leave: true,
     intro: [
-      { who: 'tomas', name: 'Tomás', say: [T('Mercancías', 'Goods'), ', people, from one end of the country to the other: ', T('los trenes', 'the trains'), ' changed Mexico. And us, ', T('los trabajadores', 'the workers'), '? Many of us barely earn enough to survive.'] }
+      { who: 'tomas', name: 'Tomás', say: ['Will Madero increase my ', T('salario', 'wages'), '?'] }
     ],
     choices: [
       { say: ['What are the working conditions like?'],
-        reply: [{ who: 'tomas', name: 'Tomás', say: [T('¿Las jornadas?', 'The working hours?'), ' Long. The work? ', T('Peligroso', 'Dangerous'), '. We’re the ones who build this country’s progress, but enjoy it? ', T('Pocas veces', 'Rarely'), '.'] }] },
+        reply: [{ who: 'tomas', name: 'Tomás', say: ['My buddy Fernando lost two limbs last year- my little brother is supposed to start work soon. Hell has nothing on ', T('los ferrocarriles', 'the railroads'), '.'] }] },
       { say: ['Do you support Madero?'],
-        reply: [{ who: 'tomas', name: 'Tomás', note: '[Dialogue to be written. Whether Tomás supports Madero.]' }] },
+        reply: [{ who: 'tomas', name: 'Tomás', say: ['If Madero will help me and my family, yes. He better get the rats out of ', T('el gobierno', 'the government'), '.'] }] },
       { say: ['What do you hope the Revolution will accomplish?'],
-        reply: [{ who: 'tomas', name: 'Tomás', note: '[Dialogue to be written. What Tomás hopes the Revolution will accomplish.]' }] }
+        reply: [{ who: 'tomas', name: 'Tomás', say: ['So far, they have caused nothing but pain. It’s nothing but ', T('problemas', 'trouble'), '.'] }] }
     ]
   }
 };
@@ -2543,13 +2542,14 @@ function fillLine(el, parts) {
   el.textContent = '';
   for (const x of parts || []) {
     if (typeof x === 'string') { el.appendChild(document.createTextNode(x)); continue; }
+    if (x.b) { const b = document.createElement('b'); b.className = 'em'; b.textContent = x.b; el.appendChild(b); continue; }
     const t = document.createElement('span'); t.className = 'term'; t.lang = 'es'; t.textContent = x.t; t.dataset.t = x.t; t.dataset.en = x.en; el.appendChild(t);
   }
 }
 const VOICES = [
-  { s: WALL[12], say: [T('¡Revolución, revolución!', 'Revolution, revolution!'), ' That’s all anyone talks about! Meanwhile, ', T('los precios', 'the prices'), ' keep climbing. How are we supposed to feed ', T('nuestras familias', 'our families'), '?'] },
-  { s: youngWomanSpot, say: [T('¿Libertad?', 'Freedom?'), ' That’s what ', T('mi hermano', 'my brother'), ' says Madero will bring. Me, I just want ', T('paz', 'peace'), ', and our men back home.'] },
-  { s: merchantSpot, say: [T('¿Orden?', 'Order?'), ' Under Díaz, there was plenty. But living well… not for all of us. ', T('Ojalá', 'Let’s hope'), ' this new government doesn’t forget ', T('los pobres', 'the poor'), '.'] },
+  { s: WALL[12], say: [T('¡Revolución, revolución!', 'Revolution, revolution!'), ' That’s all anyone talks about! Let me know when the “revolution” starts feeding us.'] },
+  { s: youngWomanSpot, say: [T('Mi hermano', 'My brother'), ' says Madero will bring freedom... I’m just not too sure. I just want ', T('paz', 'peace'), ', and our men back home.'] },
+  { s: merchantSpot, say: ['Under Díaz, we were plenty stable. But living well… not all of us. ', T('Ojalá', 'Let’s hope'), ' this new government doesn’t forget ', T('los pobres', 'the poor'), '.'] },
   { s: GANG[3], say: ['My back hurts!'] }
 ].map(V => {
   const el = document.createElement('div'); el.className = 'bubble';
@@ -3449,18 +3449,18 @@ const COARSE = matchMedia('(pointer: coarse)').matches;
 const INTRO = [
   [
     { dl: 'Mexico, 1910.', fig: { map: { kind: 'north', faint: true }, print: { photo: 'diaz', cap: 'Porfirio Díaz', reign: true } } },
-    { p: 'Porfirio Díaz has ruled Mexico for more than thirty years. In November, Francisco I. Madero calls the country to rise against him.' },
+    { p: 'For more than thirty years, Porfirio Díaz has ruled Mexico. A new revolutionary, Francisco I. Madero, begins to rise up against the dictator.' },
     { cut: true },
     { dl: 'Ciudad Juárez, 10 May 1911.', fig: { map: { kind: 'north', view: 'vbN', dur: 3200, north: true } } },
-    { p: 'Rebels in the north take the border city. Within weeks Díaz resigns and sails into exile. In November 1911 Madero becomes president.' }
+    { p: 'Orozco, Madero, and Villa, leading their rebel forces, finally defeat Díaz, leading to his resignation and exile. Madero takes office, becoming president in November, 1911.' }
   ],
   [
     { dl: 'Agustín Víctor Casasola.', fig: { archive: 11, print: { photo: 'villa', paint: 'villa_p', s: .7, half: .3, cap: 'Villa and Zapata in the National Palace, December 1914. Casasola archive' } } },
-    { p: 'A press photographer from Mexico City, working for the capital\'s newspapers. The archive he and his family build will shape how the Revolution is remembered.' }
+    { p: 'Casasola was initially a journalist, working for several newspapers in Mexico City. He combined his passions of photography and news, traveling around Mexico and photographing the Revolution. The photos he took were highly influential, shaping the Revolution.' }
   ],
   [
-    { dl: 'A railway town in Chihuahua, 20 November 1911.', fig: { hold: 10600, print: { photo: 'mad', paint: 'mad_p', reveal: true, cap: 'Maderistas. Casasola archive' } } },
-    { p: 'One year since the rising. President Madero and his riders are expected this morning. You have three glass plates, so three photographs. You will send one of them to the newspapers.' },
+    { dl: '20 November 1911, in a Chihuahua railway town.', fig: { hold: 10600, print: { photo: 'mad', paint: 'mad_p', reveal: true, cap: 'Maderistas. Casasola archive' } } },
+    { p: 'It\'s been rumored that President Madero is set to ride past today. As Casasola, you have a chance to photograph him. However, you only have three glass plates in your possession (3 photos). What will you choose to capture?' },
     { glass: 3, fig: { process: true } },
     { keys: COARSE
       ? [['Walk, Back', 'Move'], ['Drag', 'Look around'], ['Tap the camera', 'Raise it'], ['Squeeze the bulb', 'Expose a plate'], ['Tap the tag', 'Talk']]
@@ -3782,16 +3782,16 @@ function streamZones(dt, now) {
 // It is part of the town: the house is built hollow (building() spec `hollow`) and you walk in and out through its real door.
 // The furnishings and Miguel are a zone, built while you are near the house and freed when you are far up the street.
 // Miguel hands over the camera here; the doorway stays shut to you until he's done.
-// Dialogue: the user writes every line. Fill `line` and the card shows it instead of the bracketed note.
+// Dialogue: the user writes every line (doc, 2026-11-22).
 const MIGUEL_LINES = [
-  { note: '[Dialogue to be written. Miguel greets Agustín. Only the basics: Madero\'s riders are expected along the tracks this morning.]', line: '' },
-  { note: '[Dialogue to be written. Miguel hands over the camera.]', line: '', then: 'give' },
-  { note: '[Dialogue to be written. How to raise the camera and look through it.]', line: '', then: 'practice' },
-  { note: '[Dialogue to be written. The essentials again: three plates, one exposure each, squeeze the bulb.]', line: '' },
-  { note: '[Dialogue to be written. The best print goes to the newspapers.]', line: '' },
-  { note: '[Dialogue to be written. Sends Agustín out; the townspeople will know the rest.]', line: '', then: 'open' }
+  { say: ['Good morning! Your new camera finally arrived, ', T('hermano', 'brother'), '! With Madero’s suspected arrival, it couldn’t have come at a better time.'] },
+  { say: ['Here, ', T('toma', 'take it'), '.'], then: 'give' },
+  { say: [EM('Click'), ' or ', EM('press R'), ' to raise the camera. Try doing it a few times!'], then: 'practice' },
+  { say: ['Remember, ', T('hermano', 'brother'), ', we only have ', EM('three'), ' plates...'] },
+  { say: ['And the best one goes to the newspaper- ', T('El Imparcial', 'The Impartial; Mexico City’s biggest daily paper'), '!'] },
+  { say: ['I know if Madero is going to arrive anywhere, he’ll be arriving near the ', EM('railroad tracks'), '. Just make sure ', T('los locos', 'the crazies; the chatty townsfolk'), ' don’t talk your ear off. It seems everyone in this town has opinions about the new president.'], then: 'open' }
 ];
-const MIGUEL_AGAIN = { note: '[Dialogue to be written. What Miguel says if you talk to him again.]', line: '' };
+const MIGUEL_AGAIN = { say: [T('¿Qué pasa?', 'What’s up?'), ' Go take some photos!'] };
 FRAG.tile = { pars: 'uniform sampler2D uTile; uniform vec2 uRep;\n', alb: `
   { // each 30 cm tile is one of the nine in your photo, turned a random quarter, so the floor never visibly repeats
     vec2 p = vDUv * uRep * 3.0, cell = floor(p), q = fract(p) - .5;
@@ -3941,8 +3941,7 @@ const ROOM = (() => {
   function say(b) {
     if (!b) { state.busy = false; R.face = false; R.talking = false; return; }
     dlgPlain(); $('dlgName').textContent = 'Miguel Casasola';
-    $('dlgNote').textContent = b.line ? '' : b.note; $('dlgNote').hidden = !!b.line;
-    $('dlgRes').textContent = b.line || ''; $('dlgRes').hidden = !b.line;
+    $('dlgNote').hidden = $('dlgRes').hidden = true; fillLine($('dlgText'), b.say); $('dlgText').hidden = false;
     $('dialog').hidden = false; state.busy = true; R.face = true; R.talking = true; $('dlgClose').focus({ preventScroll: true });
   }
   R.say = say;
