@@ -3058,13 +3058,16 @@ function preparePress(p, hl, paper) {
     page.style.left = px + 'px'; page.style.top = py + 'px';
     const ph = page.querySelector('.frame canvas').getBoundingClientRect();
     const K = Sw / ph.width, Cx = W / 2, Cy = H / 2, Px = ph.left + ph.width / 2, Py = ph.top + ph.height / 2;
+    // the held view: headline down to the bottom of the photo fills the screen height, both side edges of the page stay in view
+    const hd = page.querySelector('.hed').getBoundingClientRect(), top = hd.top - 4, bot = ph.bottom + 4, gut = Math.max(14, W * .035);
+    const K2 = Math.min((W - gut * 2) / pr.width, H * .97 / (bot - top)), Oy = py + pr.height / 2, ty2 = H / 2 - Oy - K2 * ((top + bot) / 2 - Oy);
     // the screen is cut for the zoomed-in view: a fine screen you can still see, over enough tone to read the picture
     const hc = halftone(p.canvas, CROP.x, CROP.y, CROP.w, CROP.h, Math.round(Sw * dpr), Math.round(Sh * dpr), 4.4 * dpr);
     const pc = page.querySelector('.frame canvas'); pc.width = hc.width; pc.height = hc.height; pc.getContext('2d').drawImage(hc, 0, 0);
     // and a fine screen cut for the page at reading size, swapped in once the page has settled
-    const fw = Math.round(ph.width * dpr * 1.5), fine = halftone(p.canvas, CROP.x, CROP.y, CROP.w, CROP.h, fw, Math.round(fw * CROP.h / CROP.w), 2.0 * dpr * 1.5, { tone: .55 });
+    const fw = Math.round(ph.width * K2 * dpr), fine = halftone(p.canvas, CROP.x, CROP.y, CROP.w, CROP.h, fw, Math.round(fw * CROP.h / CROP.w), 3.2 * dpr, { tone: .55 });
     PRESS.fine = fine;
-    Object.assign(PRESS, { p, hl, paper, page, K, tx: Cx - (px + pr.width / 2) - K * (Px - (px + pr.width / 2)), ty: Cy - (py + pr.height / 2) - K * (Py - (py + pr.height / 2)), Sw, Sh, W, H });
+    Object.assign(PRESS, { p, hl, paper, page, K, K2, ty2, tx: Cx - (px + pr.width / 2) - K * (Px - (px + pr.width / 2)), ty: Cy - (py + pr.height / 2) - K * (Py - (py + pr.height / 2)), Sw, Sh, W, H });
     page.style.transform = `translate(${PRESS.tx}px, ${PRESS.ty}px) scale(${K})`;
     page.style.willChange = 'transform, opacity';
     res();
@@ -3082,10 +3085,10 @@ async function runPress() {
   await tween(850, e => { P.page.style.opacity = Math.min(1, e * 1.4); pr.style.opacity = 1 - EZ.io(Math.max(0, (e - .15) / .85)); }, EZ.lin);
   pr.remove();
   await sleep(380);
-  // pull back to the whole front page
+  // pull back until the headline and the photo fill the screen, the page's side edges in view
   await tween(1700, e => {
-    const k = lerp(P.K, 1, e), r = -1.2 * e;
-    P.page.style.transform = `translate(${lerp(P.tx, 0, e)}px, ${lerp(P.ty, 0, e)}px) scale(${k}) rotate(${r}deg)`;
+    const k = lerp(P.K, P.K2, e), r = -.8 * e;
+    P.page.style.transform = `translate(${lerp(P.tx, 0, e)}px, ${lerp(P.ty, P.ty2, e)}px) scale(${k}) rotate(${r}deg)`;
     P.page.style.boxShadow = `${8 * e}px ${12 * e}px 0 rgba(30,30,70,${.35 * e}), 0 ${30 * e}px ${70 * e}px rgba(0,0,0,${.55 * e}), inset 0 0 6cqw rgba(120,82,30,.38)`;
   }, EZ.io);
   { const pc = P.page.querySelector('.frame canvas'); pc.width = P.fine.width; pc.height = P.fine.height; pc.getContext('2d').drawImage(P.fine, 0, 0); P.page.style.willChange = 'auto'; }
@@ -3112,7 +3115,7 @@ async function reveal() {
   seqEl.appendChild(clone);
   const s0 = fw / img.width, dx = fx - (img.left + img.width / 2), dy = fy - (img.top + img.height / 2);
   const page = P.page, base = page.style.transform;
-  tween(700, e => { page.style.opacity = 1 - e; page.style.transform = `translate(0px, ${e * P.H * .18}px) scale(${1 - e * .1}) rotate(${-1.2 - e * 3}deg)`; }, EZ.in);
+  tween(700, e => { page.style.opacity = 1 - e; page.style.transform = `translate(0px, ${P.ty2 + e * P.H * .18}px) scale(${P.K2 * (1 - e * .1)}) rotate(${-.8 - e * 3}deg)`; }, EZ.in);
   setTimeout(() => $('rvArchFig').classList.add('show'), 160);
   await tween(820, e => { clone.style.opacity = Math.min(1, e * 4); clone.style.transform = `translate(${dx * (1 - e)}px, ${dy * (1 - e)}px) scale(${lerp(s0, 1, e)}) rotate(${-1.2 * e}deg)`; }, EZ.io);
   slot.classList.add('show'); clone.remove();
