@@ -82,7 +82,7 @@ function frame(now) {
 requestAnimationFrame(frame);
 
 // ---------- the roll ----------
-const roll = $('roll'), win = $('rollWin'), SPEED = 46;   // pixels a second
+const roll = $('roll'), win = $('rollWin'), SPEED = 72;   // pixels a second
 function startRoll() {
   const H = win.clientHeight, end = $('end'), stop = -(end.offsetTop + end.offsetHeight / 2) + H / 2, from = H;
   const dur = (from - stop) / SPEED * 1000;

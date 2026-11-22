@@ -8,13 +8,13 @@ html, body { margin: 0; height: 100%; background: #000; color: #f1efea; overflow
   -webkit-mask-image: linear-gradient(transparent 0, #000 12%, #000 88%, transparent 100%); mask-image: linear-gradient(transparent 0, #000 12%, #000 88%, transparent 100%); }
 #roll { position: absolute; left: 0; right: 0; top: 0; text-align: center; text-transform: uppercase; font-family: var(--fell); will-change: transform; padding: 0 24px; }
 #roll section { margin: 0 auto 64px; max-width: 560px; }
-#roll h1 { margin: 0; font-family: var(--fellsc); font-weight: 400; font-size: clamp(24px, 3vw, 40px); line-height: 1.1; letter-spacing: .04em; }
-#roll .sub { margin: 10px 0 0; font-style: italic; font-size: clamp(17px, 1.8vw, 24px); color: #cfccc5; letter-spacing: .06em; }
+#roll h1 { margin: 0; font-family: var(--fellsc); font-weight: 400; font-size: clamp(23px, 2.6vw, 34px); line-height: 1.1; letter-spacing: .04em; }
+#roll .sub { margin: 10px 0 0; font-style: italic; font-size: clamp(19px, 2vw, 26px); color: #cfccc5; letter-spacing: .06em; }
 #roll .head { margin-bottom: 96px; }
-#roll h2 { margin: 0 0 10px; font-family: var(--fell); font-weight: 400; font-size: 14px; letter-spacing: .24em; color: #a9a59d; }
-#roll .name { margin: 0 0 6px; font-family: var(--fellsc); font-size: clamp(21px, 2.2vw, 30px); letter-spacing: .08em; }
-#roll p { margin: 0 0 14px; font-size: 16px; line-height: 1.5; letter-spacing: .08em; }
-#roll ul { list-style: none; margin: 14px 0 0; padding: 0; font-size: 14px; line-height: 1.75; letter-spacing: .08em; color: #d8d5ce; }
+#roll h2 { margin: 0 0 8px; font-family: var(--fell); font-weight: 400; font-size: 17px; letter-spacing: .18em; color: #a9a59d; }
+#roll .name { margin: 0 0 6px; font-family: var(--fellsc); font-size: clamp(20px, 1.9vw, 25px); letter-spacing: .08em; }
+#roll p { margin: 0 0 14px; font-size: 18px; line-height: 1.5; letter-spacing: .08em; }
+#roll ul { list-style: none; margin: 14px 0 0; padding: 0; font-size: 17px; line-height: 1.75; letter-spacing: .08em; color: #d8d5ce; }
 #roll i { font-style: italic; }
 #roll .end { margin-top: 140px; margin-bottom: 0; }
 #bTitle { margin-top: 22px; font-family: var(--fellsc); font-size: 19px; letter-spacing: .08em; text-transform: uppercase; color: #f1efea; background: transparent; border: 1.5px solid #f1efea; border-radius: 0;

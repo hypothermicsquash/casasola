@@ -2,6 +2,9 @@
 
 ## 3D models
 
+Not used in the game (user, 2026-11-22): the horses are procedural (src/scenes/scene1/horses.js), so this model is not in the in-game credits. Keep the note below in case it is ever used.
+
+
 - "Horse Rigged(Game Ready)" (https://skfb.ly/p8wzz) by abhayexe is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
   - CC BY 4.0 requires this credit to appear in the game (credits screen) and any distribution, and that changes to the model are noted.
 
