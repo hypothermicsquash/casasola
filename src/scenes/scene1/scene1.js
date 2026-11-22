@@ -2558,26 +2558,26 @@ function shoot() {
   const b = $('blink'); b.classList.remove('on'); void b.offsetWidth; b.classList.add('on');
 }
 
-// ---------- headlines: English up top, Spanish takes over as the type gets smaller ----------
+// ---------- headlines: an English title in the largest type, a Spanish subheading under it ----------
 const HEAD = {
   heroic: {
-    imparcial: ['Maderista Gavillas Seize the Estación', 'Armed Bands Ride Into Town Along the Railway, Unopposed', 'Trains Halted at the Water Tower; los Alambres del Telégrafo Cortados', 'Se ignora el paradero de las autoridades locales. El Gobierno promete restablecer el orden en breve.'],
-    pais: ['Rebels Ride Into the Pueblo; Clergy Asks Calm', 'Mounted Columns Pass the Church as the Town Looks On', 'The Señor Cura Urges Prudence; las Familias Permanecen en sus Casas', 'Se ruega a los fieles no tomar parte en desórdenes y elevar sus oraciones por la paz de la República.'],
-    hogar: ['¡Libertadores! Madero Rides In', 'The People Line the Tracks to Cheer the Column of the Revolución', 'Not One Shot Fired; el Pueblo Recibe a sus Defensores con Júbilo', 'La causa antirreeleccionista cuenta ya con el apoyo de los ferrocarrileros y de los vecinos más humildes.']
+    imparcial: ['Maderista Bands Seize the Station', 'Cortados los alambres del telégrafo; se ignora el paradero de las autoridades'],
+    pais: ['Rebels Ride Into Town', 'El señor cura ruega a los fieles no tomar parte en desórdenes'],
+    hogar: ['Liberators! Madero Rides In', 'Ni un solo disparo: el pueblo recibe a sus defensores con júbilo']
   },
   human: {
-    imparcial: ['Rebellion Leaves Ferrocarrileros Without Pay', 'Traffic Halted on the Northern Line; Workmen Idle at the Station', 'Merchants Count Their Losses; Escasean el Maíz y el Frijol', 'Los perjuicios causados al comercio por los sublevados ascienden a sumas considerables.'],
-    pais: ['Poor Familias Caught Between Two Fires', 'Women and Children Crowd the Platform as Armed Men Ride Past', 'Charity Asked of the Faithful; Faltan Víveres en el Pueblo', 'Las señoras de la Conferencia de San Vicente organizan una colecta para socorrer a los necesitados.'],
-    hogar: ['The Humble Pueblo Greets Madero', 'Vendors, Railwaymen and Campesinos Gather Along the Tracks', 'Water and Tortillas for the Riders; las Mujeres Ofrecen lo Poco que Tienen', 'Los trabajadores declaran que esperan de la revolución tierra, justicia y un jornal digno.']
+    imparcial: ['Rebellion Leaves Railwaymen Without Pay', 'Paralizado el tráfico en la línea del norte; escasean el maíz y el frijol'],
+    pais: ['Poor Families Caught Between Two Fires', 'Faltan víveres en el pueblo; se pide la caridad de los fieles'],
+    hogar: ['The Humble Town Greets Madero', 'Las mujeres ofrecen agua y tortillas a los jinetes de la revolución']
   },
   political: {
-    imparcial: ['Gobierno Keeps Order in Chihuahua', 'The Jefe Político Remains at His Post; Rurales Guard the Telegraph', 'Rebel Victories Exaggerated, Dice la Secretaría de Guerra', 'Las fuerzas federales avanzan sobre las gavillas y se espera su completa dispersión en pocos días.'],
-    pais: ['Who Rules the Pueblo Now?', 'Civil Authority in Doubt as the Rebel Column Arrives', 'The Hacendados Keep Silent; el Clero Pide Respeto a la Propiedad', 'Las personas de orden temen que la anarquía se extienda a todo el Estado.'],
-    hogar: ['The Jefe Político Flees', 'Díaz’s Man Abandons the Town Before the Maderistas Arrive', 'The Telegraph in the Hands of the People; Cae el Viejo Régimen', 'Los vecinos nombran una junta provisional mientras llega el triunfo definitivo de la revolución.']
+    imparcial: ['Government Keeps Order in Chihuahua', 'El jefe político permanece en su puesto; los rurales custodian el telégrafo'],
+    pais: ['Who Rules the Town Now?', 'Los hacendados guardan silencio; el clero pide respeto a la propiedad'],
+    hogar: ['Díaz’s Man Flees the Town', 'El jefe político abandona la plaza antes de la llegada de los maderistas']
   }
 };
-const HIDDEN = ['The Soldaderas Ride Too', 'Armed and Mounted Women Follow the Column Into Town', 'Rifle and Rebozo; las Mujeres Marchan Junto a sus Hombres', 'Nadie sabe sus nombres. Cocinan, curan, cargan el parque y, cuando hace falta, también pelean.'];
-const GENERIC = ['Gran Concurrencia at the Station', 'Townspeople Gather Along the Railway Line', 'Nothing of Note Recorded; el Corresponsal no Envió Más Detalles', 'La redacción lamenta no poder ofrecer a sus lectores una información más completa.'];
+const HIDDEN = ['Armed Women Ride With the Column', 'Rifle y rebozo: las soldaderas marchan junto a sus hombres'];
+const GENERIC = ['Crowds Gather at the Station', 'El corresponsal no envió más detalles'];
 const SLANT = { imparcial: 'political', pais: 'human', hogar: 'heroic' };
 const MAST = { imparcial: 'El Imparcial', pais: 'El País', hogar: 'Diario del Hogar' };
 const PAPER_META = {
@@ -2631,9 +2631,7 @@ function buildPage(paper, story, photo, decoy) {
     <div class="motto">${m.motto}</div>
     <div class="date"><span>${m.vol}</span><span>México, D. F., Mayo de 1911</span><span>${m.num}</span></div>
     <div class="hed"></div>
-    <div class="d1"></div><div class="cut"></div>
-    <div class="d2"></div><div class="cut"></div>
-    <div class="d3"></div>
+    <div class="d1"></div>
     <div class="rule2"></div>
     <div class="grid">
       <div class="col c1"><h5>Noticias del Norte</h5>${copy(0, 9, true)}</div>
@@ -2650,8 +2648,6 @@ function buildPage(paper, story, photo, decoy) {
   </div>`;
   el.querySelector('.hed').textContent = story[0];
   el.querySelector('.d1').textContent = story[1];
-  el.querySelector('.d2').textContent = story[2];
-  el.querySelector('.d3').textContent = story[3];
   const c = document.createElement('canvas'); c.width = photo.width; c.height = photo.height; c.getContext('2d').drawImage(photo, 0, 0);
   el.querySelector('.frame').appendChild(c);
   return el;

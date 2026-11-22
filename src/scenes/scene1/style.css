@@ -151,10 +151,8 @@ button.print:hover, button.print:focus-visible { outline: 3px solid var(--ochre)
 .np .mast.m-hogar { font-size: 7.4cqw; }
 .np .motto { text-align: center; font: italic 1.35cqw/1.2 "Old Standard TT", serif; margin-top: .3cqw; }
 .np .date { display: flex; justify-content: space-between; font: 700 1.25cqw/1 "Old Standard TT", serif; text-transform: uppercase; letter-spacing: .06em; border-top: .55cqw double #1f1710; border-bottom: .2cqw solid #1f1710; padding: .7cqw .2cqw .6cqw; margin-top: .8cqw; }
-.np .hed { font: 8.4cqw/0.98 "Anton", "Oswald", Impact, sans-serif; text-transform: uppercase; text-align: center; margin: 1.6cqw 0 .6cqw; letter-spacing: .005em; text-wrap: balance; }
-.np .d1 { font: 700 3.3cqw/1.05 "Oswald", "Arial Narrow", sans-serif; text-transform: uppercase; text-align: center; text-wrap: balance; margin: 0 6cqw; }
-.np .d2 { font: 700 2.15cqw/1.12 "Old Standard TT", serif; text-transform: uppercase; text-align: center; text-wrap: balance; margin: 0 12cqw; letter-spacing: .02em; }
-.np .d3 { font: italic 1.75cqw/1.2 "Old Standard TT", serif; text-align: center; text-wrap: balance; margin: 0 16cqw; }
+.np .hed { font: 9.6cqw/0.96 "Anton", "Oswald", Impact, sans-serif; text-transform: uppercase; text-align: center; margin: 1.6cqw 0 .6cqw; letter-spacing: .005em; text-wrap: balance; }
+.np .d1 { font: 700 2.9cqw/1.15 "Old Standard TT", serif; text-transform: uppercase; text-align: center; text-wrap: balance; margin: .4cqw 8cqw 1.2cqw; letter-spacing: .02em; }
 .np .cut { width: 16cqw; height: 0; border-top: .2cqw solid #1f1710; margin: .9cqw auto; }
 .np .rule2 { border-top: .55cqw double #1f1710; margin: 1.2cqw 0 1cqw; }
 .np .grid { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: auto 1fr; column-gap: 1.6cqw; }
