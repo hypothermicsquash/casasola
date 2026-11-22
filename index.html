@@ -14,9 +14,11 @@
   <div class="vignette"></div>
   <canvas id="finder" aria-hidden="true"></canvas>
   <div id="blink"></div>
+  <div id="bubbles"></div>
   <canvas class="hud" id="plates" aria-label="Plates left"></canvas>
   <canvas class="hud" id="watch" aria-label="Pocket watch"></canvas>
   <div class="tag" id="prompt" role="button"></div>
+  <div class="tag hud" id="objective" role="status" hidden><b>New objective unlocked</b><span id="objText"></span></div>
   <div id="controls">
     <div class="grp">
       <button class="btn touch-only" id="bFwd" type="button">Walk</button>
@@ -31,8 +33,11 @@
 
 <div id="dialog" class="card" hidden>
   <h3 id="dlgName"></h3>
+  <p class="es" id="dlgEs" lang="es" hidden></p>
+  <p class="en" id="dlgEn" hidden></p>
   <p class="ph" id="dlgNote"></p>
   <p class="res" id="dlgRes"></p>
+  <div id="dlgChoices" hidden></div>
   <button class="btn primary" id="dlgClose" type="button">Continue</button>
 </div>
 

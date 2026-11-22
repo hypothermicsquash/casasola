@@ -1179,10 +1179,11 @@ function goods(x, z) {
   for (let i = 0; i < 7; i++) { const m = reg(new THREE.Mesh(new THREE.SphereGeometry(.09 + rnd() * .05, 8, 6), toon(cols[(rnd() * 4) | 0]))); m.position.set(x - .45 + rnd() * .9, .1, z - .25 + rnd() * .5); world.add(m); }
 }
 // edge of town: women kneeling at their goods, campesinos resting by the wall
+const WALL = {};
 { const W = ['vendor', 'marketwoman', 'vendor2', 'abuela', 'vendor'], M = ['campesino', 'oldman', 'campesino3']; let w = 0, m = 0;
   [[3, 'vendors'], [7.5, 'campesinos'], [12, 'vendors'], [17, 'campesinos'], [21.5, 'vendors'], [27, 'vendors'], [32, 'campesinos'], [36.5, 'vendors']].forEach(([x, key]) => {
     const id = (key === 'vendors' ? W[w++ % W.length] : M[m++ % M.length]) + '_sit', D = lpBy(id);
-    spot(id, key, x, -3.9, face.s);
+    WALL[x] = spot(id, key, x, -3.9, face.s);
     // a seated woman's skirt spreads on the ground around her; the kit's skirt cone sinks under it
     if (D.skirt) { const k = D.h / 1.5 * (D.skirtW || 1);
       const sk = reg(new THREE.Mesh(new THREE.CylinderGeometry(.17 * k, .4 * k, .17 * k, 10, 1, true), toon(D.skirt))); sk.position.set(x, .16 + .085 * k, -3.84); world.add(sk);
@@ -1195,7 +1196,7 @@ spot('campesino2', 'campesinos', 10, 1.2, face.e);
 spot('marketwoman', 'vendors', 14, -2.2, face.n);
 spot('toddlerboy', 'children', 14.8, -1.6, face.n + .5);
 spot('campesino3', 'campesinos', 19, .6, face.w);
-spot('vendor2', 'vendors', 23, -2.8, face.s);
+const youngWomanSpot = spot('vendor2', 'vendors', 23, -2.8, face.s);
 spot('oldman', 'campesinos', 26, 1.8, face.n);
 spot('worker2', 'townsfolk', 29.5, 2.4, face.w);
 spot('boy', 'children', 8.6, -2.6, face.e);
@@ -1204,7 +1205,7 @@ spot('girl', 'children', 23, 4.7, face.s);
 spot('toddlergirl', 'children', 61, 4.6, face.s);
 // the hotel's owner at his door (he lets you onto the balcony), a shopkeeper down the street, two men talking
 const hotelSpot = spot('grocer', 'spanish', 63, -3.4, face.s);
-spot('grocer', 'spanish', 46, -3.3, face.s);
+const merchantSpot = spot('grocer', 'spanish', 46, -3.3, face.s);
 spot('campesino', 'townsfolk', 53, -2.6, face.e);
 spot('worker2', 'townsfolk', 54.2, -2.4, face.w);
 // the hacendado's family on the hotel balcony
@@ -1223,8 +1224,14 @@ const operatorSpot = spot('clerk', 'clerks', 92.6, -3.6, face.s);
 spot('senora', 'clerks', 96.5, -2.2, face.e);
 // the foreman at the water tower (he lets you climb it), his gang on the platform and the strip
 const foremanSpot = spot('worker', 'workers', 104.5, 2.6, face.w);
-[[121, 6.6, face.s], [123.5, 10.2, face.n], [129, 10.4, face.n], [138, 10.2, face.e], [147.5, 10.2, face.w], [160, 10.4, face.w]].forEach(([x, z, ry], i) =>
+const GANG = [[121, 6.6, face.s], [123.5, 10.2, face.n], [129, 10.4, face.n], [138, 10.2, face.e], [147.5, 10.2, face.w], [160, 10.4, face.w]].map(([x, z, ry], i) =>
   spot(['worker2', 'smith', 'worker', 'worker2', 'smith', 'worker'][i], 'workers', x, z, ry, { y: z < 7 ? .45 : 0 }));
+// Tomás, a railroad worker, on the platform by the gang
+lpVariant('worker2', 'tomas', { name: 'Tomás', shirt: 0xd8cfb8, sleeve: 0xd8cfb8, pants: 0x4a3d30, neckerchief: 0x2f5a7a, hatC: 0xb39a64 });
+const tomasSpot = spot('tomas', 'workers', 125.5, 5.6, face.n, { y: .45 });
+// two villagers talking in the street outside your door: the older one and the young one
+const oldSpot = spot('oldman', 'campesinos', 8.4, -.9, face.e);
+const youngSpot = spot('campesino2', 'campesinos', 9.7, -.7, face.w);
 // the station platform
 spot('hacendado2', 'agent', 133, 5.4, face.s, { y: .45 });
 spot('campesino2', 'townsfolk', 128, 5.2, face.s, { y: .45 });
@@ -2446,7 +2453,9 @@ function updateRaise(dt) {
 const NPCS = [
   { P: CAST.of(hotelSpot), name: 'Hotel owner', unlock: 'balcony', tellsTime: true, res: 'Balcony unlocked.', note: '[Dialogue to be written. Lets you onto the balcony and mentions when the column is expected: 11:40.]' },
   { P: CAST.of(operatorSpot), name: 'Telegraph operator', tellsTime: true, res: '', note: '[Dialogue to be written. Has the column\'s expected time off the wire: 11:40.]' },
-  { P: CAST.of(foremanSpot), name: 'Railway foreman', unlock: 'tower', res: 'Water tower unlocked.', note: '[Dialogue to be written. Lets you climb the water tower.]' }
+  { P: CAST.of(foremanSpot), name: 'Railway foreman', unlock: 'tower', res: 'Water tower unlocked.', note: '[Dialogue to be written. Lets you climb the water tower.]' },
+  { P: CAST.of(oldSpot), convo: 'opening' }, { P: CAST.of(youngSpot), convo: 'opening' },
+  { P: CAST.of(tomasSpot), convo: 'tomas' }
 ];
 const CLIMB = { balcony: { x: 61.5, z: -6.2 }, tower: { x: 100, z: 2.8 } };
 function nearest() {
@@ -2459,8 +2468,9 @@ function nearest() {
 function interact() {
   if (state.room) return ROOM.interact();
   const a = nearest(); if (!a) return;
-  if (a.type === 'talk') {
-    $('dlgNote').hidden = $('dlgRes').hidden = false;
+  if (a.type === 'talk' && a.n.convo) runConvo(TALKS[a.n.convo]);
+  else if (a.type === 'talk') {
+    dlgPlain(); $('dlgNote').hidden = $('dlgRes').hidden = false;
     $('dlgName').textContent = a.n.name; $('dlgNote').textContent = a.n.note; $('dlgRes').textContent = a.n.res; $('dialog').hidden = false; state.busy = true;
     if (a.n.unlock) state.unlocked[a.n.unlock] = true;
     a.n.P.setTalking(true); state.talkP = a.n.P;
@@ -2473,7 +2483,143 @@ function interact() {
     player.vantage = null; player.y = 0; player.x = player.ret.x; player.z = player.ret.z;
   }
 }
-$('dlgClose').onclick = () => { $('dialog').hidden = true; if (state.talkP) { state.talkP.setTalking(false); state.talkP = null; } if (ROOM.talking) ROOM.next(); else state.busy = false; };
+$('dlgClose').onclick = () => { if (CONVO.wait) { const r = CONVO.wait; CONVO.wait = null; r(); return; } $('dialog').hidden = true; if (state.talkP) { state.talkP.setTalking(false); state.talkP = null; } if (ROOM.talking) ROOM.next(); else state.busy = false; };
+
+// ---------- the townspeople talk: conversations with choices, and speech bubbles when you walk near ----------
+// Every line is the user's. Sentence order and structure reworked at the user's request (2026-11-22); Spanish first, the English under it.
+// A choice with `note` instead of lines has no answer written yet.
+const OBJECTIVE = 'Explore the village and photograph scenes that reveal how the Mexican Revolution affected everyday life.';
+const TALKS = {
+  opening: {
+    people: { old: CAST.of(oldSpot), young: CAST.of(youngSpot) }, auto: 'old', objective: OBJECTIVE,
+    intro: [
+      { who: 'old', name: 'Older villager', es: 'Un año. Hoy, 20 de noviembre de 1911, se cumple un año desde que comenzó la lucha contra Díaz. ¿Y ahora? Dicen que el presidente Madero va a pasar por nuestro pueblo.',
+        en: 'One year. Today, November 20, 1911, it’s been a year since the struggle against Díaz began. And now? They say President Madero is going to pass through our village.' },
+      { who: 'young', name: 'Young villager', es: '¡Democracia! Por fin un presidente que habla de eso. Tantos años bajo Díaz… a lo mejor ahora sí cambian las cosas.',
+        en: 'Democracy! Finally, a president who talks about it. So many years under Díaz… maybe now things will change.' },
+      { who: 'old', name: 'Older villager', es: 'Ay, muchacho, prometer es fácil. ¿Tierras para los campesinos? Todavía les hacen falta. Y las familias, trabajando por una miseria, como siempre.',
+        en: 'Promises come easy, young man. Land for the peasants? They still need it. And families keep working for next to nothing, same as ever.' },
+      { who: 'young', name: 'Young villager', es: 'Puede que tenga razón. Pero hoy hay que escuchar a la gente. Esta revolución… cada quien la ve a su manera.',
+        en: 'You may be right. But today we should listen to people. This revolution… everyone sees it their own way.' }
+    ],
+    choices: [
+      { es: '¿Creen que Madero cambiará México?', en: 'Do you think Madero will change Mexico?',
+        reply: [{ who: 'old', name: 'Older villager', es: 'Todos lo esperamos. Pero, ¿de qué sirve la libertad si nuestras familias siguen pasando hambre?',
+          en: 'We all hope so. But what good is freedom if our families are still going hungry?' }] },
+      { es: '¿A qué hora llegará Madero?', en: 'What time will Madero arrive?', tellsTime: true,
+        reply: [{ who: 'old', name: 'Older villager', note: '[Dialogue to be written. Says when Madero is expected: 11:40.]' }] },
+      { es: 'Quiero fotografiar lo que está pasando.', en: 'I want to photograph what’s happening.',
+        reply: [{ who: 'old', name: 'Older villager', note: '[Dialogue to be written. Answers Agustín wanting to photograph what is happening.]' }] }
+    ]
+  },
+  tomas: {
+    people: { tomas: CAST.of(tomasSpot) }, ask: 'Choose a question for Tomás', leave: true,
+    intro: [
+      { who: 'tomas', name: 'Tomás', es: 'Mercancías, gente, de una punta del país a la otra: los trenes cambiaron México. ¿Y nosotros, los trabajadores? Muchos apenas ganamos para vivir.',
+        en: 'Goods, people, from one end of the country to the other: the trains changed Mexico. And us workers? Many of us barely earn enough to survive.' }
+    ],
+    choices: [
+      { es: '¿Cómo son las condiciones de trabajo?', en: 'What are the working conditions like?',
+        reply: [{ who: 'tomas', name: 'Tomás', es: '¿Las jornadas? Largas. ¿El trabajo? Peligroso. El progreso del país lo construimos nosotros, pero ¿disfrutarlo? Pocas veces.',
+          en: 'The hours? Long. The work? Dangerous. We’re the ones who build this country’s progress, but enjoy it? Rarely.' }] },
+      { es: '¿Apoya usted a Madero?', en: 'Do you support Madero?',
+        reply: [{ who: 'tomas', name: 'Tomás', note: '[Dialogue to be written. Whether Tomás supports Madero.]' }] },
+      { es: '¿Qué espera de la revolución?', en: 'What do you hope the Revolution will accomplish?',
+        reply: [{ who: 'tomas', name: 'Tomás', note: '[Dialogue to be written. What Tomás hopes the Revolution will accomplish.]' }] }
+    ]
+  }
+};
+const VOICES = [
+  { s: WALL[12], es: '¡Revolución, revolución! Es lo único que se oye. Y los precios, mientras tanto, para arriba. ¿Con qué vamos a alimentar a nuestras familias?',
+    en: 'Revolution, revolution, that’s all anyone talks about! Meanwhile, prices keep climbing. How are we supposed to feed our families?' },
+  { s: youngWomanSpot, es: '¿Libertad? Eso dice mi hermano, que Madero la va a traer. Yo nomás quiero paz, y que nuestros hombres vuelvan a casa.',
+    en: 'Freedom? That’s what my brother says Madero will bring. Me, I just want peace, and our men back home.' },
+  { s: merchantSpot, es: 'Orden, eso sí había con Díaz. ¿Vivir bien? No todos. Ojalá que este gobierno nuevo no se olvide de los pobres.',
+    en: 'Order? Under Díaz, there was plenty. But living well… not for all of us. Let’s hope this new government doesn’t forget the poor.' },
+  { s: GANG[3], es: '¡Me duele la espalda!', en: 'My back hurts!' }
+].map(V => {
+  const el = document.createElement('div'); el.className = 'bubble';
+  el.innerHTML = '<p class="es" lang="es"></p><p class="en"></p>'; el.firstChild.textContent = V.es; el.lastChild.textContent = V.en;
+  $('bubbles').appendChild(el);
+  return Object.assign(V, { P: CAST.of(V.s), el, on: false });
+});
+const CONVO = { wait: null, pick: null, on: false };
+function dlgPlain() { $('dlgName').hidden = false; $('dlgEs').hidden = $('dlgEn').hidden = $('dlgChoices').hidden = true; $('dlgChoices').innerHTML = ''; $('dlgClose').hidden = false; }
+function dlgLine(L) {
+  dlgPlain(); $('dlgRes').hidden = true;
+  $('dlgName').textContent = L.name || ''; $('dlgName').hidden = !L.name;
+  $('dlgEs').textContent = L.es || ''; $('dlgEs').hidden = !L.es;
+  $('dlgEn').textContent = L.en || ''; $('dlgEn').hidden = !L.en;
+  $('dlgNote').textContent = L.note || ''; $('dlgNote').hidden = !L.note;
+  $('dialog').hidden = false;
+}
+async function sayLine(L, people) {
+  const P = people[L.who]; if (P) P.setTalking(true);
+  dlgLine(L); $('dlgClose').focus({ preventScroll: true });
+  await new Promise(res => { CONVO.wait = res; });
+  if (P) P.setTalking(false);
+}
+function pickChoice(C, opts) {
+  return new Promise(res => {
+    dlgLine({ name: C.ask }); $('dlgClose').hidden = true;
+    const box = $('dlgChoices'); box.hidden = false;
+    const done = i => { CONVO.pick = null; res(i); };
+    opts.forEach((o, i) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'choice' + (C.asked.has(i) ? ' asked' : '');
+      b.innerHTML = `<kbd class="kbd-only">${i + 1}</kbd><span class="t"><span class="es"></span><span class="en"></span></span>`;
+      const es = b.querySelector('.es'), en = b.querySelector('.en');
+      if (o.es) { es.lang = 'es'; es.textContent = o.es; } else es.remove();
+      if (o.en) en.textContent = o.en; else en.remove();
+      if (!o.es) en.style.cssText = 'font-style: normal; opacity: 1; font-size: 18px;';
+      b.onclick = () => done(i); box.appendChild(b);
+    });
+    CONVO.pick = i => { if (i < opts.length) done(i); };
+    box.firstChild.focus({ preventScroll: true });
+  });
+}
+async function runConvo(C) {
+  if (CONVO.on) return;
+  CONVO.on = true; state.busy = true; C.asked = C.asked || new Set();
+  if (!C.met) { for (const L of C.intro) await sayLine(L, C.people); C.met = true; }
+  for (;;) {
+    const i = await pickChoice(C, C.leave ? C.choices.concat([{ en: 'Leave' }]) : C.choices);
+    if (i >= C.choices.length) break;
+    C.asked.add(i);
+    const ch = C.choices[i];
+    for (const L of ch.reply) await sayLine(L, C.people);
+    if (ch.tellsTime && !state.knowsTime) { state.knowsTime = true; chime(); }
+    if (!C.leave) break;
+  }
+  $('dialog').hidden = true; dlgPlain(); CONVO.on = false; state.busy = false;
+  if (C.objective && !state.objective) showObjective(C.objective);
+}
+window.addEventListener('keydown', e => { if (CONVO.pick && /^[1-9]$/.test(e.key)) { e.preventDefault(); CONVO.pick(+e.key - 1); } });
+function showObjective(text) {
+  state.objective = text; const o = $('objective'); $('objText').textContent = text;
+  o.classList.add('fresh'); o.hidden = false;
+  setTimeout(() => o.classList.remove('fresh'), 5200);
+}
+// bubbles show inside 5.5 m and go at 6.5 m; each frame only the shown ones are projected
+const _bv = new THREE.Vector3();
+function updateTalk() {
+  const street = state.started && ROOM.left && !state.room && !player.vantage;
+  const free = street && !state.busy && !state.raised && raise.t === 0;
+  const pz = warpP(player.x, player.z), W = innerWidth, H = innerHeight;
+  for (const V of VOICES) {
+    const p = V.P.root.position, d = Math.hypot(p.x - player.x, p.z - pz);
+    const show = free && d < (V.on ? 6.5 : 5.5);
+    if (show) {
+      V.P.J.head.getWorldPosition(_bv); _bv.y += .42 * V.P.D.h / 1.6; _bv.project(camera);
+      if (_bv.z > 1 || Math.abs(_bv.x) > 1.2 || Math.abs(_bv.y) > 1.2) { if (V.on) { V.on = false; V.el.classList.remove('show'); V.P.setTalking(false); } continue; }
+      V.el.style.transform = `translate(${((_bv.x + 1) * W / 2).toFixed(1)}px, ${((1 - _bv.y) * H / 2 - 14).toFixed(1)}px) translate(-50%, -100%)`;
+    }
+    if (show !== V.on) { V.on = show; V.el.classList.toggle('show', show); V.P.setTalking(show); }
+  }
+  const o = $('objective'); if (!o.hidden) o.classList.toggle('away', !street || state.raised || raise.t > 0);
+  // the two villagers start talking to you the first time you come near
+  const C = TALKS.opening;
+  if (free && !C.met && !CONVO.on) { const q = C.people[C.auto].root.position; if (Math.hypot(q.x - player.x, q.z - pz) < 3.2) runConvo(C); }
+}
 
 // ---------- photo capture and pixel scoring ----------
 const PW = 840, PH = 600, IW = 210, IH = 150;
@@ -2561,19 +2707,19 @@ function shoot() {
 // ---------- headlines: an English title in the largest type, a Spanish subheading under it ----------
 const HEAD = {
   heroic: {
-    imparcial: ['Maderista Bands Seize the Station', 'Cortados los alambres del telégrafo; se ignora el paradero de las autoridades'],
-    pais: ['Rebels Ride Into Town', 'El señor cura ruega a los fieles no tomar parte en desórdenes'],
-    hogar: ['Liberators! Madero Rides In', 'Ni un solo disparo: el pueblo recibe a sus defensores con júbilo']
+    imparcial: ['Madero Tours the North', 'El presidente recorre Chihuahua escoltado por sus antiguos insurrectos'],
+    pais: ['The President Rides Through Town', 'El señor cura ruega a los fieles guardar el orden durante la visita'],
+    hogar: ['Liberators! Madero Rides In', 'Un año después, el pueblo recibe a su presidente con júbilo']
   },
   human: {
-    imparcial: ['Rebellion Leaves Railwaymen Without Pay', 'Paralizado el tráfico en la línea del norte; escasean el maíz y el frijol'],
-    pais: ['Poor Families Caught Between Two Fires', 'Faltan víveres en el pueblo; se pide la caridad de los fieles'],
+    imparcial: ['Railwaymen Still Wait for Their Pay', 'Escasean el maíz y el frijol mientras el pueblo espera al presidente'],
+    pais: ['Poor Families Wait on the President', 'Faltan víveres en el pueblo; se pide la caridad de los fieles'],
     hogar: ['The Humble Town Greets Madero', 'Las mujeres ofrecen agua y tortillas a los jinetes de la revolución']
   },
   political: {
-    imparcial: ['Government Keeps Order in Chihuahua', 'El jefe político permanece en su puesto; los rurales custodian el telégrafo'],
+    imparcial: ['Visit Fails to Calm the North', 'Gavillas armadas siguen recorriendo el Estado, dice la Secretaría de Guerra'],
     pais: ['Who Rules the Town Now?', 'Los hacendados guardan silencio; el clero pide respeto a la propiedad'],
-    hogar: ['Díaz’s Man Flees the Town', 'El jefe político abandona la plaza antes de la llegada de los maderistas']
+    hogar: ['Old Jefe Político Greets the New President', 'El mismo funcionario que sirvió a Díaz encabeza ahora la recepción']
   }
 };
 const HIDDEN = ['Armed Women Ride With the Column', 'Rifle y rebozo: las soldaderas marchan junto a sus hombres'];
@@ -2629,7 +2775,7 @@ function buildPage(paper, story, photo, decoy) {
       <div class="ear">Edición<b>Extra</b>Servicio Telegráfico</div>
     </div>
     <div class="motto">${m.motto}</div>
-    <div class="date"><span>${m.vol}</span><span>México, D. F., Mayo de 1911</span><span>${m.num}</span></div>
+    <div class="date"><span>${m.vol}</span><span>México, D. F., 20 de Noviembre de 1911</span><span>${m.num}</span></div>
     <div class="hed"></div>
     <div class="d1"></div>
     <div class="rule2"></div>
@@ -2638,7 +2784,7 @@ function buildPage(paper, story, photo, decoy) {
       <div class="photo"><div class="frame"></div><div class="credit">Fot. A. V. Casasola</div><div class="cap">Aspecto de la vía al paso de la columna</div></div>
       <div class="belowphoto"><div class="col">${copy(2, 6, true)}</div><div class="col">${copy(4, 6, true)}</div><div class="col">${copy(6, 6, true)}</div></div>
       <div class="col c5">
-        <div class="box"><div class="bt">Última Hora</div><p>Se recibe por telégrafo la noticia de que el tráfico entre Chihuahua y Ciudad Juárez continúa interrumpido. Mañana daremos pormenores.</p></div>
+        <div class="box"><div class="bt">Última Hora</div><p>Se recibe por telégrafo la noticia de que el señor presidente salió de Chihuahua esta madrugada rumbo al norte. Mañana daremos pormenores.</p></div>
         <div class="ad"><b>Botica del Águila</b>Medicinas de patente, drogas y perfumería. Calle Real núm. 12.</div>
         <div class="ad"><b>Horario de Trenes</b><table><tr><td>Al Norte</td><td>7.15 a.m.</td></tr><tr><td>Al Sur</td><td>9.40 a.m.</td></tr><tr><td>Mixto</td><td>4.05 p.m.</td></tr></table><span class="stamp">Suspendido</span></div>
         <div class="ad"><b>La Palma</b>Sombreros de palma, fieltro y charro. Precios de fábrica.</div>
@@ -2940,7 +3086,7 @@ function envParts(EW, EH) {
   mk.beginPath(); mk.arc(mx, my, mr, 0, 7); mk.stroke(); mk.beginPath(); mk.arc(mx, my, mr * .62, 0, 7); mk.stroke();
   mk.font = `700 ${mr * .26}px "Old Standard TT", serif`; mk.textAlign = 'center'; mk.textBaseline = 'middle';
   const town = 'CHIHUAHUA · MEX ·'; for (let i = 0; i < town.length; i++) { const a = -Math.PI * .85 + i / (town.length - 1) * Math.PI * 1.7; mk.save(); mk.translate(mx + Math.sin(a) * mr * .81, my - Math.cos(a) * mr * .81); mk.rotate(a); mk.fillText(town[i], 0, 0); mk.restore(); }
-  mk.font = `700 ${mr * .3}px "Old Standard TT", serif`; mk.fillText('MAY', mx, my - mr * .17); mk.fillText('1911', mx, my + mr * .2);
+  mk.font = `700 ${mr * .3}px "Old Standard TT", serif`; mk.fillText('NOV', mx, my - mr * .17); mk.fillText('1911', mx, my + mr * .2);
   for (let l = 0; l < 5; l++) { mk.beginPath(); for (let x = 0; x <= EW * .3; x += 4) { const y = my - mr * .6 + l * mr * .3 + Math.sin(x * .09) * mr * .08; x ? mk.lineTo(mx + mr * 1.1 + x, y) : mk.moveTo(mx + mr * 1.1 + x, y); } mk.stroke(); }
   // break the ink up a little
   mk.globalCompositeOperation = 'destination-out'; for (let i = 0; i < 500; i++) { mk.fillStyle = `rgba(0,0,0,${.3 + urnd() * .6})`; mk.beginPath(); mk.arc(mx - mr * 1.1 + urnd() * (mr * 2.2 + EW * .3), my - mr * 1.1 + urnd() * mr * 2.2, .6 + urnd() * 1.8, 0, 7); mk.fill(); }
@@ -3096,7 +3242,7 @@ async function runPress() {
 async function reveal() {
   const P = PRESS, rv = $('rv');
   $('rvHead').textContent = P.hl.story[0];
-  $('rvPaper').textContent = MAST[P.paper] + ', mayo de 1911';
+  $('rvPaper').textContent = MAST[P.paper] + ', 20 de noviembre de 1911';
   const s = P.p.score.subjects, top = Object.entries(s).sort((a, b) => b[1].score - a[1].score).slice(0, 3).map(([k, v]) => subjects[k].name + ' ' + Math.round(v.share * 100) + '%');
   $('scorebar').textContent = top.length ? top.join(' · ') : '';
   $('rvMine').src = P.p.url;
@@ -3227,6 +3373,7 @@ function frame(now) {
   if (!ROOM.hasCam) FP.rig.visible = false; else if (ROOM.camDrop > 0) FP.rig.position.y -= ROOM.camDrop;
   placeCamera();
   CAST.crowd.update(camera, dt);
+  updateTalk();
   renderView();
   requestAnimationFrame(frame);
 }
@@ -3244,15 +3391,15 @@ const INTRO = [
     { p: 'Porfirio Díaz has ruled Mexico for more than thirty years. In November, Francisco I. Madero calls the country to rise against him.' },
     { cut: true },
     { dl: 'Ciudad Juárez, 10 May 1911.', fig: { map: { kind: 'north', view: 'vbN', dur: 3200, north: true } } },
-    { p: 'Six months into the Revolution, rebels in the north take the border city. Díaz\'s government is close to collapse.' }
+    { p: 'Rebels in the north take the border city. Within weeks Díaz resigns and sails into exile. In November 1911 Madero becomes president.' }
   ],
   [
     { dl: 'Agustín Víctor Casasola.', fig: { archive: 11, print: { photo: 'villa', paint: 'villa_p', s: .7, half: .3, cap: 'Villa and Zapata in the National Palace, December 1914. Casasola archive' } } },
     { p: 'A press photographer from Mexico City, working for the capital\'s newspapers. The archive he and his family build will shape how the Revolution is remembered.' }
   ],
   [
-    { dl: 'A railway town in Chihuahua, May 1911.', fig: { hold: 10600, print: { photo: 'mad', paint: 'mad_p', s: 1, half: .55, game: 'game', gameHalf: .32, cap: 'Maderistas. Casasola archive' } } },
-    { p: 'Madero\'s riders are expected this morning. You have three glass plates, so three photographs. You will send one of them to the newspapers.' },
+    { dl: 'A railway town in Chihuahua, 20 November 1911.', fig: { hold: 10600, print: { photo: 'mad', paint: 'mad_p', s: 1, half: .55, game: 'game', gameHalf: .32, cap: 'Maderistas. Casasola archive' } } },
+    { p: 'One year since the rising. President Madero and his riders are expected this morning. You have three glass plates, so three photographs. You will send one of them to the newspapers.' },
     { glass: 3, fig: { process: true } },
     { keys: COARSE
       ? [['Walk, Back', 'Move'], ['Drag', 'Look around'], ['Tap the camera', 'Raise it'], ['Squeeze the bulb', 'Expose a plate'], ['Tap the tag', 'Talk']]
@@ -3730,7 +3877,7 @@ const ROOM = (() => {
   };
   function say(b) {
     if (!b) { state.busy = false; R.face = false; R.talking = false; return; }
-    $('dlgName').textContent = 'Miguel Casasola';
+    dlgPlain(); $('dlgName').textContent = 'Miguel Casasola';
     $('dlgNote').textContent = b.line ? '' : b.note; $('dlgNote').hidden = !!b.line;
     $('dlgRes').textContent = b.line || ''; $('dlgRes').hidden = !b.line;
     $('dialog').hidden = false; state.busy = true; R.face = true; R.talking = true; $('dlgClose').focus({ preventScroll: true });
@@ -3807,7 +3954,7 @@ streamZones(0, true);
 requestAnimationFrame(frame);
 // the town is only drawn behind the title long enough to warm up its shaders; after that nothing renders until the front room
 setTimeout(() => { if (!state.started) IN.cover = true; }, 2500);
-window.__casasola = { zones: ZONES, ROOM, IN, ST, INTRO, MIGUEL_LINES, toStreet: () => { $('start').hidden = true; $('intro').hidden = true; IN.cover = false; state.started = true; state.room = false; state.busy = false; Object.assign(ROOM, { hasCam: true, open: true, left: true, talked: true, camDrop: 0 }); if (ROOM.live) ROOM.live.camOnTable.visible = ROOM.live.holders.visible = false; Object.assign(player, { x: 1.5, z: .4, yaw: -Math.PI / 2, pitch: 0 }); host.classList.remove('nocam'); $('dialog').classList.remove('low'); }, scene, people, renderer, renderView, camera, sun, LIGHT, rtMain, state, player, startColumn, scoreFrame, syncCapCam, shoot, toggleRaise, develop, CLOCK, clockNow, raise, FP, tier: () => tier, stepQuality };
+window.__casasola = { zones: ZONES, ROOM, IN, ST, INTRO, MIGUEL_LINES, TALKS, VOICES, CONVO, warpP, toStreet: () => { $('start').hidden = true; $('intro').hidden = true; IN.cover = false; state.started = true; state.room = false; state.busy = false; Object.assign(ROOM, { hasCam: true, open: true, left: true, talked: true, camDrop: 0 }); if (ROOM.live) ROOM.live.camOnTable.visible = ROOM.live.holders.visible = false; Object.assign(player, { x: 1.5, z: .4, yaw: -Math.PI / 2, pitch: 0 }); host.classList.remove('nocam'); $('dialog').classList.remove('low'); }, scene, people, renderer, renderView, camera, sun, LIGHT, rtMain, state, player, startColumn, scoreFrame, syncCapCam, shoot, toggleRaise, develop, CLOCK, clockNow, raise, FP, tier: () => tier, stepQuality };
 
 window.__casasola.kit = { THREE: typeof THREE === 'undefined' ? undefined : THREE, C: typeof C === 'undefined' ? undefined : C, OUTLINE: typeof OUTLINE === 'undefined' ? undefined : OUTLINE, IMG: typeof IMG === 'undefined' ? undefined : IMG, tex: typeof tex === 'undefined' ? undefined : tex, patch: typeof patch === 'undefined' ? undefined : patch, FRAG: typeof FRAG === 'undefined' ? undefined : FRAG, box: typeof box === 'undefined' ? undefined : box, world: typeof world === 'undefined' ? undefined : world, warpS: typeof warpS === 'undefined' ? undefined : warpS, slopeS: typeof slopeS === 'undefined' ? undefined : slopeS, warpP: typeof warpP === 'undefined' ? undefined : warpP, HORSES: typeof HORSES === 'undefined' ? undefined : HORSES, people: typeof people === 'undefined' ? undefined : people, state: typeof state === 'undefined' ? undefined : state, TIER: typeof TIER === 'undefined' ? undefined : TIER };
 return window.__casasola;

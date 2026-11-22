@@ -89,6 +89,9 @@ function paintFace(cv, F, E, blink) {
     if (F.lower) { g.lineWidth = 2; g.strokeStyle = 'rgba(22,16,13,.55)'; g.beginPath(); g.moveTo(x - w * .55, y + h * .58); g.quadraticCurveTo(x, y + h * .72, x + w * .55, y + h * .58); g.stroke(); g.strokeStyle = ink; }
     if (F.lash) { g.lineWidth = 3; g.beginPath(); g.moveTo(xo, yo); g.lineTo(xo + s * w * .3, yo - 9); g.moveTo(xo - s * w * .25, yo - h * .12); g.lineTo(xo + s * w * .05, yo - 13); g.stroke(); }
   });
+  // 'shine': lenses catching the light, a pale fill with a bright streak, so the eyes don't show through
+  if (F.glasses === 'shine') [-1, 1].forEach(s => { g.fillStyle = 'rgba(214,226,236,.95)'; g.beginPath(); g.ellipse(cx + s * es, ey - eh * .05, ew * 1.25, eh * .62, 0, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = 'rgba(255,255,255,.95)'; g.lineWidth = 4; g.beginPath(); g.moveTo(cx + s * es - ew * .7, ey + eh * .2); g.lineTo(cx + s * es - ew * .1, ey - eh * .45); g.stroke(); });
   if (F.glasses) { g.strokeStyle = '#3a2e22'; g.lineWidth = 3; [-1, 1].forEach(s => { g.beginPath(); g.ellipse(cx + s * es, ey - eh * .05, ew * 1.25, eh * .62, 0, 0, Math.PI * 2); g.stroke(); });
     g.beginPath(); g.moveTo(cx - es + ew * 1.25, ey - eh * .2); g.quadraticCurveTo(cx, ey - eh * .4, cx + es - ew * 1.25, ey - eh * .2); g.stroke(); }
   // small extra details for some faces
@@ -317,7 +320,7 @@ function figure(D) {
     add('el' + side, lp([[-fa, ar * .8, ar * .8, 0, 0, D.cuff || sl], [-fa + y(.018), ar * .82, ar * .82, 0, 0, sl], [0, ar * .9, ar * .9, 0, 0, sl]], { sides: 4 }));
     // hands: small low-poly balls
     const hr = y(.046) * (D.hand || 1), hy = -fa - y(.03) * (D.hand || 1), PJ = (P['el' + side] = P['el' + side] || tris());
-    (PJ.smooth = PJ.smooth || []).push({ start: PJ.p.length / 3, c: [0, hy, 0] }); add('el' + side, ball(hr, D.skin), M(0, hy, 0)); PJ.smooth[PJ.smooth.length - 1].end = PJ.p.length / 3;
+    (PJ.smooth = PJ.smooth || []).push({ start: PJ.p.length / 3, c: [0, hy, 0] }); add('el' + side, ball(hr, D.glove || D.skin), M(0, hy, 0)); PJ.smooth[PJ.smooth.length - 1].end = PJ.p.length / 3;
 
   });
   // legs (trousers) or bare shins under a skirt
