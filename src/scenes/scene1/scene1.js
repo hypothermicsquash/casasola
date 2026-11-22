@@ -1277,6 +1277,7 @@ function rider(o) {
   g.userData = { speed: o.speed, phase: rnd() * 6, horse: hs, walking: false, noWarp: true, zs: o.z, y0, person: true };
   world.add(g);
   tagGroup(g, o.key);
+  { const ms = []; hs.traverse(m => { if (m.isMesh) ms.push(m); }); kindTag(ms, 'horse'); }
   // horses render in the subject-ID pass too, with skinned ID materials
   hs.traverse(m => { if (m.isSkinnedMesh) { reg(m); m.userData.idMat = skBlack; } });
   // the rider comes with the cast and is set in the saddle then
@@ -1743,6 +1744,7 @@ const CAST = (() => {
   const keyOf = i => i < n ? SPOTS[i].key : i < n + COLUMN_SPOTS.length ? COLUMN_SPOTS[i - n].key : null;
   crowd.people.forEach((P, i) => {
     const k = keyOf(i); for (const m of [P.hi, P.mid]) { if (k) m.userData.sid = subjects[k].id; reg(m); }
+    kindTag([P.hi, P.mid], kind1(i < n ? SPOTS[i].id : i < n + COLUMN_SPOTS.length ? COLUMN_SPOTS[i - n].id : 'miguel', k));
     P.phase = rnd() * 6.28; P.rest = {}; for (const b of ['shR', 'elR']) if (P.J[b]) P.rest[b] = P.J[b].rotation.clone();
   });
   // far cutouts and blob shadows sit out of the subject-ID pass (far people are drawn as middle meshes for it instead)
@@ -2698,16 +2700,19 @@ function syncCapCam() {
 function scoreFrame() {
   const saveFog = scene.fog; scene.fog = null; dust.visible = false;
   const farCast = CAST.crowd.people.filter(P => P.lvl === 2 && P.root.visible && !P.mid.visible); farCast.forEach(P => { P.mid.visible = true; });
-  allMeshes.forEach(m => { const sid = m.userData.sid || (m.parent && m.parent.userData.sid); m.material = sid ? (m.isSkinnedMesh ? skId(sid) : idMats[sid]) : (m.isLine ? m.material : (m.userData.idMat || blackMat)); });
+  allMeshes.forEach(m => { const ud = m.userData, pu = (m.parent && m.parent.userData) || {}, sid = ud.sid || pu.sid || 0, inst = ud.inst || pu.inst || 0; m.material = inst ? idMatFor(sid, inst, m.isSkinnedMesh) : sid ? (m.isSkinnedMesh ? skId(sid) : idMats[sid]) : (m.isLine ? m.material : (ud.idMat || blackMat)); });
   renderer.setRenderTarget(rtId); renderer.setClearColor(0x000000, 1); renderer.clear(); renderer.render(scene, capCam); renderer.setRenderTarget(null);
   allMeshes.forEach(m => { m.material = m.userData.mat; });
   farCast.forEach(P => { P.mid.visible = false; });
   scene.fog = saveFog; dust.visible = true;
   const buf = new Uint8Array(IW * IH * 4); renderer.readRenderTargetPixels(rtId, 0, 0, IW, IH, buf);
-  const counts = {}, cx = {}, cy = {};
+  const counts = {}, cx = {}, cy = {}, ic = {}, icx = {}, icy = {};
+  let seen = 0;
   for (let y = 0; y < IH; y++) for (let x = 0; x < IW; x++) {
-    const i = (y * IW + x) * 4, id = buf[i]; if (!id || buf[i + 1] > 8) continue;
-    counts[id] = (counts[id] || 0) + 1; cx[id] = (cx[id] || 0) + x; cy[id] = (cy[id] || 0) + y;
+    const i = (y * IW + x) * 4, id = buf[i], inst = buf[i + 2]; if ((!id && !inst) || buf[i + 1] > 8) continue;
+    seen++;
+    if (id) { counts[id] = (counts[id] || 0) + 1; cx[id] = (cx[id] || 0) + x; cy[id] = (cy[id] || 0) + y; }
+    if (inst) { ic[inst] = (ic[inst] || 0) + 1; icx[inst] = (icx[inst] || 0) + x; icy[inst] = (icy[inst] || 0) + y; }
   }
   const total = IW * IH, res = {};
   let tagged = 0;
@@ -2718,7 +2723,84 @@ function scoreFrame() {
     const centrality = 1 - Math.min(1, Math.hypot(mx, my) / .7) * .5;
     res[k] = { share: n / total, score: (n / total) * s.sal * centrality };
   }
-  return { subjects: res, tagged: tagged / total };
+  // the same for each instance, summed by kind: how much of the frame, weighted to the centre, and how many of them show
+  const kinds = {}, KO = (kindTag.K || { of: [] }).of;
+  for (const j of Object.keys(ic)) {
+    const kind = KO[j]; if (!kind) continue; const n = ic[j], share = n / total;
+    const mx = icx[j] / n / IW - .5, my = icy[j] / n / IH - .5, k = kinds[kind] || (kinds[kind] = { share: 0, score: 0, n: 0 });
+    k.share += share; k.score += share * (1 - Math.min(1, Math.hypot(mx, my) / .7) * .5); if (share > .0015) k.n++;
+  }
+  return { subjects: res, tagged: tagged / total, kinds, seen: seen / total, pitch: capCam.rotation.x, where: (typeof player !== 'undefined' && player.zone) || null, seed: Math.random() };
+}
+// ---------- what a photograph is of: every person, horse and portrait is its own instance (blue in the ID pass), with a kind ----------
+// kindTag(meshes, kind) gives the meshes a new instance number (up to 255; past that, the kind's first one)
+function kindTag(meshes, kind) {
+  const K = kindTag.K || (kindTag.K = { of: [null], first: {} });
+  let i = K.of.length; if (i > 255) i = K.first[kind] || 0; else { K.of.push(kind); if (!K.first[kind]) K.first[kind] = i; }
+  for (const m of meshes) if (m) m.userData.inst = i; return i;
+}
+function idMatFor(sid, inst, skinned) {
+  const C = idMatFor.C || (idMatFor.C = {}), key = sid + ':' + inst + (skinned ? 's' : '');
+  return C[key] || (C[key] = new THREE.MeshBasicMaterial({ color: new THREE.Color(sid / 255, 0, inst / 255), fog: false, skinning: !!skinned }));
+}
+// the kind of a cast design, for the townspeople every scene shares
+function baseKind(id) {
+  id = String(id).replace(/_(sit|ride)$/, '');
+  return ({ oldman: 'oldman', abuela: 'oldwoman', campesino: 'campesino', campesino2: 'campesino', campesino3: 'campesino', vendor: 'vendor', vendor2: 'vendor', marketwoman: 'vendor',
+    boy: 'child', girl: 'child', newsboy: 'newsboy', toddlerboy: 'toddler', toddlergirl: 'toddler', worker: 'worker', worker2: 'worker', smith: 'smith', grocer: 'shopkeeper',
+    hacendado: 'hacendado', hacendado2: 'hacendado', senora: 'lady', richgirl: 'richgirl', priest: 'priest', soldadera: 'soldadera', soldadera2: 'soldadera', soldadera3: 'soldadera',
+    rebel: 'rider', madero: 'madero', federal: 'guard', rural: 'rural', clerk: 'clerk' })[id] || 'person';
+}
+// the main thing in the frame: nothing ('up' at the sky, 'down' at the ground, else 'empty'), a crowd with no one kind in charge, or the kind with the biggest share
+function photoSubject(score) {
+  const k = score.kinds || {}, e = Object.entries(k).sort((a, b) => b[1].score - a[1].score), tot = e.reduce((s, x) => s + x[1].score, 0);
+  if (!e.length || tot < .002) { const p = score.pitch || 0; return { kind: p > .45 ? 'up' : p < -.5 ? 'down' : 'empty', many: false }; }
+  const [kind, v] = e[0];
+  if (e.length >= 3 && v.score < tot * .35) return { kind: 'crowd', many: true };
+  return { kind, many: v.n > 1 };
+}
+// an off-target headline from a scene's table: ODD[kind] is a list of [English title, Spanish subheading], or { one: [...], many: [...] }
+function oddHeadline(score, ODD, kind, many) {
+  if (!kind) ({ kind, many } = photoSubject(score));
+  const set = ODD[kind] || ODD.person || ODD.crowd, list = Array.isArray(set) ? set : (many && set.many) || set.one || set.many;
+  return list[Math.floor((score.seed || 0) * list.length) % list.length];
+}
+// the townspeople every scene has; P is the place in an English headline ('Village'), L the place in Spanish ('el pueblo')
+function oddTown(P, L) {
+  return {
+    oldman: { one: [[`Old Man Spotted in ${P}... Is This Important?`, 'Nuestro corresponsal asegura que el anciano lleva ahí toda la mañana'], ['Local Elder Continues to Exist', 'El señor no quiso hacer declaraciones a la prensa']],
+      many: [['Several Old Men Gather; Experts Baffled', 'Se sospecha que hablan del tiempo, como de costumbre']] },
+    oldwoman: { one: [['Grandmother Photographed... Is This Important?', 'La señora pidió que le mandaran una copia'], ['Elderly Woman Unimpressed by Camera', `Dice que ha visto cosas más interesantes en ${L}`]],
+      many: [[`Grandmothers Assemble in ${P}`, 'Nada se les escapa, informa nuestro corresponsal']] },
+    campesino: { one: [[`Man in Hat Stands in ${P}`, 'El corresponsal no ha explicado por qué esto es noticia'], ['Farmer Spotted... Is This Important?', 'Fuentes confirman que el campesino, en efecto, trabaja en el campo']],
+      many: [['Men in Hats Seen Standing Around', 'Ninguno de ellos es el Presidente, se confirma']] },
+    vendor: { one: [['Woman Sells Fruit; Editors Ask Why We Care', 'La fruta, según informes, estaba fresca'], ['Market Woman Photographed Instead of the News', 'Se ruega al corresponsal que mire hacia donde pasa algo']],
+      many: [['Vendors Continue to Vend', 'El precio del maíz sigue igual, por si alguien preguntaba']] },
+    child: { one: [['Child Stares at Camera... Is This Important?', 'El niño no supo dar razón del paradero del Presidente'], ['Local Child Has Never Seen a Camera', 'Tampoco nuestro corresponsal, a juzgar por esta fotografía']],
+      many: [[`Children Run Loose in ${P}`, 'Las madres piden paciencia a los señores de la prensa']] },
+    toddler: { one: [['Very Small Person Spotted', 'Nuestro corresponsal calcula que tiene unos dos años']], many: [['Tiny Citizens Gather', 'Ninguno sabe leer este periódico todavía']] },
+    newsboy: [['Newsboy Sells Rival Paper', 'El director ha pedido explicaciones al corresponsal']],
+    worker: { one: [['Laborer Leans on Shovel... Is This Important?', 'Dice que espera órdenes, y su raya']], many: [['Work Crew Stands Around, Unpaid', 'Los peones aseguran que no han cobrado en dos semanas']] },
+    smith: [['Blacksmith Photographed Mid-Swing', 'El herrero pidió que no lo molestaran']],
+    shopkeeper: { one: [['Shopkeeper Stands in Doorway... Again', 'El comerciante informa que la tienda sigue abierta']], many: [['Merchants Guard Their Doorways', 'Se teme por el precio del frijol']] },
+    hacendado: { one: [['Wealthy Man Wears Hat; Public Notices', 'El hacendado posó con gusto, aunque nadie se lo pidió']], many: [['The Rich Stand Together, as Usual', 'Se comenta que hablaban de sus tierras']] },
+    lady: { one: [[`Fine Lady Seen in ${P}`, 'Se cree que va de paso']], many: [['Ladies of Society Gather', 'Notas de sociedad en la página cuatro']] },
+    richgirl: [['Little Rich Girl Looks Bored', 'La señorita preguntó cuándo se pueden ir']],
+    priest: [['Priest Spotted Near Church... Is This Important?', 'El señor cura recomienda a los fieles conservar la calma']],
+    clerk: [['Clerk Photographed Doing Paperwork', 'El empleado pidió que no se publicara su nombre']],
+    soldadera: { one: [['Woman With Rifle Photographed; Nobody Argues', 'La soldadera no quiso dar su nombre']], many: [['Soldaderas Arrive, Unbothered', 'Rifle y rebozo, como siempre']] },
+    rider: { one: [['Lone Rider Photographed... Where Is Everyone?', 'El corresponsal asegura que venían más']], many: [['Riders Seen, Far Away', 'Se ruega al corresponsal acercarse un poco']] },
+    madero: [['Tiny Madero Spotted, Very Far Away', 'Se ruega al corresponsal acercarse un poco más']],
+    guard: { one: [['Guard Stands Very Still... Is This Important?', 'El soldado no se movió en toda la exposición']], many: [['Guards Guard Each Other', 'La tropa, al menos, está bien acompañada']] },
+    horse: { one: [['Horse Photographed; Rider Not Included', 'El caballo se negó a hacer declaraciones'], [`Horse Stands in ${P}... Is This Important?`, 'El animal, según testigos, no hizo nada']],
+      many: [['Many Horses Seen; Revolution Suspected', 'Los caballos se negaron a hacer declaraciones']] },
+    dog: { one: [[`Dog Spotted in ${P}... Is This Important?`, 'El perro no quiso hacer declaraciones']], many: [['Dogs Gather; Something Afoot', 'Las autoridades vigilan la situación']] },
+    person: [['Person Photographed... Is This Important?', 'El corresponsal no ha explicado por qué']],
+    crowd: [[`People Stand Around in ${P}`, 'Nadie sabe bien qué esperan, pero esperan con ánimo'], ['Crowd Gathers; Reason Unclear', 'Nuestro corresponsal promete algo más interesante mañana']],
+    empty: [[`Nothing Happens in ${P}`, 'El corresponsal envió esta fotografía sin explicación alguna']],
+    up: [['Sky Still There, Reports Correspondent', 'Se le recuerda que la noticia suele estar más abajo']],
+    down: [['Correspondent Photographs the Ground', 'El suelo, según informes, sigue en su sitio']]
+  };
 }
 function capturePhoto() {
   dustScale(PH, capCam.fov);
@@ -2784,7 +2866,27 @@ const HEAD = {
   }
 };
 const HIDDEN = ['Armed Women Ride With the Column', 'Rifle y rebozo: las soldaderas marchan junto a sus hombres'];
-const GENERIC = ['Crowds Gather at the Station', 'El corresponsal no envió más detalles'];
+// off-target photographs (the column isn't in the frame, or only its horses are) get a headline about whatever is in them
+function kind1(id, key) {
+  if (key === 'madero') return 'madero'; if (key === 'riders') return 'rider'; if (key === 'soldaderas') return 'soldadera'; if (key === 'agent') return 'agent';
+  if (key === 'clerks') return id === 'clerk' ? 'operator' : 'teacher'; if (key === 'jefe') return id === 'jefe' ? 'jefe' : 'rural';
+  return id === 'tomas' ? 'worker' : baseKind(id);
+}
+const ODD = Object.assign(oddTown('Village', 'el pueblo'), {
+  worker: { one: [['Railwayman Leans on Shovel... Is This Important?', 'La cuadrilla espera órdenes, y su raya']], many: [['Railway Gang Stands Around, Unpaid', 'Los peones aseguran que no han cobrado en dos semanas']] },
+  rural: { one: [['Rural Stands Very Still... Is This Important?', 'El guardia no se movió en toda la exposición'], ['Guard Guards Telegraph Office', 'Los rurales aseguran que todo está en orden']],
+    many: [['Rurales on Duty, Mostly Standing', 'La autoridad vigila; qué vigila, no lo sabe nadie']] },
+  jefe: [['Jefe Político Stands Importantly', 'El funcionario que sirvió a Díaz sirve ahora a quien llegue']],
+  operator: [['Telegraph Operator Refuses Comment', 'Los empleados esperan órdenes de la capital del Estado']],
+  teacher: [['Schoolteacher Spotted Outside School', 'Los niños, se informa, aprovecharon para escaparse']],
+  agent: [['American Railway Agent Checks Watch', 'El tren, como siempre, viene retrasado']],
+  shopkeeper: { one: [['Spanish Grocer Stands in Doorway... Again', 'El comerciante informa que la tienda sigue abierta']], many: [['Merchants Guard Their Doorways', 'Se teme por el precio del frijol']] },
+  hacendado: { one: [['Wealthy Man Wears Hat; Village Notices', 'El hacendado posó con gusto, aunque nadie se lo pidió']], many: [['The Rich Watch From the Balcony', 'La familia del hacendado observa el pueblo desde el hotel']] },
+  empty: [['Nothing Happens in Village', 'El corresponsal envió esta fotografía sin explicación alguna'], ['Building Stands in Village... Is This Important?', 'El edificio, de adobe, no ha cambiado desde ayer']],
+  up: [['Sky Over Chihuahua Still There', 'Se recuerda al corresponsal que el Presidente viene por tierra']],
+  down: [['Correspondent Photographs Chihuahua Dirt', 'La tierra del Norte, según informes, sigue en su sitio']]
+});
+const EVENT = ['madero', 'riders', 'soldaderas'];
 const SLANT = { imparcial: 'political', pais: 'human', hogar: 'heroic' };
 const MAST = { imparcial: 'El Imparcial', pais: 'El País', hogar: 'Diario del Hogar' };
 const PAPER_META = {
@@ -2793,8 +2895,11 @@ const PAPER_META = {
   hogar: { cls: 'm-hogar', motto: 'Periódico de las Familias', vol: 'Año XXX', num: 'Número 9,117', price: ['Precio', '3', 'Centavos'] }
 };
 function pickHeadline(score, paper) {
-  if (score.tagged < 0.03) return { story: GENERIC, angle: 'none' };
   const s = score.subjects, tot = Object.values(s).reduce((a, b) => a + b.score, 0);
+  const ev = EVENT.reduce((a, k) => a + (s[k] ? s[k].score : 0), 0), evShare = EVENT.reduce((a, k) => a + (s[k] ? s[k].share : 0), 0);
+  if (score.tagged < 0.03 || ev < tot * .3 || evShare < .01) return { story: oddHeadline(score, ODD), angle: 'odd' };
+  const K = score.kinds || {}, ktot = Object.values(K).reduce((a, b) => a + b.score, 0);
+  if (K.horse && K.horse.score > ktot * .85) return { story: oddHeadline(score, ODD, 'horse', K.horse.n > 1), angle: 'odd' };
   const r = s.riders, w = s.soldaderas;
   if (r && w && r.share > .01 && w.share > .01 && r.score / tot > .12 && w.score / tot > .12) return { story: HIDDEN, angle: 'hidden' };
   const ang = { heroic: 0, human: 0, political: 0 };
