@@ -389,6 +389,7 @@ function CasHorses(THREE, deps) {
   // joints kept at the sheet's ratios (knee ~0.65, hock ~0.7, fetlock ~0.2 of belly height), cannons and pasterns slimmer
   const LIFT = .07, KF_ = (1.12 + LIFT) / 1.12, KH_ = (1.18 + LIFT) / 1.18;
   let LEGK = 1;
+  const HSHIFT = -.05; // hind legs set back under the point of the buttock (measured on the rigged reference horse)
   function warp(p) { if (LEGSHIFT != null) { p.x += LEGSHIFT; p.y *= LEGK; } else { p.x = warpX(p.x); p.y += LIFT; } return p; }
   // ---------- skeleton (rest positions in horse space) ----------
   const B = {}, BN = [], BP = [], BPOS = [];
@@ -410,7 +411,7 @@ function CasHorses(THREE, deps) {
   LEGS.forEach(([n, P, z]) => { const par = n[1] === 'F' ? 'front' : 'hind'; ['u', 'm', 'c', 'p'].forEach((s, i) => bone(n + s, i ? n + 'umcp'[i - 1] : par, P[i][0], P[i][1], z)); });
   bone('stL', 'body', .03, 1.36, .28);
   bone('stR', 'body', .03, 1.36, -.28);
-  BN.forEach((n, i) => { const leg = /^[LR][FH][umcp]$/.test(n); if (leg) { const r = n[1] === 'F' ? FL[0][0] : HL[0][0]; BPOS[i].x += warpX(r) - r; BPOS[i].y *= n[1] === 'F' ? KF_ : KH_; } else if (i > 0) { BPOS[i].x = warpX(BPOS[i].x); BPOS[i].y += LIFT; } });
+  BN.forEach((n, i) => { const leg = /^[LR][FH][umcp]$/.test(n); if (leg) { const r = n[1] === 'F' ? FL[0][0] : HL[0][0]; BPOS[i].x += warpX(r) - r + (n[1] === 'F' ? 0 : HSHIFT); BPOS[i].y *= n[1] === 'F' ? KF_ : KH_; } else if (i > 0) { BPOS[i].x = warpX(BPOS[i].x); BPOS[i].y += LIFT; } });
   const restAbs = P => P.slice(0, 4).map((p, i) => Math.atan2(P[i + 1][0] - p[0], p[1] - P[i + 1][1]) / DEG);
   const SEGL = P => P.slice(0, 4).map((p, i) => Math.hypot(P[i + 1][0] - p[0], P[i + 1][1] - p[1]));
   const FLs = FL.map(([x, y]) => [x, y * KF_]), HLs = HL.map(([x, y]) => [x, y * KH_]);
@@ -636,8 +637,8 @@ function CasHorses(THREE, deps) {
     const G = new Geo(), R = rng(opts.seed || 1);
     const NB = hi ? 18 : 8, NL = hi ? 9 : 5;
     // body
-    const BODY = [[-1.08, 1.33, 1.22, .06], [-1.05, 1.41, 1.11, .15], [-.99, 1.46, 1.0, .23], [-.9, 1.475, .91, .28], [-.76, 1.48, .85, .3], [-.54, 1.47, .86, .31], [-.34, 1.44, .84, .31],
-      [-.12, 1.42, .78, .33], [.1, 1.42, .75, .335], [.3, 1.47, .74, .32], [.5, 1.52, .78, .28], [.66, 1.42, .84, .23], [.78, 1.22, .86, .17], [.84, 1.06, .92, .07]].map(([x, t, b, w]) => [x, (t + b) / 2, (t - b) / 2, w]);
+    const BODY = [[-1.07, 1.33, 1.22, .05], [-1.04, 1.41, 1.11, .12], [-.98, 1.46, 1.0, .18], [-.9, 1.475, .91, .22], [-.76, 1.48, .85, .245], [-.54, 1.47, .86, .26], [-.34, 1.44, .84, .27],
+      [-.12, 1.42, .78, .29], [.1, 1.42, .75, .3], [.3, 1.47, .74, .29], [.5, 1.52, .78, .26], [.66, 1.42, .84, .22], [.78, 1.22, .86, .16], [.84, 1.06, .92, .07]].map(([x, t, b, w]) => [x, (t + b) / 2, (t - b) / 2, w]);
     const body = new Surface(BODY.map(([x, y, d, w]) => ({ c: V(x, y, 0), d, w })), {
       p: 2.25, zf: (ct) => 1 - .2 * Math.max(0, ct) * Math.max(0, ct),
       bones: s => { const x = body.at(s).c.x; return [B.hind, B.front, sstep(-.4, .35, x)]; }
@@ -651,7 +652,7 @@ function CasHorses(THREE, deps) {
     };
     patch(G, bS, body, ringT(NB), 0, p => coatColor(K, p, 'body'), { skin: bodySkin, closed: true, cap0: true, cap1: true, capOut: .02, uvA: p => p.x * 1.2, uvB: (p, s, th) => th * .35 });
     // neck
-    const NECK = [[.44, 1.2, .3, .24, 0], [.6, 1.38, .26, .2, 0], [.72, 1.52, .215, .165, 0], [.83, 1.645, .185, .14, 0], [.93, 1.755, .16, .12, -.005], [1.0, 1.845, .14, .105, -.01], [1.045, 1.905, .12, .095, -.01]];
+    const NECK = [[.44, 1.2, .3, .22, 0], [.6, 1.38, .26, .175, 0], [.72, 1.52, .215, .145, 0], [.83, 1.645, .185, .125, 0], [.93, 1.755, .16, .12, -.005], [1.0, 1.845, .14, .105, -.01], [1.045, 1.905, .12, .095, -.01]];
     const neck = new Surface(NECK.map(([x, y, d, w, o]) => ({ c: V(x, y, 0), d, w, o })), { p: 2.15, bones: bonesSeg([[0, B.front], [1.2, B.neck1], [3, B.neck2], [5.2, B.head]]) });
     patch(G, range(0, NECK.length - 1, hi ? 12 : 5), neck, ringT(hi ? 14 : 7), 0, p => coatColor(K, p, 'neck'), { closed: true, uvA: p => p.y * 1.2, uvB: (p, s, th) => th * .3 });
     // head along an axis 52 degrees below horizontal from the poll
@@ -697,25 +698,25 @@ function CasHorses(THREE, deps) {
     // tail: dock plus long hair, three bones
     {
       const TP = [[-1.0, 1.31, .05, .045], [-1.06, 1.24, .065, .05], [-1.1, 1.12, .085, .055], [-1.13, .98, .1, .06], [-1.145, .82, .11, .06], [-1.14, .66, .1, .055], [-1.13, .54, .07, .04], [-1.12, .47, .02, .015]];
-      const tl = new Surface(TP.map(([x, y, d, w]) => ({ c: V(x, y, 0), d, w })), { bones: bonesSeg([[0, B.tail0], [2, B.tail1], [4.5, B.tail2]]) });
+      const tl = new Surface(TP.map(([x, y, d, w]) => ({ c: V(x, y, 0), d: d * .78, w: w * .8 })), { bones: bonesSeg([[0, B.tail0], [2, B.tail1], [4.5, B.tail2]]) });
       patch(G, range(0, TP.length - 1, hi ? 10 : 6), tl, ringT(hi ? 8 : 6), 0, (p, s) => coatColor(K, p, 'tail', { k: s / 7 }), { closed: true, cap0: true, cap1: true, uvA: (p, s, th) => th * .5, uvB: p => p.y * 2 });
     }
     // legs
     LEGS.forEach(([n, P, z], li) => {
       const front = n[1] === 'F', bu = B[n + 'u'], bm = B[n + 'm'], bc = B[n + 'c'], bp = B[n + 'p'];
       const sock = (K.socks || [0, 0, 0, 0])[li];
-      LEGSHIFT = warpX(P[0][0]) - P[0][0]; LEGK = front ? KF_ : KH_;
+      LEGSHIFT = warpX(P[0][0]) - P[0][0] + (front ? 0 : HSHIFT); LEGK = front ? KF_ : KH_;
       // [point, depth, width, bones, offset along limb normal]
       const RG = front ? [
         [[.62, 1.16], .17, .13, [bu, bu, 0]], [[.54, 1.0], .16, .125, [bu, bu, 0]], [[.47, .86], .12, .1, [bu, bm, .55]], [[.474, .74], .092, .082, [bm, bm, 0]],
         [[.482, .6], .066, .058, [bm, bm, 0]], [[.49, .48], .06, .06, [bm, bc, .5]], [[.49, .4], .046, .044, [bc, bc, 0]], [[.49, .26], .044, .04, [bc, bc, 0]],
         [[.49, .17], .056, .05, [bc, bp, .5]], [[.51, .11], .042, .042, [bp, bp, 0]], [[.535, .062], .05, .05, [bp, bp, 0], 'hoof'], [[.555, .005], .065, .062, [bp, bp, 0], 'hoof']
       ] : [
-        [[-.63, 1.2], .28, .16, [bu, bu, 0]], [[-.55, 1.04], .26, .155, [bu, bu, 0]], [[-.45, .9], .17, .125, [bu, bm, .5]], [[-.53, .78], .115, .092, [bm, bm, 0]],
-        [[-.63, .64], .07, .058, [bm, bm, 0]], [[-.72, .54], .07, .055, [bm, bc, .5], 'hock'], [[-.715, .44], .048, .042, [bc, bc, 0]], [[-.7, .28], .044, .04, [bc, bc, 0]],
+        [[-.63, 1.2], .28, .16, [bu, bu, 0]], [[-.55, 1.04], .26, .155, [bu, bu, 0]], [[-.45, .9], .2, .14, [bu, bm, .5]], [[-.53, .78], .14, .105, [bm, bm, 0]],
+        [[-.63, .64], .085, .066, [bm, bm, 0]], [[-.72, .54], .07, .055, [bm, bc, .5], 'hock'], [[-.715, .44], .048, .042, [bc, bc, 0]], [[-.7, .28], .044, .04, [bc, bc, 0]],
         [[-.69, .17], .055, .05, [bc, bp, .5]], [[-.665, .11], .042, .042, [bp, bp, 0]], [[-.64, .062], .05, .05, [bp, bp, 0], 'hoof'], [[-.62, .005], .063, .06, [bp, bp, 0], 'hoof']
       ];
-      const SLIM = [1, 1, .92, .84, .8, .78, .76, .76, .78, .78, .9, .9];
+      const SLIM = front ? [1, 1, .98, .95, .86, .8, .78, .78, .8, .8, .9, .9] : [1, 1, 1, .95, .88, .84, .8, .8, .8, .8, .9, .9];
       const rings = RG.map(([q, d, w, bw, tag], i) => ({ c: V(q[0], q[1], z), d: d * SLIM[i], w: w * SLIM[i], bw, tag, o: tag === 'hock' ? -.012 : 0 }));
       // limb normal: rotate the tangent so th = 0 faces forward
       const sv = new Surface(rings, { side: Z, bones: s => { const i = Math.round(s); return rings[clamp(i, 0, rings.length - 1)].bw; }, uFix: r => { const u = new THREE.Vector3(-r.t.y, r.t.x, 0); return u.y > 0 && Math.abs(u.x) < .3 ? u.negate() : (u.x < 0 ? u.negate() : u); } });
@@ -988,7 +989,7 @@ function CasHorses(THREE, deps) {
   });
   function pickGait(speed) { return speed < .05 ? 'stand' : speed < 2.2 ? 'walk' : speed < 4.4 ? 'trot' : speed < 8.5 ? 'canter' : 'gallop'; }
   const HB0 = BPOS[B.hind].clone().sub(BPOS[B.body]), FB0 = BPOS[B.front].clone().sub(BPOS[B.body]);
-  const SY = 1.12 * KF_, HY = 1.18 * KH_, SX = warpX(.6), HX = warpX(-.6), BY = 1.12 + LIFT;
+  const SY = 1.12 * KF_, HY = 1.18 * KH_, SX = warpX(.6), HX = warpX(-.6) + HSHIFT, BY = 1.12 + LIFT;
 
   function update(h, dt, o) {
     o = o || {};
@@ -4399,7 +4400,7 @@ $('dialog').addEventListener('click', e => { const t = e.target.closest('.term')
 addEventListener('pointerdown', e => { if (!e.target.closest || !e.target.closest('.term')) hideGloss(); });
 function say(name, text, res, alt, then) { // 'then': a single Continue that leads on to the next card
   $('dlgClose').onclick = () => { closeSay(); if (then) then(); };
-  hideGloss(); $('dlgName').textContent = name; $('dlgNote').hidden = true; fillLine($('dlgText'), text); $('dlgText').hidden = !text; $('dlgRes').textContent = res || ''; $('dlgRes').hidden = !res;
+  hideGloss(); $('dlgName').textContent = name; $('dlgNote').hidden = true; fillLine($('dlgText'), text); $('dlgText').hidden = !text; $('dlgRes').textContent = ''; $('dlgRes').hidden = true; // no direction notes: the lines carry it
   const b = $('dlgAlt'); if (alt) { b.textContent = alt[0]; b.hidden = false; dlgAltFn = alt[1]; } else { b.hidden = true; dlgAltFn = null; }
   $('dialog').hidden = false; state.busy = true; (alt ? b : $('dlgClose')).focus({ preventScroll: true });
 }
@@ -4491,6 +4492,47 @@ function updateMarks(t) {
 }
 // while talking, the camera eases round to the speaker's face and stays there until the box closes
 let talkTo = null;
+// ---------- moods while talking: a held face, small gestures from the shoulders and elbows (always outward or forward, never across the body), and a frustration mark ----------
+const MOOD = { 'Sentry, central door': 'angry', 'Guard': 'angry', 'Hacienda owner': 'angry', 'General': 'angry', 'Conscript at the gate': 'angry', 'Diplomat': 'angry',
+  'Porter': 'sad', 'Society lady': 'sad', 'Hacendado’s wife': 'smug', 'Girl': 'surprised', 'Newspaper boy': 'happy', 'Journalist': 'happy', 'Presidential aide': 'happy', 'Steward': 'smug', 'Madero': 'happy' };
+const MOOD_D = { minA: 'angry', genB: 'sad', pino: 'happy', minB: 'happy', minC: 'talk', offB: 'suspicious' };
+const moodOf = n => MOOD[n.name] || MOOD_D[n.D] || 'talk';
+const FACE = { angry: 7, sad: 6, surprised: 5, happy: 4, smug: 4, talk: -1, suspicious: -2 };
+// each gesture: offsets in radians for [shR.x, shR.z, elR.x, shL.x, shL.z, elL.x, head.x, spine.z], as a function of time
+const GEST = {
+  angry: t => { const j = Math.sin(t * 9); return [-.55 + .12 * j, -.2, -1.05 + .15 * j, -.12, .22, -.45, .05 * j, .03 * Math.sin(t * 4.5)]; },
+  sad: t => [-.08, -.06, -.3, -.08, .06, -.3, .22, .02 * Math.sin(t * 1.5)],
+  happy: t => { const w = Math.sin(t * 3); return [-.35, -.32 - .08 * w, -.55, -.35, .32 + .08 * w, -.55, -.06 + .03 * w, .03 * Math.sin(t * 2)]; },
+  surprised: t => [-.5, -.26, -1.15, -.5, .26, -1.15, -.1, 0],
+  smug: t => [-.3, -.14, -1.15 + .08 * Math.sin(t * 2), 0, .1, -.15, -.12, .015 * Math.sin(t * 1.7)],
+  talk: t => { const w = Math.sin(t * 2.6); return [-.32 + .1 * w, -.16, -.8 + .2 * Math.sin(t * 2.6 + 1), 0, .06, -.1, .04 * Math.sin(t * 5), .02 * w]; },
+  suspicious: t => [0, -.1, -.1, 0, .1, -.1, .06, 0]
+};
+const GJ = ['shR', 'shR', 'elR', 'shL', 'shL', 'elL', 'head', 'spine'], GA = ['x', 'z', 'x', 'x', 'z', 'x', 'x', 'z'];
+function veinTex() { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); g.lineCap = 'round';
+  // the cartoon cross-popping vein: four arcs, each bowing in toward the middle
+  const arcs = () => { for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { const cx = 64 + sx * 50, cy = 64 + sy * 50, a = Math.atan2(-sy, -sx); g.beginPath(); g.arc(cx, cy, 40, a - .62, a + .62); g.stroke(); } };
+  g.strokeStyle = '#3a1512'; g.lineWidth = 19; arcs(); g.strokeStyle = '#e0352b'; g.lineWidth = 10; arcs();
+  return new THREE.CanvasTexture(c); }
+const vein = new THREE.Sprite(new THREE.SpriteMaterial({ map: veinTex(), fog: false, transparent: true })); vein.visible = false; vein.renderOrder = 3; scene.add(vein);
+const gestured = new Set(); let faced = null;
+function updateMoods(dt, t) {
+  const sp = !$('dialog').hidden && talkTo && !state.posing ? talkTo : null;
+  if (sp && !sp.path && !sp.seated) gestured.add(sp);
+  vein.visible = false;
+  if (faced && faced !== sp) { faced.P.nextLook = 1 + Math.random() * 2; faced = null; }
+  if (sp) { const m = moodOf(sp), f = FACE[m]; faced = sp; sp.P.talking = false; sp.P.nextLook = 1e9; sp.P.lx = f >= 0 ? f : f === -2 ? (Math.sin(t * 1.4) > 0 ? 1 : 2) : (Math.floor(t * 1.3) % 2 ? 4 : 0); }
+  for (const n of gestured) {
+    const J = n.P.J, on = n === sp; n.gw = Math.max(0, Math.min(1, (n.gw || 0) + (on ? dt : -dt) * 4));
+    if (!n.gb) n.gb = GJ.map((k, i) => J[k] ? J[k].rotation[GA[i]] : 0);
+    const m = moodOf(n), off = GEST[m](t + (n.ph || 0));
+    GJ.forEach((k, i) => { if (J[k]) J[k].rotation[GA[i]] = n.gb[i] + off[i] * n.gw; });
+    if (on) {
+      if (m === 'angry') { const p = n.P.root.position, s = .3 + .05 * Math.abs(Math.sin(t * 6)), a = n.P.root.rotation.y + Math.PI / 2; if (n.top === undefined) { n.P.root.updateMatrixWorld(true); n.top = new THREE.Box3().setFromObject(n.P.hi).max.y - p.y; }
+        const o = Math.max(.45, n.P.r + .12); vein.position.set(p.x + Math.sin(a) * o, p.y + n.top + .06, p.z + Math.cos(a) * o); vein.scale.set(s, s, 1); vein.visible = true; } }
+    if (!on && n.gw === 0) gestured.delete(n);
+  }
+}
 function updateTalkLook(dt) {
   if ($('dialog').hidden) { talkTo = null; return; } if (!talkTo || state.posing) return;
   const p = talkTo.P.root.position, dx = p.x - player.x, dz = p.z - player.z, d = Math.max(.3, Math.hypot(dx, dz));
@@ -4655,7 +4697,7 @@ function frame(now) {
   drawWatch();
   updateRaise(dt);
   FP.pose(raise.t, dt, moving, t);
-  updateTalkLook(dt); updateMarks(t);
+  updateTalkLook(dt); updateMarks(t); updateMoods(dt, t);
   placeCamera();
   crowd.update(camera, dt);
   for (const n of npcs) if (n.seated && n.P.lvl > 0) { n.P.hi.visible = true; n.P.mid.visible = false; } // a seated pose only exists on the near model
