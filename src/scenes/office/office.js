@@ -488,15 +488,15 @@ function say(i) {
 function revealAll() { TALK.spans.forEach(s => s.classList.remove('h')); $('talkText').querySelectorAll('.term').forEach(e => e.classList.remove('h')); TALK.shown = TALK.total; finishLine(); }
 function finishLine() { if (TALK.done) return; TALK.done = true; FACE.talk = 0; if (TALK.then === 'slam') { slamAt = clock + .05; } }
 function advance() {
-  if (TALK.ending || TALK.i < 0) return;
+  if (TALK.ending) { const g = document.querySelector('.cas-go.on'); if (g) g.click(); return; }
+  if (TALK.i < 0) return;
   if (!TALK.done) { revealAll(); return; }
   if (TALK.i + 1 < BEATS.length) { hideGloss(); say(TALK.i + 1); return; }
   // the last line: he keeps shooing you out while the room fades, then on to the palace
-  TALK.ending = true; hideGloss(); $('talk').hidden = true; $('fade').className = 'in';
-  setTimeout(() => {
-    if (window.CasasolaShell && window.CasasolaShell.inShell) window.CasasolaShell.next(NEXT);
-    else location.href = NEXT + location.search.replace(/[?&](beat|shot)=[^&]*/g, '').replace(/^&/, '?');
-  }, 1300);
+  // he keeps shooing; a big button takes you out, and the room fades before the palace loads
+  TALK.ending = true; hideGloss(); $('talk').hidden = true;
+  const go = window.CasasolaShell.goButton('Go to the National Palace', NEXT, { fixed: true, before: on => { go.classList.remove('on'); $('fade').className = 'in'; setTimeout(on, 1100); } });
+  document.body.appendChild(go); requestAnimationFrame(() => { go.classList.add('on'); go.focus({ preventScroll: true }); });
 }
 $('bNext').addEventListener('click', e => { e.stopPropagation(); advance(); });
 $('talk').addEventListener('click', e => { if (e.target.closest('.term')) return; advance(); });

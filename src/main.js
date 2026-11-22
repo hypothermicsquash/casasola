@@ -41,15 +41,12 @@ async function boot() {
     S.onShown(() => { const b = document.getElementById('bStart'); if (b) b.click(); });
   }
 }
-// after scene 1's newspaper, a second button beside Play again leads on to the publisher's office, which leads to the palace
+// after scene 1's newspaper, a big button above Play again takes you on to the publisher's office
 function nextScene(href) {
-  const again = document.getElementById('bAgain'); if (!again) return;
-  const b = again.cloneNode(false); b.id = 'bNext'; b.textContent = 'Next scene'; b.style.marginLeft = '10px'; b.style.transition = 'opacity .4s'; b.style.opacity = 0; b.style.pointerEvents = 'none';
-  b.onclick = () => {
-    if (window.CasasolaShell) window.CasasolaShell.next(href);
-    else location.href = href + location.search.replace(/[?&]scene=[^&]*/, '');
-  };
-  again.after(b);
-  new MutationObserver(() => { const on = again.classList.contains('show'); b.classList.toggle('show', on); b.style.opacity = on ? 1 : 0; b.style.pointerEvents = on ? '' : 'none'; }).observe(again, { attributes: true, attributeFilter: ['class'] });
+  const again = document.getElementById('bAgain'); if (!again || !window.CasasolaShell) return;
+  const b = window.CasasolaShell.goButton('Talk to the publisher', href); b.id = 'bNext';
+  again.before(b);
+  new MutationObserver(() => { const on = again.classList.contains('show'); if (on && !b.classList.contains('on')) { b.classList.add('on'); b.focus({ preventScroll: true }); } else if (!on) b.classList.remove('on'); })
+    .observe(again, { attributes: true, attributeFilter: ['class'] });
 }
 boot().catch(e => console.error('boot failed', e));
