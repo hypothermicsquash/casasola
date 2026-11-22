@@ -32,13 +32,24 @@ async function boot() {
   requestAnimationFrame(tick);
   window.__zones = zm;
   if (id === 'scene1') nextScene('office.html');
+  const S = window.CasasolaShell;
+  if (S && S.inShell) {
+    // inside the game shell: the title card is the shell's, so go straight into the opening pages once the town has
+    // warmed its shaders behind the loading screen (scene 1 draws the street for 2.5 s after load for exactly that)
+    const again = document.getElementById('bAgain'); if (again) again.onclick = () => S.next('scene1.html');
+    setTimeout(() => { S.ready(); }, 2600);
+    S.onShown(() => { const b = document.getElementById('bStart'); if (b) b.click(); });
+  }
 }
 // after scene 1's newspaper, a second button beside Play again leads on to the publisher's office, which leads to the palace
 function nextScene(href) {
   const again = document.getElementById('bAgain'); if (!again) return;
-  const b = again.cloneNode(false); b.id = 'bNext'; b.textContent = 'Next scene'; b.style.marginLeft = '10px';
-  b.onclick = () => { location.href = href + location.search.replace(/[?&]scene=[^&]*/, ''); };
+  const b = again.cloneNode(false); b.id = 'bNext'; b.textContent = 'Next scene'; b.style.marginLeft = '10px'; b.style.transition = 'opacity .4s'; b.style.opacity = 0; b.style.pointerEvents = 'none';
+  b.onclick = () => {
+    if (window.CasasolaShell) window.CasasolaShell.next(href);
+    else location.href = href + location.search.replace(/[?&]scene=[^&]*/, '');
+  };
   again.after(b);
-  new MutationObserver(() => b.classList.toggle('show', again.classList.contains('show'))).observe(again, { attributes: true, attributeFilter: ['class'] });
+  new MutationObserver(() => { const on = again.classList.contains('show'); b.classList.toggle('show', on); b.style.opacity = on ? 1 : 0; b.style.pointerEvents = on ? '' : 'none'; }).observe(again, { attributes: true, attributeFilter: ['class'] });
 }
 boot().catch(e => console.error('boot failed', e));

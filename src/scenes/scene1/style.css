@@ -3,7 +3,7 @@
    Textures are set as CSS variables by the script (paper scans, leather, kraft, wood). */
 :root {
   --ink: #24180f;
-  --paperC: #e7d8b6;
+  --paperC: #ebe2cf;
   --terracotta: #a9482a;
   --ochre: #c8873a;
   --soot: #1d140d;
@@ -17,7 +17,7 @@ html, body { height: 100%; }
 body { margin: 0; background: #24180f var(--leather, none) center / 380px; color: var(--ink); font-family: var(--fell); overflow: hidden; -webkit-user-select: none; user-select: none; }
 #game { position: fixed; inset: 0; overflow: hidden; }
 #game > canvas.gl { display: block; width: 100%; height: 100%; touch-action: none; }
-#game.mono > canvas.gl { filter: grayscale(1) sepia(.32) contrast(1.18) brightness(.97); }
+#game.mono > canvas.gl { filter: grayscale(1) contrast(1.18) brightness(.97); }
 #game.hot > canvas.gl { cursor: pointer; }
 .vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 58%, rgba(40,30,60,.32) 100%); }
 
@@ -37,8 +37,8 @@ body { margin: 0; background: #24180f var(--leather, none) center / 380px; color
 @media (max-width: 600px) { #watch { width: 120px; height: 150px; } #plates { width: 168px; height: 64px; } }
 
 .tag { position: absolute; font-family: var(--fellsc); font-size: 19px; letter-spacing: .03em; color: var(--ink); padding: 7px 14px 8px;
-  background: #e2d1a8 var(--paper2, none) center / 300px; background-blend-mode: multiply;
-  box-shadow: inset 0 0 0 1.5px rgba(36,24,15,.8), inset 0 0 12px rgba(120,80,30,.35), 3px 4px 0 rgba(40,45,90,.35);
+  background: #e6dcc8 var(--paper2, none) center / 300px; background-blend-mode: multiply;
+  box-shadow: inset 0 0 0 1.5px rgba(36,24,15,.8), inset 0 0 12px rgba(105,85,60,.22), 3px 4px 0 rgba(40,45,90,.35);
   clip-path: polygon(0 3%, 6% 0, 52% 2%, 100% 0, 99% 55%, 100% 100%, 48% 98%, 2% 100%, 0 50%); }
 .tag kbd { font-family: var(--fellsc); display: inline-block; min-width: 1.1em; text-align: center; padding: 0 5px; margin-right: 8px; border: 1.5px solid rgba(36,24,15,.85); background: rgba(255,250,235,.35); }
 #prompt { left: 50%; bottom: calc(118px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 6px); white-space: nowrap; opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; cursor: pointer; }
@@ -46,8 +46,8 @@ body { margin: 0; background: #24180f var(--leather, none) center / 380px; color
 
 /* buttons: paper labels, square, inked edge, a hard little shadow that leans blue like the painting's */
 .btn { font-family: var(--fellsc); font-size: 19px; letter-spacing: .03em; color: var(--ink); cursor: pointer; touch-action: manipulation; border: 0; border-radius: 0; padding: 9px 18px 10px;
-  background: #e4d3aa var(--paper2, none) center / 300px; background-blend-mode: multiply;
-  box-shadow: inset 0 0 0 1.5px rgba(36,24,15,.85), inset 0 0 14px rgba(120,80,30,.32), 3px 4px 0 rgba(40,45,90,.42);
+  background: #e8dfcb var(--paper2, none) center / 300px; background-blend-mode: multiply;
+  box-shadow: inset 0 0 0 1.5px rgba(36,24,15,.85), inset 0 0 14px rgba(105,85,60,.2), 3px 4px 0 rgba(40,45,90,.42);
   clip-path: polygon(0 2%, 30% 0, 70% 2%, 100% 0, 100% 97%, 64% 100%, 22% 98%, 0 100%); transition: transform .08s, filter .15s; }
 .btn:hover { filter: brightness(1.07) saturate(1.1); transform: translateY(-1px); }
 .btn:active { transform: translateY(2px); }
@@ -68,7 +68,7 @@ body { margin: 0; background: #24180f var(--leather, none) center / 380px; color
 #doneBar { position: absolute; left: 0; right: 0; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); margin: 0 auto; width: min(920px, calc(100% - 32px)); box-sizing: border-box; z-index: 2;
   display: flex; align-items: center; justify-content: space-between; gap: 18px 24px; flex-wrap: wrap; padding: 22px 24px 22px 34px;
   background: #e8d8b0 var(--paper2, none) center / 340px; background-blend-mode: multiply;
-  box-shadow: inset 0 0 0 2px rgba(36,24,15,.85), inset 0 0 22px rgba(120,80,30,.4), 5px 7px 0 rgba(40,45,90,.45);
+  box-shadow: inset 0 0 0 2px rgba(36,24,15,.85), inset 0 0 22px rgba(105,85,60,.26), 5px 7px 0 rgba(40,45,90,.45);
   clip-path: polygon(0 4%, 18% 0, 55% 3%, 100% 0, 99.4% 50%, 100% 100%, 62% 97%, 20% 100%, 0 96%, .5% 48%);
   transform: translateY(160%); transition: transform .55s cubic-bezier(.2,1.25,.4,1); pointer-events: none; }
 #doneBar.show { transform: none; pointer-events: auto; }
@@ -96,8 +96,8 @@ body { margin: 0; background: #24180f var(--leather, none) center / 380px; color
 @keyframes teach { 50% { filter: drop-shadow(0 0 7px #e0a526) drop-shadow(0 0 2px #e0a526); } }
 
 /* paper cards: the dialog and the title */
-.card { position: relative; color: var(--ink); background: #e9dbb8 var(--paper, none) center / cover; background-blend-mode: multiply; padding: 22px 26px 24px;
-  box-shadow: inset 0 0 0 2px rgba(36,24,15,.8), inset 0 0 0 7px rgba(233,219,184,.0), inset 0 0 40px rgba(120,80,30,.4), 6px 8px 0 rgba(30,30,70,.45), 0 20px 40px rgba(0,0,0,.4); }
+.card { position: relative; color: var(--ink); background: #ece3d0 var(--paper, none) center / cover; background-blend-mode: multiply; padding: 22px 26px 24px;
+  box-shadow: inset 0 0 0 2px rgba(36,24,15,.8), inset 0 0 0 7px rgba(233,219,184,.0), inset 0 0 40px rgba(105,85,60,.26), 6px 8px 0 rgba(30,30,70,.45), 0 20px 40px rgba(0,0,0,.4); }
 .card::after { content: ""; position: absolute; inset: 7px; border: 1px solid rgba(36,24,15,.55); pointer-events: none; }
 #dialog { position: fixed; left: 50%; bottom: calc(110px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); width: min(560px, calc(100vw - 32px)); box-sizing: border-box; z-index: 4; }
 #dialog h3 { margin: 0 0 6px; font-family: var(--fellsc); font-weight: 400; font-size: 22px; color: #7d2f18; }
