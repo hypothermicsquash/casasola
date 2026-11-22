@@ -2504,11 +2504,11 @@ $('dlgClose').onclick = () => { if (CONVO.wait) { const r = CONVO.wait; CONVO.wa
 
 // ---------- the townspeople talk: conversations with choices, and speech bubbles when you walk near ----------
 // A choice with `note` instead of lines has no answer written yet.
-const OBJECTIVE = 'Explore the village and photograph scenes that reveal how the Mexican Revolution affected everyday life.';
+const OBJECTIVE = 'Photograph Madero’s arrival on the railroad tracks.'; // the user's words; Miguel gives it as he sends you out
 // Every line is the user's: English, with words from the user's own Spanish translation kept in (2026-11-22). T(spanish, english) is a gloss.
 const TALKS = {
   opening: {
-    people: { old: CAST.of(oldSpot), young: CAST.of(youngSpot) }, objective: OBJECTIVE,
+    people: { old: CAST.of(oldSpot), young: CAST.of(youngSpot) },
     intro: [
       { who: 'old', name: 'Older villager', say: [T('Un año', 'One year'), '. Today, November 20, 1911, it’s been a year since the struggle against Díaz began. ', T('¿Y ahora?', 'And now?'), ' They say President Madero is going to pass through ', T('nuestro pueblo', 'our village'), '.'] },
       { who: 'young', name: 'Young villager', say: [T('¡Democracia!', 'Democracy!'), ' ', T('Por fin', 'Finally'), ', a president who talks about it. So many years under Díaz… ', T('a lo mejor', 'maybe'), ' now things will change.'] },
@@ -2639,7 +2639,7 @@ function updateTalk() {
     }
     if (show !== V.on) { V.on = show; V.el.classList.toggle('show', show); V.P.setTalking(show); }
   }
-  const o = $('objective'); if (!o.hidden) o.classList.toggle('away', !street || state.raised || raise.t > 0);
+  const o = $('objective'); if (!o.hidden) o.classList.toggle('away', !(street || (state.room && ROOM.open && !player.vantage)) || state.raised || raise.t > 0);
 }
 // ---------- talk marks, the same as the palace: a bobbing white "!" over everyone you can talk to, a turning gold star over the ones the scene needs ----------
 function markTex(kind) { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); g.lineJoin = 'round'; g.strokeStyle = '#2b2724'; g.lineWidth = 10;
@@ -3954,7 +3954,7 @@ const ROOM = (() => {
     if (!b) { state.busy = false; R.face = false; R.talking = false; return; }
     if (b.then === 'give') await R.give();
     if (b.then === 'practice') { state.busy = false; R.face = false; R.talking = false; R.step = 'raise'; R.stepT = 0; return; }
-    if (b.then === 'open') { R.open = true; R.talked = true; R.beat = -1; state.busy = false; R.face = false; R.talking = false; return; }
+    if (b.then === 'open') { R.open = true; R.talked = true; R.beat = -1; state.busy = false; R.face = false; R.talking = false; if (!state.objective) showObjective(OBJECTIVE); return; }
     R.beat++; await sleep(140); say(MIGUEL_LINES[R.beat]);
   };
   R.give = async () => {

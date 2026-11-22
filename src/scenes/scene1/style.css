@@ -142,6 +142,8 @@ body { margin: 0; background: #24180f var(--leather, none) center / 380px; color
 #objective b { display: none; font-family: var(--fellsc); font-weight: 400; font-size: 21px; color: #8a2e1c; margin-bottom: 4px; }
 #objective.fresh { left: 50%; top: 24%; transform: translateX(-50%); max-width: min(520px, calc(100vw - 32px)); font-size: 19px; text-align: center; }
 #objective.fresh b { display: block; }
+#objective .ol { font-style: normal; font-weight: 600; color: #8a2e1c; }
+#objective.fresh .ol { display: none; }
 #objective.away { opacity: 0; }
 @media (max-width: 600px) { #objective { top: calc(78px + env(safe-area-inset-top, 0px)); max-width: 200px; font-size: 13px; } }
 
