@@ -31,9 +31,9 @@ async function boot() {
   }
   requestAnimationFrame(tick);
   window.__zones = zm;
-  if (id === 'scene1') nextScene('scene2.html');
+  if (id === 'scene1') nextScene('office.html');
 }
-// after scene 1's newspaper, a second button beside Play again leads on to the palace (its own page)
+// after scene 1's newspaper, a second button beside Play again leads on to the publisher's office, which leads to the palace
 function nextScene(href) {
   const again = document.getElementById('bAgain'); if (!again) return;
   const b = again.cloneNode(false); b.id = 'bNext'; b.textContent = 'Next scene'; b.style.marginLeft = '10px';
