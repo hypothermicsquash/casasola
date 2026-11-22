@@ -32,9 +32,9 @@ body { background: #0d0907; color: var(--ink); font-family: var(--fell); overflo
 .btn kbd { font-family: var(--fellsc); font-size: 14px; opacity: .65; margin-left: 8px; }
 @media (hover: none) { .kbd-only { display: none; } }
 
-#talk { position: fixed; z-index: 4; left: 50%; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); width: min(1000px, calc(100vw - 32px)); box-sizing: border-box; cursor: pointer; padding: 14px 22px 16px; }
+#talk { position: fixed; z-index: 4; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); width: min(1000px, calc(100vw - 32px)); box-sizing: border-box; cursor: pointer; padding: 14px 22px 16px; }
 /* the dialogue box: a plain box, near-white with a dark rule, no paper texture or tint (user, 2026-11-22) */
-#talk.card { background: #f2f0eb; box-shadow: 0 0 0 2px #2b2724, 0 8px 22px rgba(0,0,0,.5); }
+#talk.card { background: rgba(242,240,235,.88); box-shadow: 0 0 0 2px #2b2724, 0 8px 22px rgba(0,0,0,.35); }   /* slightly see-through (user, 2026-11-22) */
 #talk.card::after { display: none; }
 #talk .btn.primary { background: #2b2724; color: #f2f0eb; box-shadow: none; }
 #talk h3 { color: #8a2e1c; }
