@@ -4295,7 +4295,8 @@ function updateMarks(t) {
   MARKS.forEach((m, i) => { const e = near[i]; if (!e) { m.visible = false; return; } const n = e[1], star = isEssential(n), p = n.P.root.position;
     if (m.material !== (star ? MARK_MAT.star : MARK_MAT.bang)) m.material = star ? MARK_MAT.star : MARK_MAT.bang;
     const h = star ? .7 : .55, ph = (n.x * 3.1 + n.z * 1.7) % 6.28; m.scale.set(star ? h * Math.abs(Math.cos(t * .6 + ph)) + .04 : h, h, 1);
-    m.position.set(p.x, p.y + (n.H || 1.7) + .3 + h / 2 + Math.sin(t * 2.2 + ph) * .06, p.z); m.visible = true; });
+    if (n.top === undefined) { n.P.root.updateMatrixWorld(true); n.top = new THREE.Box3().setFromObject(n.P.hi).max.y - p.y; } // the real top, hat and hair included
+    m.position.set(p.x, p.y + n.top + .22 + h / 2 + Math.sin(t * 2.2 + ph) * .06, p.z); m.visible = true; });
 }
 // while talking, the camera eases round to the speaker's face and stays there until the box closes
 let talkTo = null;
