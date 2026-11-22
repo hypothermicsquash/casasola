@@ -610,7 +610,7 @@ function createCrowd({ scene, renderer, spots, near = 18, mid: MIDD = 45, eyes =
     const midM = new THREE.Mesh(ds.mid.geo, ds.midMat); midM.castShadow = !!p.D.important; root.add(midM);
     const J = {}; bones.forEach(b => J[b.name] = b);
     const P = { root, D: p.D, J, i, d: p.d, hi, mid: midM, lvl: -1, lx: 0, nextLook: Math.random() * 3, nextBlink: 1 + Math.random() * 3, blink: 0, talking: false, beat: 4, nextBeat: 0, turn: 0, yaw: 0, headY: J.head ? J.head.rotation.y : 0,
-      setTalking(on) { this.talking = !!on; if (!on) { this.beat = -1; this.turn = 0; } }, r: p.D.hat === 'sombrero' || p.D.hat === 'charro' ? .42 : .22 };
+      setTalking(on) { on = !!on; if (on && !this.talking) { this.beat = 4; this.nextBeat = 0; } this.talking = on; if (!on) { this.beat = 4; this.turn = 0; } }, r: p.D.hat === 'sombrero' || p.D.hat === 'charro' ? .42 : .22 };
     root.userData.person = P; return P; });
   const m4 = new THREE.Matrix4(), wp = new THREE.Vector3(), q = new THREE.Quaternion(), one = new THREE.Vector3(1, 1, 1), sc = new THREE.Vector3();
   function update(camera, dt) {
@@ -627,7 +627,7 @@ function createCrowd({ scene, renderer, spots, near = 18, mid: MIDD = 45, eyes =
       if (p.nextBlink < 0) { p.blink = .12; p.nextBlink = 2 + Math.random() * 4; }
       if (p.blink > 0) p.blink -= dt;
       if (p.talking) { p.nextBeat -= dt; if (p.nextBeat < 0) { p.nextBeat = 1.1 + Math.random() * 1.4; p.beat = 4 + ((Math.random() * 4) | 0); p.turn = p.D.important && Math.random() < .55 ? (Math.random() - .5) * .5 : 0; } }
-      const st = p.blink > 0 ? 3 : p.talking ? p.beat : p.lx;
+      const st = p.blink > 0 ? 3 : p.talking ? Math.min(7, Math.max(4, p.beat)) : p.lx;   // clamp: a talk beat outside 4..7 would show another design's tile
       tileUV(faceTile(p.d) + st, p.hi.material.userData.off.value);
       if (p.J.head) { p.yaw += (p.turn - p.yaw) * Math.min(1, dt * 4); p.J.head.rotation.y = p.headY + p.yaw; } });
     imp.instanceMatrix.needsUpdate = true; blob.instanceMatrix.needsUpdate = true;

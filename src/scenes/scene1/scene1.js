@@ -2433,8 +2433,23 @@ function toggleRaise() {
   if (state.busy || !ROOM.hasCam) return;
   state.raised = !state.raised;
   $('bLower').hidden = !state.raised;
-  $('bulb').classList.toggle('show', state.raised && ROOM.open);
+  $('bulb').classList.toggle('show', state.raised && (ROOM.open || !!ROOM.step));
+  bulbTip();
   updatePlates();
+}
+function bulbTip() {
+  const tip = $('bulbTip'), bulb = $('bulb'), R = ROOM;
+  const practice = !R.open && (R.step === 'squeeze' || R.step === 'lower');
+  const show = state.raised && !state.busy && (practice || (R.open && !state.squeezed && state.plates > 0));
+  bulb.classList.toggle('teach', show && !(practice && R.step === 'lower'));
+  if (!show) { tip.hidden = true; return; }
+  const how = COARSE ? 'Tap the bulb' : 'Click the bulb, click inside the frame, or press <kbd>Space</kbd>';
+  let html;
+  if (practice && R.step === 'lower') html = '<b>That\'s how a photo is taken.</b> Each squeeze uses one glass plate, and you have three. Lower the camera to carry on' + (COARSE ? '.' : ' (<kbd>R</kbd>).');
+  else if (practice) html = '<b>This rubber bulb is your shutter.</b> It hangs from the camera on a cable. Squeeze it to take a photo. ' + how + '. Try it now: this one is practice and uses no plate.';
+  else html = '<b>Squeeze the bulb to take a photo.</b> ' + how + '. Each squeeze uses one of your plates.';
+  const t = $('bulbTipText'); if (t.dataset.h !== html) { t.dataset.h = html; t.innerHTML = html; }
+  tip.hidden = false;
 }
 const _dbs = new THREE.Vector2();
 function updateRaise(dt) {
@@ -2473,7 +2488,7 @@ function interact() {
     dlgPlain(); $('dlgNote').hidden = $('dlgRes').hidden = false;
     $('dlgName').textContent = a.n.name; $('dlgNote').textContent = a.n.note; $('dlgRes').textContent = a.n.res; $('dialog').hidden = false; state.busy = true;
     if (a.n.unlock) state.unlocked[a.n.unlock] = true;
-    a.n.P.setTalking(true); state.talkP = a.n.P;
+    a.n.P.setTalking(true); state.talkP = a.n.P; talkTo = a.n.P;
     if (a.n.tellsTime && !state.knowsTime) { state.knowsTime = true; chime(); }
     $('dlgClose').focus();
   } else if (a.type === 'climb') {
@@ -2486,75 +2501,87 @@ function interact() {
 $('dlgClose').onclick = () => { if (CONVO.wait) { const r = CONVO.wait; CONVO.wait = null; r(); return; } $('dialog').hidden = true; if (state.talkP) { state.talkP.setTalking(false); state.talkP = null; } if (ROOM.talking) ROOM.next(); else state.busy = false; };
 
 // ---------- the townspeople talk: conversations with choices, and speech bubbles when you walk near ----------
-// Every line is the user's. Sentence order and structure reworked at the user's request (2026-11-22); Spanish first, the English under it.
 // A choice with `note` instead of lines has no answer written yet.
 const OBJECTIVE = 'Explore the village and photograph scenes that reveal how the Mexican Revolution affected everyday life.';
+// Every line is the user's: English, with words from the user's own Spanish translation kept in (2026-11-22). T(spanish, english) is a gloss.
+const T = (t, en) => ({ t, en });
 const TALKS = {
   opening: {
-    people: { old: CAST.of(oldSpot), young: CAST.of(youngSpot) }, auto: 'old', objective: OBJECTIVE,
+    people: { old: CAST.of(oldSpot), young: CAST.of(youngSpot) }, objective: OBJECTIVE,
     intro: [
-      { who: 'old', name: 'Older villager', es: 'Un año. Hoy, 20 de noviembre de 1911, se cumple un año desde que comenzó la lucha contra Díaz. ¿Y ahora? Dicen que el presidente Madero va a pasar por nuestro pueblo.',
-        en: 'One year. Today, November 20, 1911, it’s been a year since the struggle against Díaz began. And now? They say President Madero is going to pass through our village.' },
-      { who: 'young', name: 'Young villager', es: '¡Democracia! Por fin un presidente que habla de eso. Tantos años bajo Díaz… a lo mejor ahora sí cambian las cosas.',
-        en: 'Democracy! Finally, a president who talks about it. So many years under Díaz… maybe now things will change.' },
-      { who: 'old', name: 'Older villager', es: 'Ay, muchacho, prometer es fácil. ¿Tierras para los campesinos? Todavía les hacen falta. Y las familias, trabajando por una miseria, como siempre.',
-        en: 'Promises come easy, young man. Land for the peasants? They still need it. And families keep working for next to nothing, same as ever.' },
-      { who: 'young', name: 'Young villager', es: 'Puede que tenga razón. Pero hoy hay que escuchar a la gente. Esta revolución… cada quien la ve a su manera.',
-        en: 'You may be right. But today we should listen to people. This revolution… everyone sees it their own way.' }
+      { who: 'old', name: 'Older villager', say: [T('Un año', 'One year'), '. Today, November 20, 1911, it’s been a year since the struggle against Díaz began. ', T('¿Y ahora?', 'And now?'), ' They say President Madero is going to pass through ', T('nuestro pueblo', 'our village'), '.'] },
+      { who: 'young', name: 'Young villager', say: [T('¡Democracia!', 'Democracy!'), ' ', T('Por fin', 'Finally'), ', a president who talks about it. So many years under Díaz… ', T('a lo mejor', 'maybe'), ' now things will change.'] },
+      { who: 'old', name: 'Older villager', say: [T('Ay, muchacho', 'Oh, young man'), ', promises come easy. Land for the ', T('campesinos', 'peasants; the farmers who work the land'), '? They still need it. And families keep working for ', T('una miseria', 'next to nothing'), ', same as ever.'] },
+      { who: 'young', name: 'Young villager', say: [T('Puede que tenga razón', 'You may be right'), '. But today we should listen to ', T('la gente', 'the people'), '. This revolution… everyone sees it their own way.'] }
     ],
     choices: [
-      { es: '¿Creen que Madero cambiará México?', en: 'Do you think Madero will change Mexico?',
-        reply: [{ who: 'old', name: 'Older villager', es: 'Todos lo esperamos. Pero, ¿de qué sirve la libertad si nuestras familias siguen pasando hambre?',
-          en: 'We all hope so. But what good is freedom if our families are still going hungry?' }] },
-      { es: '¿A qué hora llegará Madero?', en: 'What time will Madero arrive?', tellsTime: true,
+      { say: ['Do you think Madero will change Mexico?'],
+        reply: [{ who: 'old', name: 'Older villager', say: [T('Todos lo esperamos', 'We all hope so'), '. But what good is ', T('la libertad', 'freedom'), ' if our families are still going hungry?'] }] },
+      { say: ['What time will Madero arrive?'], tellsTime: true,
         reply: [{ who: 'old', name: 'Older villager', note: '[Dialogue to be written. Says when Madero is expected: 11:40.]' }] },
-      { es: 'Quiero fotografiar lo que está pasando.', en: 'I want to photograph what’s happening.',
+      { say: ['I want to photograph what’s happening.'],
         reply: [{ who: 'old', name: 'Older villager', note: '[Dialogue to be written. Answers Agustín wanting to photograph what is happening.]' }] }
     ]
   },
   tomas: {
     people: { tomas: CAST.of(tomasSpot) }, ask: 'Choose a question for Tomás', leave: true,
     intro: [
-      { who: 'tomas', name: 'Tomás', es: 'Mercancías, gente, de una punta del país a la otra: los trenes cambiaron México. ¿Y nosotros, los trabajadores? Muchos apenas ganamos para vivir.',
-        en: 'Goods, people, from one end of the country to the other: the trains changed Mexico. And us workers? Many of us barely earn enough to survive.' }
+      { who: 'tomas', name: 'Tomás', say: [T('Mercancías', 'Goods'), ', people, from one end of the country to the other: ', T('los trenes', 'the trains'), ' changed Mexico. And us, ', T('los trabajadores', 'the workers'), '? Many of us barely earn enough to survive.'] }
     ],
     choices: [
-      { es: '¿Cómo son las condiciones de trabajo?', en: 'What are the working conditions like?',
-        reply: [{ who: 'tomas', name: 'Tomás', es: '¿Las jornadas? Largas. ¿El trabajo? Peligroso. El progreso del país lo construimos nosotros, pero ¿disfrutarlo? Pocas veces.',
-          en: 'The hours? Long. The work? Dangerous. We’re the ones who build this country’s progress, but enjoy it? Rarely.' }] },
-      { es: '¿Apoya usted a Madero?', en: 'Do you support Madero?',
+      { say: ['What are the working conditions like?'],
+        reply: [{ who: 'tomas', name: 'Tomás', say: [T('¿Las jornadas?', 'The working hours?'), ' Long. The work? ', T('Peligroso', 'Dangerous'), '. We’re the ones who build this country’s progress, but enjoy it? ', T('Pocas veces', 'Rarely'), '.'] }] },
+      { say: ['Do you support Madero?'],
         reply: [{ who: 'tomas', name: 'Tomás', note: '[Dialogue to be written. Whether Tomás supports Madero.]' }] },
-      { es: '¿Qué espera de la revolución?', en: 'What do you hope the Revolution will accomplish?',
+      { say: ['What do you hope the Revolution will accomplish?'],
         reply: [{ who: 'tomas', name: 'Tomás', note: '[Dialogue to be written. What Tomás hopes the Revolution will accomplish.]' }] }
     ]
   }
 };
+// a line of text with its glossed Spanish words
+function fillLine(el, parts) {
+  el.textContent = '';
+  for (const x of parts || []) {
+    if (typeof x === 'string') { el.appendChild(document.createTextNode(x)); continue; }
+    const t = document.createElement('span'); t.className = 'term'; t.lang = 'es'; t.textContent = x.t; t.dataset.t = x.t; t.dataset.en = x.en; el.appendChild(t);
+  }
+}
 const VOICES = [
-  { s: WALL[12], es: '¡Revolución, revolución! Es lo único que se oye. Y los precios, mientras tanto, para arriba. ¿Con qué vamos a alimentar a nuestras familias?',
-    en: 'Revolution, revolution, that’s all anyone talks about! Meanwhile, prices keep climbing. How are we supposed to feed our families?' },
-  { s: youngWomanSpot, es: '¿Libertad? Eso dice mi hermano, que Madero la va a traer. Yo nomás quiero paz, y que nuestros hombres vuelvan a casa.',
-    en: 'Freedom? That’s what my brother says Madero will bring. Me, I just want peace, and our men back home.' },
-  { s: merchantSpot, es: 'Orden, eso sí había con Díaz. ¿Vivir bien? No todos. Ojalá que este gobierno nuevo no se olvide de los pobres.',
-    en: 'Order? Under Díaz, there was plenty. But living well… not for all of us. Let’s hope this new government doesn’t forget the poor.' },
-  { s: GANG[3], es: '¡Me duele la espalda!', en: 'My back hurts!' }
+  { s: WALL[12], say: [T('¡Revolución, revolución!', 'Revolution, revolution!'), ' That’s all anyone talks about! Meanwhile, ', T('los precios', 'the prices'), ' keep climbing. How are we supposed to feed ', T('nuestras familias', 'our families'), '?'] },
+  { s: youngWomanSpot, say: [T('¿Libertad?', 'Freedom?'), ' That’s what ', T('mi hermano', 'my brother'), ' says Madero will bring. Me, I just want ', T('paz', 'peace'), ', and our men back home.'] },
+  { s: merchantSpot, say: [T('¿Orden?', 'Order?'), ' Under Díaz, there was plenty. But living well… not for all of us. ', T('Ojalá', 'Let’s hope'), ' this new government doesn’t forget ', T('los pobres', 'the poor'), '.'] },
+  { s: GANG[3], say: ['My back hurts!'] }
 ].map(V => {
   const el = document.createElement('div'); el.className = 'bubble';
-  el.innerHTML = '<p class="es" lang="es"></p><p class="en"></p>'; el.firstChild.textContent = V.es; el.lastChild.textContent = V.en;
+  const p = document.createElement('p'); fillLine(p, V.say); el.appendChild(p);
   $('bubbles').appendChild(el);
   return Object.assign(V, { P: CAST.of(V.s), el, on: false });
 });
+// glosses: hover with a mouse, tap on a touch screen
+const gloss = $('gloss');
+function showGloss(el) {
+  gloss.textContent = ''; const b = document.createElement('b'); b.textContent = el.dataset.t; gloss.append(b, document.createTextNode(el.dataset.en)); gloss.hidden = false;
+  const r = el.getBoundingClientRect(), gw = gloss.offsetWidth, gh = gloss.offsetHeight;
+  gloss.style.left = Math.max(16, Math.min(innerWidth - gw - 16, r.left + r.width / 2 - gw / 2)) + 'px'; gloss.style.top = Math.max(8, r.top - gh - 10) + 'px';
+}
+function hideGloss() { gloss.hidden = true; }
+for (const box of [$('dialog'), $('bubbles')]) {
+  box.addEventListener('pointerover', e => { const t = e.target.closest('.term'); if (t && e.pointerType === 'mouse') showGloss(t); });
+  box.addEventListener('pointerout', e => { const t = e.target.closest('.term'); if (t && e.pointerType === 'mouse' && !t.contains(e.relatedTarget)) hideGloss(); });
+  box.addEventListener('click', e => { const t = e.target.closest('.term'); if (t) { e.stopPropagation(); showGloss(t); } });
+}
+addEventListener('pointerdown', e => { if (!e.target.closest || !e.target.closest('.term')) hideGloss(); });
 const CONVO = { wait: null, pick: null, on: false };
-function dlgPlain() { $('dlgName').hidden = false; $('dlgEs').hidden = $('dlgEn').hidden = $('dlgChoices').hidden = true; $('dlgChoices').innerHTML = ''; $('dlgClose').hidden = false; }
+function dlgPlain() { $('dlgName').hidden = false; $('dlgText').hidden = $('dlgChoices').hidden = true; $('dlgChoices').innerHTML = ''; $('dlgClose').hidden = false; hideGloss(); }
 function dlgLine(L) {
   dlgPlain(); $('dlgRes').hidden = true;
   $('dlgName').textContent = L.name || ''; $('dlgName').hidden = !L.name;
-  $('dlgEs').textContent = L.es || ''; $('dlgEs').hidden = !L.es;
-  $('dlgEn').textContent = L.en || ''; $('dlgEn').hidden = !L.en;
+  fillLine($('dlgText'), L.say); $('dlgText').hidden = !L.say;
   $('dlgNote').textContent = L.note || ''; $('dlgNote').hidden = !L.note;
   $('dialog').hidden = false;
 }
 async function sayLine(L, people) {
-  const P = people[L.who]; if (P) P.setTalking(true);
+  const P = people[L.who]; if (P) { P.setTalking(true); talkTo = P; }
   dlgLine(L); $('dlgClose').focus({ preventScroll: true });
   await new Promise(res => { CONVO.wait = res; });
   if (P) P.setTalking(false);
@@ -2566,11 +2593,8 @@ function pickChoice(C, opts) {
     const done = i => { CONVO.pick = null; res(i); };
     opts.forEach((o, i) => {
       const b = document.createElement('button'); b.type = 'button'; b.className = 'choice' + (C.asked.has(i) ? ' asked' : '');
-      b.innerHTML = `<kbd class="kbd-only">${i + 1}</kbd><span class="t"><span class="es"></span><span class="en"></span></span>`;
-      const es = b.querySelector('.es'), en = b.querySelector('.en');
-      if (o.es) { es.lang = 'es'; es.textContent = o.es; } else es.remove();
-      if (o.en) en.textContent = o.en; else en.remove();
-      if (!o.es) en.style.cssText = 'font-style: normal; opacity: 1; font-size: 18px;';
+      b.innerHTML = `<kbd class="kbd-only">${i + 1}</kbd><span class="t"></span>`;
+      fillLine(b.querySelector('.t'), o.say);
       b.onclick = () => done(i); box.appendChild(b);
     });
     CONVO.pick = i => { if (i < opts.length) done(i); };
@@ -2582,7 +2606,7 @@ async function runConvo(C) {
   CONVO.on = true; state.busy = true; C.asked = C.asked || new Set();
   if (!C.met) { for (const L of C.intro) await sayLine(L, C.people); C.met = true; }
   for (;;) {
-    const i = await pickChoice(C, C.leave ? C.choices.concat([{ en: 'Leave' }]) : C.choices);
+    const i = await pickChoice(C, C.leave ? C.choices.concat([{ say: ['Leave'] }]) : C.choices);
     if (i >= C.choices.length) break;
     C.asked.add(i);
     const ch = C.choices[i];
@@ -2616,9 +2640,42 @@ function updateTalk() {
     if (show !== V.on) { V.on = show; V.el.classList.toggle('show', show); V.P.setTalking(show); }
   }
   const o = $('objective'); if (!o.hidden) o.classList.toggle('away', !street || state.raised || raise.t > 0);
-  // the two villagers start talking to you the first time you come near
-  const C = TALKS.opening;
-  if (free && !C.met && !CONVO.on) { const q = C.people[C.auto].root.position; if (Math.hypot(q.x - player.x, q.z - pz) < 3.2) runConvo(C); }
+}
+// ---------- talk marks, the same as the palace: a bobbing white "!" over everyone you can talk to, a turning gold star over the ones the scene needs ----------
+function markTex(kind) { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); g.lineJoin = 'round'; g.strokeStyle = '#2b2724'; g.lineWidth = 10;
+  if (kind === 'star') { g.beginPath(); for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2 - Math.PI / 2, r = i % 2 ? 20 : 56; g[i ? 'lineTo' : 'moveTo'](64 + Math.cos(a) * r, 64 + Math.sin(a) * r); } g.closePath(); g.stroke(); g.fillStyle = '#e0a526'; g.fill(); }
+  else { const bang = () => { g.beginPath(); g.moveTo(50, 10); g.lineTo(78, 10); g.lineTo(72, 84); g.lineTo(56, 84); g.closePath(); g.moveTo(78, 108); g.arc(64, 108, 14, 0, Math.PI * 2); }; bang(); g.stroke(); g.fillStyle = '#ffffff'; bang(); g.fill(); }
+  const t = new THREE.CanvasTexture(c); t.anisotropy = 2; return t; }
+const MARK_MAT = { bang: new THREE.SpriteMaterial({ map: markTex('bang'), fog: false, transparent: true, alphaTest: .1 }), star: new THREE.SpriteMaterial({ map: markTex('star'), fog: false, transparent: true, alphaTest: .1 }) };
+const marks = new THREE.Group(); scene.add(marks); const MARKS = [];
+for (let i = 0; i < 14; i++) { const m = new THREE.Sprite(MARK_MAT.bang); m.visible = false; m.renderOrder = 3; marks.add(m); MARKS.push(m); }
+// the star marks someone the scene still needs: the older villager, until the opening talk is done
+const isEssential = n => n.convo === 'opening' && n.P === TALKS.opening.people.old && !TALKS.opening.met;
+const _mv = new THREE.Vector3(), _mb = new THREE.Vector3();
+function updateMarks(t) {
+  marks.visible = state.started && !state.busy && !state.raised && raise.t === 0 && !player.vantage; if (!marks.visible) return;
+  const near = [], pz = warpP(player.x, player.z);
+  if (state.room) { if (ROOM.near && ROOM.talked && ROOM.live) { CAST.miguel.J.head.getWorldPosition(_mv); near.push([0, { P: CAST.miguel, x: _mv.x, z: _mv.z }]); } }
+  else for (const n of NPCS) { const p = n.P.root.position, d = Math.hypot(p.x - player.x, p.z - pz); if (d < 18) near.push([d - (isEssential(n) ? 100 : 0), n]); } // the needed ones always get a mark
+  near.sort((a, b) => a[0] - b[0]);
+  MARKS.forEach((m, i) => { const e = near[i]; if (!e) { m.visible = false; return; } const n = e[1], P = n.P, star = isEssential(n);
+    if (m.material !== (star ? MARK_MAT.star : MARK_MAT.bang)) m.material = star ? MARK_MAT.star : MARK_MAT.bang;
+    P.root.getWorldPosition(_mv);
+    // the real top of the person, hat and hair included, measured once (the palace does the same)
+    if (P.markTop === undefined) P.markTop = Math.max(.5, new THREE.Box3().setFromObject(P.hi).max.y - P.hi.getWorldPosition(_mb).y);
+    const h = star ? .7 : .55, ph = (_mv.x * 3.1 + _mv.z * 1.7) % 6.28;
+    m.scale.set(star ? h * Math.abs(Math.cos(t * .6 + ph)) + .04 : h, h, 1);
+    m.position.set(_mv.x, _mv.y + P.markTop + .22 + h / 2 + Math.sin(t * 2.2 + ph) * .06, _mv.z); m.visible = true; });
+}
+// while talking, the camera eases round to the speaker's face and stays there until the box closes
+let talkTo = null;
+const _tv = new THREE.Vector3();
+function updateTalkLook(dt) {
+  if ($('dialog').hidden) { talkTo = null; return; } if (!talkTo || state.room) return;
+  talkTo.J.head.getWorldPosition(_tv); _tv.y += .09 * (talkTo.D.h || 1.6) / 1.6;
+  const cx = player.x, cy = player.y + EYE, cz = warpP(player.x, player.z), dx = _tv.x - cx, dz = _tv.z - cz, d = Math.max(.3, Math.hypot(dx, dz));
+  const yaw = Math.atan2(-dx, -dz), pitch = Math.atan2(_tv.y - cy, d), k = Math.min(1, dt / .12);
+  let dy = yaw - player.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); player.yaw += dy * k; player.pitch += (pitch - player.pitch) * k;
 }
 
 // ---------- photo capture and pixel scoring ----------
@@ -2693,7 +2750,11 @@ function capturePhoto() {
   return c;
 }
 function shoot() {
-  if (!ROOM.open) return; // no plates spent before Miguel sends you out
+  if (!ROOM.open) { // the practice in the front room: the shutter clicks, no plate is spent
+    if (ROOM.step && state.raised && !state.busy) { state.squeezed = true; ROOM.step = 'lower'; const b = $('blink'); b.classList.remove('on'); void b.offsetWidth; b.classList.add('on'); bulbTip(); }
+    return;
+  }
+  state.squeezed = true; bulbTip();
   if (!state.raised || raise.t < 1 || state.plates <= 0 || state.busy) return;
   syncCapCam();
   const score = scoreFrame();
@@ -3326,7 +3387,7 @@ function frame(now) {
     if (!state.room) {
       const a = nearest();
       const pr = $('prompt');
-      if (a && !state.raised && raise.t === 0) { const txt = a.type === 'talk' ? 'Talk' : a.type === 'climb' ? 'Climb up' : 'Come down'; if (pr.dataset.t !== txt) { pr.dataset.t = txt; pr.innerHTML = '<kbd>E</kbd>' + txt; } pr.classList.add('show'); }
+      if (a && !state.busy && !state.raised && raise.t === 0) { const txt = a.type === 'talk' ? 'Talk' : a.type === 'climb' ? 'Climb up' : 'Come down'; if (pr.dataset.t !== txt) { pr.dataset.t = txt; pr.innerHTML = '<kbd>E</kbd>' + txt; } pr.classList.add('show'); }
       else pr.classList.remove('show');
     }
   }
@@ -3373,7 +3434,7 @@ function frame(now) {
   if (!ROOM.hasCam) FP.rig.visible = false; else if (ROOM.camDrop > 0) FP.rig.position.y -= ROOM.camDrop;
   placeCamera();
   CAST.crowd.update(camera, dt);
-  updateTalk();
+  updateTalk(); updateMarks(now / 1000); updateTalkLook(dt);
   renderView();
   requestAnimationFrame(frame);
 }
@@ -3398,7 +3459,7 @@ const INTRO = [
     { p: 'A press photographer from Mexico City, working for the capital\'s newspapers. The archive he and his family build will shape how the Revolution is remembered.' }
   ],
   [
-    { dl: 'A railway town in Chihuahua, 20 November 1911.', fig: { hold: 10600, print: { photo: 'mad', paint: 'mad_p', s: 1, half: .55, game: 'game', gameHalf: .32, cap: 'Maderistas. Casasola archive' } } },
+    { dl: 'A railway town in Chihuahua, 20 November 1911.', fig: { hold: 10600, print: { photo: 'mad', paint: 'mad_p', reveal: true, cap: 'Maderistas. Casasola archive' } } },
     { p: 'One year since the rising. President Madero and his riders are expected this morning. You have three glass plates, so three photographs. You will send one of them to the newspapers.' },
     { glass: 3, fig: { process: true } },
     { keys: COARSE
@@ -3563,10 +3624,12 @@ function stagePrint(f, fig) {
   if (f.reign) g.insertAdjacentHTML('beforeend', reignSVG());
   // the slow changes: painted over, then printed in halftone, then the game's own picture
   const tP = land + 1900;
-  if (pa) later(tP, () => { pa.style.opacity = Math.min(1, f.s); });
+  // reveal: the print lands already in the game's paint, which slowly lifts off the real photograph; the caption comes with the photo
+  if (pa && f.reveal) { pa.style.transition = 'none'; pa.style.opacity = 1; later(tP + 1200, () => { pa.style.transition = 'opacity 5s ease-in-out'; pa.style.opacity = 0; }); }
+  else if (pa) later(tP, () => { pa.style.opacity = Math.min(1, f.s); });
   if (ha) later(tP + 2800, () => { ha.style.opacity = f.half; });
   if (ga) later(tP + 5400, () => { ga.style.opacity = 1; if (gh) gh.style.opacity = f.gameHalf; $('figCap').classList.remove('on'); });
-  setCap(f.cap, land + 700);
+  setCap(f.cap, f.reveal ? tP + 1200 + 5000 : land + 700);
 }
 function stageProcess(on) {
   if (!on) { if (ST.proc) { dismiss(ST.proc); ST.proc = null; } return; }
@@ -3649,7 +3712,7 @@ async function runIntro() {
   const el = $('intro');
   el.querySelector('.dots').innerHTML = INTRO.map(() => '<span></span>').join('');
   el.hidden = false; $('start').hidden = true; IN.cover = true;
-  ['villa', 'mad', 'game'].forEach((k, i) => setTimeout(() => introHalftone(k), 300 + i * 200));
+  ['villa', 'game'].forEach((k, i) => setTimeout(() => introHalftone(k), 300 + i * 200));
   void el.offsetWidth; el.classList.add('show');
   await sleep(500);
   IN.page = 0; introPage(0);
@@ -3917,17 +3980,16 @@ const ROOM = (() => {
         player.pitch += (-.1 - player.pitch) * Math.min(1, dt * 3);
       }
     }
-    if (R.step === 'raise' && state.raised && raise.t >= 1) { if (!R.stepT) R.stepT = now; if (now - R.stepT > 900) { R.step = 'lower'; R.stepT = 0; } }
-    else if (R.step === 'lower' && !state.raised && raise.t === 0) { R.step = null; R.beat++; setTimeout(() => say(MIGUEL_LINES[R.beat]), 350); state.busy = true; }
+    if (R.step === 'raise' && state.raised) { R.step = 'squeeze'; bulbTip(); }
+    else if ((R.step === 'squeeze' || R.step === 'lower') && !state.raised && raise.t === 0) { R.step = null; bulbTip(); R.beat++; setTimeout(() => say(MIGUEL_LINES[R.beat]), 350); state.busy = true; }
   };
   R.prompt = () => {
     const pr = $('prompt'); let html = null;
     if (R.step === 'raise' && !state.raised) html = COARSE ? 'Tap the camera' : '<kbd>R</kbd>Raise the camera';
-    else if (R.step === 'lower' && state.raised) html = COARSE ? 'Lower the camera' : '<kbd>R</kbd>Lower the camera';
     else if (!state.busy && !state.raised && R.near() === 'talk') html = (COARSE ? '' : '<kbd>E</kbd>') + 'Talk';
     if (html) { if (pr.dataset.t !== html) { pr.dataset.t = html; pr.innerHTML = html; } pr.classList.add('show'); } else pr.classList.remove('show');
   };
-  R.interact = () => { if (R.near() === 'talk') { R.beat = -1; say(MIGUEL_AGAIN); } };
+  R.interact = () => { if (R.step === 'raise' && !state.raised) toggleRaise(); else if (R.near() === 'talk') { R.beat = -1; say(MIGUEL_AGAIN); } };
   // after the opening pages: you're standing in the front room, facing your brother
   R.enter = async () => {
     if (state.started) return;
@@ -3954,7 +4016,7 @@ streamZones(0, true);
 requestAnimationFrame(frame);
 // the town is only drawn behind the title long enough to warm up its shaders; after that nothing renders until the front room
 setTimeout(() => { if (!state.started) IN.cover = true; }, 2500);
-window.__casasola = { zones: ZONES, ROOM, IN, ST, INTRO, MIGUEL_LINES, TALKS, VOICES, CONVO, warpP, toStreet: () => { $('start').hidden = true; $('intro').hidden = true; IN.cover = false; state.started = true; state.room = false; state.busy = false; Object.assign(ROOM, { hasCam: true, open: true, left: true, talked: true, camDrop: 0 }); if (ROOM.live) ROOM.live.camOnTable.visible = ROOM.live.holders.visible = false; Object.assign(player, { x: 1.5, z: .4, yaw: -Math.PI / 2, pitch: 0 }); host.classList.remove('nocam'); $('dialog').classList.remove('low'); }, scene, people, renderer, renderView, camera, sun, LIGHT, rtMain, state, player, startColumn, scoreFrame, syncCapCam, shoot, toggleRaise, develop, CLOCK, clockNow, raise, FP, tier: () => tier, stepQuality };
+window.__casasola = { zones: ZONES, ROOM, IN, ST, INTRO, MIGUEL_LINES, TALKS, VOICES, CONVO, warpP, MARKS, marks, toStreet: () => { $('start').hidden = true; $('intro').hidden = true; IN.cover = false; state.started = true; state.room = false; state.busy = false; Object.assign(ROOM, { hasCam: true, open: true, left: true, talked: true, camDrop: 0 }); if (ROOM.live) ROOM.live.camOnTable.visible = ROOM.live.holders.visible = false; Object.assign(player, { x: 1.5, z: .4, yaw: -Math.PI / 2, pitch: 0 }); host.classList.remove('nocam'); $('dialog').classList.remove('low'); }, scene, people, renderer, renderView, camera, sun, LIGHT, rtMain, state, player, startColumn, scoreFrame, syncCapCam, shoot, toggleRaise, develop, CLOCK, clockNow, raise, FP, tier: () => tier, stepQuality };
 
 window.__casasola.kit = { THREE: typeof THREE === 'undefined' ? undefined : THREE, C: typeof C === 'undefined' ? undefined : C, OUTLINE: typeof OUTLINE === 'undefined' ? undefined : OUTLINE, IMG: typeof IMG === 'undefined' ? undefined : IMG, tex: typeof tex === 'undefined' ? undefined : tex, patch: typeof patch === 'undefined' ? undefined : patch, FRAG: typeof FRAG === 'undefined' ? undefined : FRAG, box: typeof box === 'undefined' ? undefined : box, world: typeof world === 'undefined' ? undefined : world, warpS: typeof warpS === 'undefined' ? undefined : warpS, slopeS: typeof slopeS === 'undefined' ? undefined : slopeS, warpP: typeof warpP === 'undefined' ? undefined : warpP, HORSES: typeof HORSES === 'undefined' ? undefined : HORSES, people: typeof people === 'undefined' ? undefined : people, state: typeof state === 'undefined' ? undefined : state, TIER: typeof TIER === 'undefined' ? undefined : TIER };
 return window.__casasola;

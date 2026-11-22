@@ -28,13 +28,14 @@
     </div>
   </div>
   <canvas id="bulb" aria-label="Shutter release" role="button"></canvas>
+  <div class="hud" id="bulbTip" role="status" hidden><p id="bulbTipText"></p></div>
   <div id="doneBar" role="status"><p>You've used all three plates.</p><button class="btn primary pulse" id="bDone" type="button">Develop photos<kbd class="kbd-only">Enter</kbd></button></div>
 </div>
 
+<div id="gloss" role="tooltip" hidden></div>
 <div id="dialog" class="card" hidden>
   <h3 id="dlgName"></h3>
-  <p class="es" id="dlgEs" lang="es" hidden></p>
-  <p class="en" id="dlgEn" hidden></p>
+  <p class="line" id="dlgText" hidden></p>
   <p class="ph" id="dlgNote"></p>
   <p class="res" id="dlgRes"></p>
   <div id="dlgChoices" hidden></div>

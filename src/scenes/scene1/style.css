@@ -62,6 +62,8 @@ body { margin: 0; background: #24180f var(--leather, none) center / 380px; color
 #controls { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: flex-start; align-items: flex-end; gap: 10px; pointer-events: none;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 calc(16px + env(safe-area-inset-bottom, 0px)); }
 #controls .grp { display: flex; gap: 10px; pointer-events: auto; flex-wrap: wrap; align-items: flex-end; }
+/* the bulb sits bottom right: keep the buttons out from under it */
+#controls { padding-right: calc(max(10px, env(safe-area-inset-right, 0px)) + 108px); }
 /* once the last plate is exposed: a wide paper strip along the bottom offering the darkroom */
 #doneBar { position: absolute; left: 0; right: 0; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); margin: 0 auto; width: min(920px, calc(100% - 32px)); box-sizing: border-box; z-index: 2;
   display: flex; align-items: center; justify-content: space-between; gap: 18px 24px; flex-wrap: wrap; padding: 22px 24px 22px 34px;
@@ -76,6 +78,22 @@ body { margin: 0; background: #24180f var(--leather, none) center / 380px; color
 #bulb.show { opacity: 1; pointer-events: auto; }
 #bulb.squeeze { animation: squeeze .22s ease-out; }
 @keyframes squeeze { 40% { transform: scale(1.06, .82); } }
+/* teaching the bulb: a note beside it with an arrow, and a glow on the bulb until it's been squeezed */
+#bulbTip { right: calc(max(10px, env(safe-area-inset-right, 0px)) + 112px); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); width: min(330px, calc(100vw - 160px)); box-sizing: border-box;
+  background: rgba(242,240,235,.94); color: #2b2724; padding: 12px 15px 13px; font-size: 17px; line-height: 1.35; box-shadow: 0 0 0 2px #2b2724, 0 8px 20px rgba(0,0,0,.45); z-index: 3; }
+#bulbTip p { margin: 0; }
+#bulbTip b { color: #8a2e1c; font-weight: 600; }
+#bulbTip kbd { font: inherit; font-size: 14px; padding: 0 5px; border: 1.5px solid #2b2724; }
+#bulbTip::after { content: ""; position: absolute; right: -19px; bottom: 12px; border: 10px solid transparent; border-left: 16px solid #2b2724; border-right: 0; }
+#bulbTip::before { content: ""; position: absolute; right: -14px; bottom: 15px; border: 7px solid transparent; border-left: 12px solid rgba(242,240,235,.94); border-right: 0; z-index: 1; }
+/* narrow screens: the note sits above the bulb, clear of the buttons, and points down at it */
+@media (max-width: 640px) {
+  #bulbTip { right: max(10px, env(safe-area-inset-right, 0px)); bottom: calc(186px + env(safe-area-inset-bottom, 0px)); width: min(330px, calc(100vw - 20px)); }
+  #bulbTip::after { right: 38px; bottom: -19px; border: 10px solid transparent; border-top: 16px solid #2b2724; border-bottom: 0; }
+  #bulbTip::before { right: 41px; bottom: -14px; border: 7px solid transparent; border-top: 12px solid rgba(242,240,235,.94); border-bottom: 0; }
+}
+#bulb.teach { animation: teach 1.1s ease-in-out infinite; }
+@keyframes teach { 50% { filter: drop-shadow(0 0 7px #e0a526) drop-shadow(0 0 2px #e0a526); } }
 
 /* paper cards: the dialog and the title */
 .card { position: relative; color: var(--ink); background: #e9dbb8 var(--paper, none) center / cover; background-blend-mode: multiply; padding: 22px 26px 24px;
@@ -91,8 +109,13 @@ body { margin: 0; background: #24180f var(--leather, none) center / 380px; color
 #dialog::after { display: none; }
 #dialog h3 { color: #8a2e1c; }
 #dialog .btn.primary { background: #2b2724; color: #f2f0eb; box-shadow: none; clip-path: none; }
-#dialog .es { margin: 0 0 6px; font-size: 19px; line-height: 1.3; }
-#dialog .en { margin: 0 0 14px; font-size: 16px; line-height: 1.3; font-style: italic; opacity: .78; }
+#dialog .line { margin: 0 0 14px; font-size: 19px; line-height: 1.35; }
+/* Spanish words in a line: hover with a mouse or tap to see the English */
+.term { font-style: italic; color: #6e2412; border-bottom: 1.5px dotted rgba(110,36,18,.75); cursor: help; pointer-events: auto; }
+#gloss { position: fixed; z-index: 10; max-width: min(300px, calc(100vw - 32px)); box-sizing: border-box; font-size: 16px; line-height: 1.3; color: #2b2724; padding: 7px 11px 8px; pointer-events: none;
+  background: #f2f0eb; box-shadow: 0 0 0 2px #2b2724, 0 6px 14px rgba(0,0,0,.35); }
+#gloss[hidden] { display: none; }
+#gloss b { font-style: italic; font-weight: 400; color: #6e2412; margin-right: 6px; }
 #dlgChoices { display: flex; flex-direction: column; gap: 8px; }
 #dlgChoices[hidden] { display: none; }
 #dlgChoices .choice { display: flex; align-items: center; gap: 12px; text-align: left; font: inherit; color: var(--ink); padding: 9px 12px 10px; cursor: pointer;
@@ -100,9 +123,7 @@ body { margin: 0; background: #24180f var(--leather, none) center / 380px; color
 #dlgChoices .choice:hover, #dlgChoices .choice:focus-visible { background: #e3e0d9; outline: none; }
 #dlgChoices .choice.asked { opacity: .62; }
 #dlgChoices .choice kbd { font-family: var(--fellsc); min-width: 1.1em; text-align: center; padding: 0 5px; border: 1.5px solid #2b2724; }
-#dlgChoices .choice .t { display: flex; flex-direction: column; gap: 2px; }
-#dlgChoices .choice .es { font-size: 18px; line-height: 1.25; }
-#dlgChoices .choice .en { font-size: 15px; line-height: 1.25; font-style: italic; opacity: .75; }
+#dlgChoices .choice .t { font-size: 18px; line-height: 1.25; }
 /* speech bubbles over the townspeople, Spanish with the English under it */
 #bubbles { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .bubble { position: absolute; left: 0; top: 0; width: max-content; max-width: min(340px, 72vw); box-sizing: border-box; padding: 10px 14px 11px; color: #2b2724;
@@ -112,8 +133,7 @@ body { margin: 0; background: #24180f var(--leather, none) center / 380px; color
 .bubble::before { width: 20px; height: 14px; margin: 1px 0 0 -10px; background: #2b2724; }
 .bubble::after { width: 15px; height: 11px; margin: -1px 0 0 -7.5px; background: rgba(242,240,235,.92); }
 .bubble p { margin: 0; }
-.bubble .es { font-size: 16px; line-height: 1.25; margin-bottom: 4px; }
-.bubble .en { font-size: 14px; line-height: 1.25; font-style: italic; opacity: .78; }
+.bubble p { font-size: 16px; line-height: 1.3; }
 #objective { left: max(14px, env(safe-area-inset-left, 0px)); top: calc(112px + env(safe-area-inset-top, 0px)); max-width: 260px; font: 15px/1.3 inherit; font-family: inherit; letter-spacing: 0;
   transition: left .8s cubic-bezier(.3,.7,.3,1), top .8s cubic-bezier(.3,.7,.3,1), transform .8s cubic-bezier(.3,.7,.3,1), max-width .8s, opacity .4s; }
 #objective { background: #f2f0eb; background-blend-mode: normal; color: #2b2724; clip-path: none; box-shadow: 0 0 0 2px #2b2724, 0 6px 16px rgba(0,0,0,.35); }
@@ -333,4 +353,5 @@ button.print:hover, button.print:focus-visible { outline: 3px solid var(--ochre)
 /* stepping from the dim front room into the noon street */
 #game.nocam .hud { opacity: 0; }
 .hud { transition: opacity .6s; }
-@media (prefers-reduced-motion: reduce) { #watch.chime, .btn.pulse, #bulb.squeeze { animation: none; } }
+@media (prefers-reduced-motion: reduce) { #watch.chime, .btn.pulse, #bulb.squeeze, #bulb.teach { animation: none; } }
+@media (prefers-reduced-motion: reduce) { #bulb.teach { filter: drop-shadow(0 0 6px #e0a526); } }
