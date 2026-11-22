@@ -1,0 +1,24 @@
+<!doctype html>
+<!-- The publisher's office, between scene 1 (the railway town, 1911) and scene 2 (the palace, 1912). Source: src/scenes/office/office.js -->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Casasola: La redacción</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&display=swap">
+</head>
+<body>
+<div id="host"></div>
+<div class="vignette" aria-hidden="true"></div>
+<div id="talk" class="card" hidden>
+  <h3 id="talkName">Publisher</h3>
+  <p id="talkText" aria-live="polite"></p>
+  <button class="btn primary" id="bNext" type="button">Continue<kbd class="kbd-only">Enter</kbd></button>
+</div>
+<div id="gloss" role="tooltip" hidden></div>
+<div id="fade"></div>
+<script type="module" src="./src/scenes/office/office.js"></script>
+</body>
+</html>

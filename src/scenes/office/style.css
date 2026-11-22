@@ -1,0 +1,47 @@
+/* The publisher's office. Same paper, ink and type as scene 1: square corners, paper scans, IM Fell. */
+:root {
+  --ink: #24180f;
+  --terracotta: #a9482a;
+  --ochre: #c8873a;
+  --fell: "IM Fell English", "Old Standard TT", Georgia, serif;
+  --fellsc: "IM Fell English SC", "Old Standard TT", Georgia, serif;
+  --paper: none;
+  color-scheme: light;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; }
+body { background: #0d0907; color: var(--ink); font-family: var(--fell); overflow: hidden; -webkit-user-select: none; user-select: none; }
+#host { position: fixed; inset: 0; }
+#host canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+#host canvas:active { cursor: grabbing; }
+.vignette { position: fixed; inset: 0; pointer-events: none; z-index: 2; background: radial-gradient(ellipse at 50% 42%, rgba(0,0,0,0) 45%, rgba(10,5,2,.55) 100%); }
+#fade { position: fixed; inset: 0; z-index: 20; background: #0d0907; pointer-events: none; opacity: 1; transition: opacity 1.4s ease; }
+#fade.out { opacity: 0; }
+#fade.in { opacity: 1; transition-duration: 1.1s; }
+
+.card { position: relative; color: var(--ink); background: #e9dbb8 var(--paper) center / cover; background-blend-mode: multiply; padding: 18px 24px 20px;
+  box-shadow: inset 0 0 0 2px rgba(36,24,15,.8), inset 0 0 40px rgba(120,80,30,.4), 6px 8px 0 rgba(30,30,70,.45), 0 20px 40px rgba(0,0,0,.4); }
+.card::after { content: ""; position: absolute; inset: 7px; border: 1px solid rgba(36,24,15,.55); pointer-events: none; }
+.btn { font-family: var(--fellsc); font-size: 19px; letter-spacing: .03em; color: var(--ink); cursor: pointer; touch-action: manipulation; border: 0; border-radius: 0; padding: 9px 18px 10px;
+  background: #e4d3aa var(--paper) center / 300px; background-blend-mode: multiply; position: relative; z-index: 1;
+  box-shadow: inset 0 0 0 1.5px rgba(36,24,15,.85), inset 0 0 14px rgba(120,80,30,.35), 3px 4px 0 rgba(40,45,90,.42); }
+.btn:hover { filter: brightness(1.07) saturate(1.1); transform: translateY(-1px); }
+.btn:active { transform: translateY(2px); }
+.btn:focus-visible { outline: 3px solid var(--ochre); outline-offset: 3px; }
+.btn.primary { background-color: #b9593a; color: #f6ead2; box-shadow: inset 0 0 0 1.5px rgba(50,18,8,.9), inset 0 0 16px rgba(60,20,8,.45), 3px 4px 0 rgba(40,45,90,.42); }
+.btn kbd { font-family: var(--fellsc); font-size: 14px; opacity: .65; margin-left: 8px; }
+@media (hover: none) { .kbd-only { display: none; } }
+
+#talk { position: fixed; z-index: 4; left: 50%; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); width: min(580px, calc(100vw - 32px)); box-sizing: border-box; cursor: pointer; padding: 14px 20px 16px; }
+#talk h3 { margin: 0 0 4px; font-family: var(--fellsc); font-weight: 400; font-size: 22px; color: #7d2f18; }
+#talk p { margin: 0 0 10px; font-size: clamp(17px, 2vw, 20px); line-height: 1.38; min-height: 2.76em; }
+#talk p span.h { visibility: hidden; }
+#talk .btn { float: right; margin-top: -4px; }
+#talk::before { content: ""; display: table; }
+#talk p::after { content: ""; display: block; clear: both; }
+.term { font-weight: 700; color: #6e2412; border-bottom: 1.5px dotted rgba(110,36,18,.75); cursor: help; }
+.term.h { border-bottom-color: transparent; }
+#gloss { position: fixed; z-index: 10; max-width: min(300px, calc(100vw - 32px)); box-sizing: border-box; font-family: var(--fell); font-size: 17px; line-height: 1.3; color: var(--ink); padding: 8px 12px 9px; pointer-events: none;
+  background: #e2d1a8 var(--paper) center / 300px; background-blend-mode: multiply; box-shadow: inset 0 0 0 1.5px rgba(36,24,15,.85), 3px 4px 0 rgba(40,45,90,.42); }
+#gloss b { font-family: var(--fellsc); font-weight: 400; color: #7d2f18; margin-right: 6px; }
+@media (max-width: 480px) { #talk { padding: 14px 16px 16px; } #talk h3 { font-size: 20px; } }
