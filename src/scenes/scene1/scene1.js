@@ -1138,11 +1138,6 @@ function hat(p, kind, color, y) {
 const LPP = LowPolyPeople, SKN = LPP.SK;
 const face = { s: 0, n: Math.PI, e: Math.PI / 2, w: -Math.PI / 2 };
 const lpBy = id => LPP.DRAFTS.find(D => D.id === id);
-// a variant merges its face, skull and pose over the base, the way the kit builds its own
-function lpVariant(base, id, o) {
-  const b = lpBy(base), D = Object.assign({}, b, o, { id, face: Object.assign({}, b.face, o.face || {}), skull: Object.assign({}, b.skull, o.skull || {}), expr: o.expr || b.expr, pose: Object.assign({}, b.pose, o.pose || {}) });
-  LPP.DRAFTS.push(D); return D;
-}
 // Variants that keep their base's face take no space in the face atlas (faceOf); the atlas holds 31 distinct faces.
 function lpVariant(base, id, o) {
   const b = lpBy(base), D = Object.assign({}, b, { faceOf: o.face ? undefined : base }, o, { id, face: Object.assign({}, b.face, o.face || {}), skull: Object.assign({}, b.skull, o.skull || {}), expr: o.expr || b.expr, pose: Object.assign({}, b.pose, o.pose || {}) });
@@ -3295,7 +3290,7 @@ function layer(inner, key, cls) { const im = new Image(); im.src = INTRO_IMG[key
 // halftone screens, drawn once at the start of the intro: ink dots on white on a 45° grid, dot area following the
 // picture's darkness. Laid over a print with multiply, they make it look printed in a newspaper.
 const HT = {};
-function halftone(key, cell = 4.2) {
+function introHalftone(key, cell = 4.2) {
   if (HT[key] || !INTRO_IMG[key]) return;
   const im = new Image();
   im.onload = () => {
@@ -3508,7 +3503,7 @@ async function runIntro() {
   const el = $('intro');
   el.querySelector('.dots').innerHTML = INTRO.map(() => '<span></span>').join('');
   el.hidden = false; $('start').hidden = true; IN.cover = true;
-  ['villa', 'mad', 'game'].forEach((k, i) => setTimeout(() => halftone(k), 300 + i * 200));
+  ['villa', 'mad', 'game'].forEach((k, i) => setTimeout(() => introHalftone(k), 300 + i * 200));
   void el.offsetWidth; el.classList.add('show');
   await sleep(500);
   IN.page = 0; introPage(0);

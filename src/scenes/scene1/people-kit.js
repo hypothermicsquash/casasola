@@ -232,8 +232,9 @@ function figure(D) {
     lv.push([-len, lv[lv.length - 1][1] * .98]);
     const pt = (i, j) => { const l = lv[i], t = j / n * Math.PI * 2, last = i === lv.length - 1, jj = ((j % n) + n) % n;
       const dent = soft && jj === part && l[0] > .3 ? .9 : 1;
+      const edge = l[0] >= hl && lv[i + 1] && lv[i + 1][0] < hl, notch = soft && jj === part && edge ? hh * .16 : 0;   // the part lifts the front hairline into a V
       const k = 1 + (l[0] < 0 ? jag * (j % 2 ? 1 : -.35) : 0), r = l[1] * hv * k * dent;
-      return [Math.sin(t) * r * W, hc + l[0] * hh - (dent < 1 ? hh * .04 : 0) - (last && j % 2 && !soft ? hh * (D.zig || .16) : 0), -Dp * .05 + Math.cos(t) * r * Dp]; };
+      return [Math.sin(t) * r * W, hc + l[0] * hh + notch - (dent < 1 && !notch ? hh * .04 : 0) - (last && j % 2 && !soft ? hh * (D.zig || .16) : 0), -Dp * .05 + Math.cos(t) * r * Dp]; };
     const T = tris(), shade = c => { const q = col(c); return new THREE.Color(q.r * .82, q.g * .82, q.b * .82).getHex(); };
     for (let i = 0; i < lv.length - 1; i++) for (let j = 0; j < n; j++) {
       let tc = (j + .5) / n * Math.PI * 2; if (tc > Math.PI) tc -= Math.PI * 2;
@@ -243,6 +244,16 @@ function figure(D) {
       const inPart = soft && lv[i][0] > .3 && (j === part || (j + 1) % n === part);
       quad(T, pt(i + 1, j), pt(i + 1, j + 1), pt(i, j + 1), pt(i, j), inPart ? shade(D.hair) : D.hair);
     }
+    // the shell is one surface, so where it stops (face opening, lower edge) it read as a paper-thin 2D sheet from the side.
+    // Close every open edge with a wall down to the skull, drawn both ways, so the hair has visible thickness from any angle.
+    const has = (i, j) => { if (i < 0) return true; if (i >= lv.length - 1) return false; j = ((j % n) + n) % n; let tc = (j + .5) / n * Math.PI * 2; if (tc > Math.PI) tc -= Math.PI * 2;
+      return !((lv[i + 1][0] < hl && Math.abs(tc) < open) || (D.longBack && lv[i + 1][0] < -.9 && Math.abs(tc) < .6 * Math.PI)); };
+    const inner = q => { const ry = q[1], dz = q[2] + Dp * .05, f = .66; return [q[0] * f, ry, -Dp * .05 + dz * f]; };
+    const wall = (a, b) => { const ai = inner(a), bi = inner(b); quad(T, a, b, bi, ai, D.hair); quad(T, b, a, ai, bi, D.hair); };
+    for (let i = 0; i < lv.length - 1; i++) for (let j = 0; j < n; j++) { if (!has(i, j)) continue;
+      if (!has(i + 1, j)) wall(pt(i + 1, j), pt(i + 1, j + 1));
+      if (!has(i, j - 1)) wall(pt(i, j), pt(i + 1, j));
+      if (!has(i, j + 1)) wall(pt(i, j + 1), pt(i + 1, j + 1)); }
     for (let j = 0; j < n; j++) tri(T, [0, hc + 1.16 * hh * (soft ? 1.03 : 1), -Dp * .05], pt(0, j), pt(0, j + 1), D.hair);
     if (soft) { const PJ = (P.head = P.head || tris()); PJ.smooth = PJ.smooth || []; const st = PJ.p.length / 3; add('head', T); PJ.smooth.push({ start: st, end: PJ.p.length / 3, avg: true }); }
     else add('head', T);
@@ -251,34 +262,46 @@ function figure(D) {
     if (D.bun) add('head', ball(hh * .3, D.hair), M(0, hc + hh * (D.bunY || .55), -Dp * .05 - Dp * vol * .92));
     if (D.ribbon) [-1, 1].forEach(s => add('head', lp([[-hh * .1, hh * .02, hh * .03, 0, 0, D.ribbon], [hh * .1, hh * .14, hh * .05, 0, 0, D.ribbon]], { sides: 4 }), M(s * hh * .12, hc + hh * 1.08, -Dp * .2, 0, 0, s * -1.3)));
     if (D.beard3d) {
-      // a low-poly beard shell: it follows the jaw from sideburn to sideburn, stands off the face for volume,
-      // and its top edge drops below the moustache at the front so it never covers the mouth
-      const at = yy => { for (let i = 0; i < headRings.length - 1; i++) { const a = headRings[i], b = headRings[i + 1]; if (yy >= a[0] && yy <= b[0]) { const t = (yy - a[0]) / (b[0] - a[0]); return [a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t, a[3] + (b[3] - a[3]) * t]; } } const e = yy < headRings[0][0] ? headRings[0] : headRings[headRings.length - 1]; return [e[1], e[2], e[3]]; };
-      const NA = 10, A = Math.PI * .6, lv = [0, .45, 1], th = [Dp * .1, Dp * .13, Dp * .02], T = tris(), P = [];
-      for (let j = 0; j <= NA; j++) { const t = -A + 2 * A * j / NA, q = Math.min(1, Math.abs(t) / (Math.PI / 2));
-        const yTop = hc + hh * (-.62 + .58 * Math.pow(q, 1.4)), yBot = hc + hh * (-1.2 + .52 * q);
-        P.push(lv.map((u, k) => { const yy = yBot + (yTop - yBot) * u, r = at(Math.max(yy, headRings[0][0])); return [Math.sin(t) * (r[0] + th[k]), yy, r[2] + Math.cos(t) * (r[1] + th[k])]; })); }
-      for (let j = 0; j < NA; j++) for (let k = 0; k < lv.length - 1; k++) quad(T, P[j][k], P[j + 1][k], P[j + 1][k + 1], P[j][k + 1], D.hair);
-      const nk = [0, hc - hh * .75, -Dp * .1]; for (let j = 0; j < NA; j++) tri(T, nk, P[j + 1][0], P[j][0], D.hair);
+      // flat beard (user 2026-11-22): a centre panel on the chin coming to a point, and two flat side panels going out and back
+      // along the jaw, angled only as much as the jaw needs. Few planes, both sides drawn, nothing bends around the face.
+      const v2y = py => yb + (1 - py / FS) * (yt - yb), probe = new THREE.Mesh(hgeo, new THREE.MeshBasicMaterial({ side: THREE.DoubleSide })), rc = new THREE.Raycaster(), dn = new THREE.Vector3(0, 0, -1);
+      const surf = (x, yy) => { rc.set(new THREE.Vector3(x, yy, 1), dn); const h = rc.intersectObject(probe)[0]; return h ? h.point.z : null; };
+      const L = .007, y0 = v2y(D.bigMustache ? D.bigMustache.bottom + 3 : 206), yTip = yb - hh * .12, c = W * .17, T = tris();
+      const both = (a, b, d) => { tri(T, a, b, d, D.hair); tri(T, b, a, d, D.hair); };
+      const TL = [-c, y0, (surf(-c, y0) || 0) + L], TM = [0, y0, (surf(0, y0) || 0) + L], TR = [c, y0, (surf(c, y0) || 0) + L];
+      const zChin = surf(0, yb + hh * .12), tip = [0, yTip, (zChin === null ? TM[2] - Dp * .2 : zChin) + L * 2];
+      // push the centre out until no sampled point is inside the head
+      let push = 0; for (let a = 0; a <= 6; a++) for (let b = 0; b <= 6; b++) { const u = a / 6, v = b / 6, x = (-c + 2 * c * u) * (1 - v), yy = y0 + (yTip - y0) * v, z = surf(x, yy);
+        const zc = (TL[2] + (TR[2] - TL[2]) * u) * (1 - v) + tip[2] * v; if (z !== null) push = Math.max(push, z + L * .6 - zc); }
+      [TL, TM, TR, tip].forEach(p => p[2] += push);
+      both(TL, TM, tip); both(TM, TR, tip);
+      [-1, 1].forEach(s => { const it = s < 0 ? TL : TR, ow = W * .6, oy = y0 + hh * .04, my = y0 + (yTip - y0) * .55; let tan = 1.2;
+        for (let a = 1; a <= 8; a++) for (let b = 0; b <= 3; b++) { const v = b / 3, ox = (ow - c) * a / 8 * (1 - v * .6), yy = oy + (my - oy) * v, z = surf(s * (c + ox), yy); if (z !== null) tan = Math.min(tan, (it[2] - z - L) / ox); }
+        const o1 = [s * ow, oy, it[2] - tan * (ow - c)], o2 = [s * (c + (ow - c) * .4), my, it[2] - tan * (ow - c) * .4 - Dp * .02];
+        both(it, o1, o2); both(it, o2, tip); });
       add('head', T);
     }
   }
-  // big moustache: one trapezoid that follows the face's planes (a few columns so it bends with them), wider than the face at the bottom
+  // big moustache (user 2026-11-22): as few planes as possible. A centre panel sits on the face under the nose; two flat wings go straight
+  // out from its edges, angled back only as much as the cheeks need, so nothing bends, twists or flips. Both sides are drawn.
   if (D.bigMustache) { const hm = D.bigMustache, v2y = py => yb + (1 - py / FS) * (yt - yb);
-    const ring = yy => { for (let i = 0; i < headRings.length - 1; i++) { const a = headRings[i], b = headRings[i + 1]; if (yy >= a[0] && yy <= b[0]) { const t = (yy - a[0]) / (b[0] - a[0]); return [a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t, a[3] + (b[3] - a[3]) * t]; } } return [headRings[0][1], headRings[0][2], headRings[0][3]]; };
-    // exact surface depth: cast a ray at the head mesh from the front; past the cheek, keep the last depth so the ends stick out
     const probe = new THREE.Mesh(hgeo, new THREE.MeshBasicMaterial({ side: THREE.DoubleSide })), rc = new THREE.Raycaster(), dir = new THREE.Vector3(0, 0, -1);
     const surf = (x, yy) => { rc.set(new THREE.Vector3(x, yy, 1), dir); const h = rc.intersectObject(probe)[0]; return h ? h.point.z : null; };
-    const y0 = v2y(hm.top), y1 = v2y(hm.bottom), N = 12, L = .006, T = tris(), row = (yy, half) => { const r = []; for (let i = 0; i <= N; i++) { const x = -half + 2 * half * i / N; r.push([x, yy, surf(x, yy)]); }
-      const mid = N / 2; for (let i = mid + 1; i <= N; i++) if (r[i][2] === null) r[i][2] = r[i - 1][2]; for (let i = mid - 1; i >= 0; i--) if (r[i][2] === null) r[i][2] = r[i + 1][2];
-      r.forEach(p => p[2] += L); return r; };
-    const R = 2, rows = []; for (let k = 0; k <= R; k++) { const t = k / R; rows.push(row(y1 + (y0 - y1) * t, W * (hm.botW + (hm.topW - hm.botW) * t))); }
-    // few panels span a curved face, so push the whole plate out until no point of it sits inside the head
-    let push = 0; for (let k = 0; k < R; k++) for (let i = 0; i < N; i++) for (let a = 0; a <= 4; a++) for (let b = 0; b <= 4; b++) { const u = a / 4, v = b / 4, P = (q, w) => rows[k + w][i + q];
-      const lerp = j => (P(0, 0)[j] * (1 - u) + P(1, 0)[j] * u) * (1 - v) + (P(0, 1)[j] * (1 - u) + P(1, 1)[j] * u) * v, z = surf(lerp(0), lerp(1));
-      if (z !== null) push = Math.max(push, z + L * .6 - lerp(2)); }
-    rows.forEach(r => r.forEach(p => p[2] += push));
-    for (let k = 0; k < R; k++) for (let i = 0; i < N; i++) quad(T, rows[k][i], rows[k][i + 1], rows[k + 1][i + 1], rows[k + 1][i], D.hair);
+    const SH = .85, ym = v2y((hm.top + hm.bottom) / 2), y0 = ym + (v2y(hm.top) - ym) * .9, y1 = ym + (v2y(hm.bottom) - ym) * .9, L = .006, T = tris();
+    const c = W * Math.min(.2, hm.topW * SH * .7), top = W * hm.topW * SH, bot = W * hm.botW * SH;
+    // centre: 3 columns x 2 rows on the face, then pushed out so no point of it is inside the head
+    const C = [y1, y0].map(yy => [-c, 0, c].map(x => [x, yy, (surf(x, yy) || 0) + L]));
+    let push = 0; for (let a = 0; a <= 6; a++) for (let b = 0; b <= 4; b++) { const x = -c + 2 * c * a / 6, yy = y1 + (y0 - y1) * b / 4, z = surf(x, yy), i = Math.min(1, (a / 3) | 0), u = a / 3 - i, v = b / 4;
+      const zc = (C[0][i][2] * (1 - u) + C[0][i + 1][2] * u) * (1 - v) + (C[1][i][2] * (1 - u) + C[1][i + 1][2] * u) * v; if (z !== null) push = Math.max(push, z + L * .6 - zc); }
+    C.forEach(r => r.forEach(p => p[2] += push));
+    const both = (a, b, d, e) => { quad(T, a, b, d, e, D.hair); quad(T, b, a, e, d, D.hair); };
+    both(C[0][0], C[0][1], C[1][1], C[1][0]); both(C[0][1], C[0][2], C[1][2], C[1][1]);
+    // wings: one flat quad per side; the back angle is the smallest that clears the cheek (capped), so they read as sticking straight out
+    [-1, 1].forEach(s => { const ib = C[0][s < 0 ? 0 : 2], it = C[1][s < 0 ? 0 : 2]; let tan = .3;
+      for (let a = 1; a <= 8; a++) for (let b = 0; b <= 3; b++) { const v = b / 3, ox = (bot + (top - bot) * v - c) * a / 8, yy = y1 + (y0 - y1) * v, zi = ib[2] + (it[2] - ib[2]) * v, z = surf(s * (c + ox), yy);
+        if (z !== null && ox > 0) tan = Math.min(tan, (zi - z - L) / ox); }
+      const ob = [s * bot, y1, ib[2] - tan * (bot - c)], ot = [s * top, y0, it[2] - tan * (top - c)];
+      if (s < 0) both(ob, ib, it, ot); else both(ib, ob, ot, it); });
     add('head', T); }
   if (D.earrings) [-1, 1].forEach(s => add('head', boxT(y(.012), y(.02), y(.012), 0xd6b25a), M(s * W * 1.02, hc - hh * .45, -Dp * .05)));
   // hats: lathes sitting on the hair at the brow
@@ -408,7 +431,7 @@ const kidFace = { eyeW: 33, eyeH: 50, eyeX: 54, eyeY: 140, browW: 19, browT: 3, 
 const MORE = [
   // Miguel Casasola, Agustín's younger brother: his own design, not a variant
   { id: 'miguel', name: 'Miguel Casasola', group: 0, important: true, h: 1.66, skin: SK.mestizo, shirt: 0xf4f0e6, sleeve: 0xf4f0e6, vest: true, coat: 0x1c1a1c, pants: 0x2e2a2c, belt: null, shoes: 0x1a1414,
-    hair: 0x241a14, hairCss: '#241a14', hairline: .62, hairVol: 1.06, hairLen: .18, fluff: .6, part: 1, bigMustache: { top: 180, bottom: 204, topW: .4, botW: .72 },
+    hair: 0x241a14, hairCss: '#241a14', hairline: .36, hairVol: 1.07, hairLen: .1, fluff: 1, part: 0, bigMustache: { top: 180, bottom: 204, topW: .4, botW: .72 },
     skull: { wide: .96, deep: 1, jaw: .9, cheek: 1.0, chin: .98, chinW: .26 },
     face: { eyeW: 28, eyeH: 42, eyeX: 51, eyeY: 140, browW: 23, browT: 5, browGap: 19, browA: -3, arch: 4, nose: 'line', mouth: false, lidIn: 2 },
     expr: { ly: .1 }, pose: { shR: [0, 0, -.08], shL: [0, 0, .08], elR: [-.3, 0, 0], elL: [-.12, 0, 0] } },
