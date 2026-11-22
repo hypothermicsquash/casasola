@@ -226,7 +226,7 @@ const deskBits = new THREE.Group(); scene.add(deskBits);
 
 // ---------- the publisher: a new character on the low-poly kit ----------
 const { figure } = LowPolyPeople;
-const SKIN = 0xd49a72, GREY = 0x9c958c;
+const SKIN = 0x9c6542, GREY = 0x9c958c;
 const PUB_D = { id: 'publisher', name: 'Publisher', h: 1.5, headK: 1.12, skin: SKIN, shirt: 0xf0e8d4, sleeve: 0xf0e8d4, vest: true, coat: 0x6a2a24, pants: 0x34302e, belt: null, shoes: 0x1a1414,
   belly: 1.5 * .06, shoulders: .96, neckTo: .01, hand: 1.3, arm: 1.06, hair: null, hat: null, beard3d: false,
   skull: { wide: 1.1, deep: 1.04, jaw: 1.06, cheek: 1.1, chin: .82, crown: 1.06, chinW: .46 },
@@ -247,7 +247,7 @@ const HP = (() => { const p = headMesh.geometry.attributes.position.array; let y
 const fl = c => new THREE.MeshLambertMaterial({ color: c });
 const greyM = fl(GREY), fluffM = fl(0xb4ada2);
 // big round nose
-const nose = new THREE.Mesh(new THREE.SphereGeometry(HP.W * .2, 8, 6), new THREE.MeshLambertMaterial({ color: 0xd88a6a })); { const y = HP.py(168); nose.position.set(0, y, HP.front(y) + HP.W * .08); nose.scale.set(1, .9, .9); J.head.add(nose); }
+const nose = new THREE.Mesh(new THREE.SphereGeometry(HP.W * .2, 8, 6), new THREE.MeshLambertMaterial({ color: 0xa5603e })); { const y = HP.py(168); nose.position.set(0, y, HP.front(y) + HP.W * .08); nose.scale.set(1, .9, .9); J.head.add(nose); }
 // walrus moustache: two drooping lobes that bounce while he talks
 const stache = new THREE.Group(); { const y = HP.py(192); stache.position.set(0, y, HP.front(y) + HP.W * .02); J.head.add(stache);
   [-1, 1].forEach(s => { const lobe = new THREE.Mesh(new THREE.SphereGeometry(1, 7, 5), greyM); lobe.scale.set(HP.W * .42, HP.W * .17, HP.W * .17); lobe.position.set(s * HP.W * .34, -HP.W * .04, 0); lobe.rotation.z = s * -.42; stache.add(lobe);
@@ -493,7 +493,10 @@ function advance() {
   if (TALK.i + 1 < BEATS.length) { hideGloss(); say(TALK.i + 1); return; }
   // the last line: he keeps shooing you out while the room fades, then on to the palace
   TALK.ending = true; hideGloss(); $('talk').hidden = true; $('fade').className = 'in';
-  setTimeout(() => { location.href = NEXT + location.search.replace(/[?&](beat|shot)=[^&]*/g, '').replace(/^&/, '?'); }, 1300);
+  setTimeout(() => {
+    if (window.CasasolaShell && window.CasasolaShell.inShell) window.CasasolaShell.next(NEXT);
+    else location.href = NEXT + location.search.replace(/[?&](beat|shot)=[^&]*/g, '').replace(/^&/, '?');
+  }, 1300);
 }
 $('bNext').addEventListener('click', e => { e.stopPropagation(); advance(); });
 $('talk').addEventListener('click', e => { if (e.target.closest('.term')) return; advance(); });
@@ -557,6 +560,14 @@ function frame_(now) {
 requestAnimationFrame(frame_);
 // begin: the room fades up, then he speaks
 const startBeat = Math.max(0, Math.min(BEATS.length - 1, +(PARAMS.get('beat') || 0)));
-requestAnimationFrame(() => { $('fade').className = 'out'; });
-setTimeout(() => say(startBeat), PARAMS.has('shot') ? 0 : 1100);
+// inside the game shell the room is drawn under the loading screen first, and the talk starts once it is seen
+const SHELL = window.CasasolaShell;
+if (SHELL && SHELL.inShell) {
+  $('fade').className = 'out';
+  requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(() => SHELL.ready(), 300)));
+  SHELL.onShown(() => setTimeout(() => say(startBeat), 700));
+} else {
+  requestAnimationFrame(() => { $('fade').className = 'out'; });
+  setTimeout(() => say(startBeat), PARAMS.has('shot') ? 0 : 1100);
+}
 window.__office = { THREE, scene, camera, renderer, pub, J, BEATS, say, advance, revealAll, view, thump, EX, FACE, setFace: f => { FACE.cur = f; }, setAct: a => { ACT = a; actT0 = clock; }, POSE, Q };

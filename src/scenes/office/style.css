@@ -19,12 +19,12 @@ body { background: #0d0907; color: var(--ink); font-family: var(--fell); overflo
 #fade.out { opacity: 0; }
 #fade.in { opacity: 1; transition-duration: 1.1s; }
 
-.card { position: relative; color: var(--ink); background: #e9dbb8 var(--paper) center / cover; background-blend-mode: multiply; padding: 18px 24px 20px;
-  box-shadow: inset 0 0 0 2px rgba(36,24,15,.8), inset 0 0 40px rgba(120,80,30,.4), 6px 8px 0 rgba(30,30,70,.45), 0 20px 40px rgba(0,0,0,.4); }
+.card { position: relative; color: var(--ink); background: #ece3d0 var(--paper) center / cover; background-blend-mode: multiply; padding: 18px 24px 20px;
+  box-shadow: inset 0 0 0 2px rgba(36,24,15,.8), inset 0 0 40px rgba(105,85,60,.26), 6px 8px 0 rgba(30,30,70,.45), 0 20px 40px rgba(0,0,0,.4); }
 .card::after { content: ""; position: absolute; inset: 7px; border: 1px solid rgba(36,24,15,.55); pointer-events: none; }
 .btn { font-family: var(--fellsc); font-size: 19px; letter-spacing: .03em; color: var(--ink); cursor: pointer; touch-action: manipulation; border: 0; border-radius: 0; padding: 9px 18px 10px;
-  background: #e4d3aa var(--paper) center / 300px; background-blend-mode: multiply; position: relative; z-index: 1;
-  box-shadow: inset 0 0 0 1.5px rgba(36,24,15,.85), inset 0 0 14px rgba(120,80,30,.35), 3px 4px 0 rgba(40,45,90,.42); }
+  background: #e8dfcb var(--paper) center / 300px; background-blend-mode: multiply; position: relative; z-index: 1;
+  box-shadow: inset 0 0 0 1.5px rgba(36,24,15,.85), inset 0 0 14px rgba(105,85,60,.22), 3px 4px 0 rgba(40,45,90,.42); }
 .btn:hover { filter: brightness(1.07) saturate(1.1); transform: translateY(-1px); }
 .btn:active { transform: translateY(2px); }
 .btn:focus-visible { outline: 3px solid var(--ochre); outline-offset: 3px; }

@@ -1,0 +1,50 @@
+/* The shell: black, white type, no tint. The photographs are shown in neutral black and white. */
+:root {
+  --fell: "IM Fell English", "Old Standard TT", Georgia, serif;
+  --fellsc: "IM Fell English SC", "Old Standard TT", Georgia, serif;
+  --fadeIn: .6s;
+  --fadeOut: .9s;
+}
+html, body { margin: 0; height: 100%; background: #000; color: #f4f2ee; overflow: hidden; -webkit-user-select: none; user-select: none; }
+
+#stage { position: fixed; inset: 0; }
+#stage iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; background: #000; }
+
+/* title: a wall of overlapping prints, darkened, with the title in the top left */
+#title { position: fixed; inset: 0; z-index: 10; background: #000; overflow: hidden; }
+#title[hidden] { display: none; }
+#collage { position: absolute; inset: -4%; transform-origin: 50% 50%; animation: drift 60s ease-in-out infinite alternate; will-change: transform; }
+#collage img { position: absolute; display: block; object-fit: cover; box-shadow: 0 6px 24px rgba(0, 0, 0, .7); }
+#collage img.print { outline: 5px solid #e9e8e4; outline-offset: -5px; }
+@keyframes drift { from { transform: scale(1.02) translate(0, 0); } to { transform: scale(1.08) translate(-1.2%, .8%); } }
+#shade { position: absolute; inset: 0; background: #000; opacity: .58; }
+#shade::after { content: ""; position: absolute; inset: 0; background: linear-gradient(160deg, rgba(0,0,0,.75) 0%, rgba(0,0,0,.25) 38%, rgba(0,0,0,0) 60%); }
+#titleText { position: absolute; left: max(28px, 4vw); top: max(24px, 4vh); right: 28px; max-width: 860px; }
+#titleText h1 { margin: 0; font-weight: 400; text-shadow: 0 2px 18px rgba(0,0,0,.8); }
+#titleText .l1 { display: block; font-family: var(--fellsc); font-size: clamp(28px, 4.6vw, 64px); line-height: 1.02; letter-spacing: .02em; }
+#titleText .l2 { display: block; font-family: var(--fell); font-style: italic; font-size: clamp(20px, 2.6vw, 36px); margin-top: .35em; color: #d9d6cf; }
+#bPlay { margin-top: clamp(22px, 4vh, 40px); font-family: var(--fellsc); font-size: clamp(18px, 1.8vw, 23px); letter-spacing: .08em; color: #f4f2ee; background: rgba(0,0,0,.25);
+  border: 1.5px solid #f4f2ee; border-radius: 0; padding: 11px 30px 12px; cursor: pointer; transition: background .2s, color .2s; touch-action: manipulation; }
+#bPlay:hover, #bPlay:focus-visible { background: #f4f2ee; color: #000; outline: none; }
+#bPlay:active { transform: translateY(1px); }
+
+/* the loading screen: black, the word spaced out, the real camera turning slowly beside it */
+#loader { position: fixed; inset: 0; z-index: 30; background: #000; opacity: 1; visibility: visible; transition: opacity var(--fadeOut) ease, visibility 0s linear 0s; pointer-events: auto; }
+#loader.off { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity var(--fadeOut) ease, visibility 0s linear var(--fadeOut); }
+#loader.coming { transition: opacity var(--fadeIn) ease, visibility 0s linear 0s; }
+#loader .tag { position: absolute; right: max(26px, 3vw); bottom: max(22px, 3vh); display: flex; align-items: center; gap: 18px; }
+#loader .word { margin: 0; font-family: var(--fellsc); font-size: 20px; letter-spacing: .08em; color: #e9e7e2; white-space: nowrap; }
+#loader .dots span { opacity: .15; animation: dot 1.5s infinite; }
+#loader .dots span:nth-child(2) { animation-delay: .25s; }
+#loader .dots span:nth-child(3) { animation-delay: .5s; }
+@keyframes dot { 0%, 20% { opacity: .15; } 35%, 70% { opacity: 1; } 100% { opacity: .15; } }
+/* 144 frames, 12 by 12, one full turn in 12 s: rows step once a second, columns twelve times a second.
+   Transforms with steps() run on the compositor, so the camera keeps turning while a scene's scripts load. */
+#loader .spin { --s: 92px; width: var(--s); height: var(--s); overflow: hidden; flex: none; }
+#loader .row { width: calc(var(--s) * 12); height: calc(var(--s) * 12); animation: rows 12s steps(12) infinite; will-change: transform; }
+#loader .col { width: calc(var(--s) * 12); height: calc(var(--s) * 12); animation: cols 1s steps(12) infinite; will-change: transform; }
+#loader .spin img { width: 100%; height: 100%; display: block; }
+@keyframes rows { to { transform: translateY(-100%); } }
+@keyframes cols { to { transform: translateX(-100%); } }
+@media (max-width: 520px) { #loader .spin { --s: 72px; } #loader .word { font-size: 17px; } }
+@media (prefers-reduced-motion: reduce) { #collage { animation: none; } }

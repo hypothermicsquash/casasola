@@ -1772,7 +1772,7 @@ const postMat = new THREE.ShaderMaterial({
     float h21(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
     float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h21(i), h21(i + vec2(1, 0)), f.x), mix(h21(i + vec2(0, 1)), h21(i + vec2(1, 1)), f.x), f.y); }
     // the plate's look, matched to the finder's CSS filter so the hand-over at the end is invisible
-    vec3 silver(vec3 c){ float L = dot(c, vec3(.2126, .7152, .0722)); vec3 m = min(vec3(1.0), L * vec3(1.11232, 1.06496, .97984)); return clamp((m - .5) * 1.18 + .5, 0.0, 1.0) * .97; }
+    vec3 silver(vec3 c){ float L = dot(c, vec3(.2126, .7152, .0722)); vec3 m = min(vec3(1.0), vec3(L)); return clamp((m - .5) * 1.18 + .5, 0.0, 1.0) * .97; }
     void main(){
       if (uRaise > .999) { gl_FragColor = vec4(silver(texture2D(tDiffuse, vUv).rgb), 1.0); return; }
       // brush direction wanders slowly across the canvas
@@ -3218,11 +3218,15 @@ async function sendPrint() {
   const S = SEND, el = S.el, card = S.card;
   el.onpointerdown = el.onpointermove = el.onpointerup = el.onpointercancel = null; el.classList.remove('drag'); el.disabled = true;
   // the print goes into the pocket: over the opening, then down behind the front
-  card.appendChild(el); el.style.zIndex = 2;
+  // it travels in front of the envelope until its bottom edge is clear above the opening, and only then
+  // drops behind the pocket's front, so it always goes in through the top (button or drag, from any side)
+  card.appendChild(el); el.style.zIndex = 10;
   const pw = S.EW * .8, sc = pw / el._w, hIn = el._h * sc;
-  const from = el._send, aboveY = S.ey - hIn / 2 + hIn * .18, inY = S.ey + S.EH / 2 + 4;
-  await tween(420, e => place(el, lerp(from.x, S.ecx, e), lerp(from.y, aboveY, e), lerp(from.r, 0, e), lerp(from.s, sc, e)), EZ.io);
-  await tween(430, e => place(el, S.ecx, lerp(aboveY, inY, e), 0, sc), EZ.io);
+  const from = el._send, aboveY = S.ey - hIn / 2 - Math.max(8, S.EH * .06), inY = S.ey + S.EH / 2 + 4;
+  const liftY = Math.min(aboveY, from.y - S.EH * .15);
+  await tween(480, e => { const k = EZ.io(e); place(el, lerp(from.x, S.ecx, k), lerp(from.y, aboveY, k) + (liftY - aboveY) * Math.sin(Math.PI * k) * .6, lerp(from.r, 0, k), lerp(from.s, sc, k)); }, EZ.lin);
+  el.style.zIndex = 2;
+  await tween(460, e => place(el, S.ecx, lerp(aboveY, inY, e), 0, sc), EZ.io);
   el.style.display = 'none';
   // flap folds down
   S.fIn.style.transformOrigin = '50% 50%'; S.fOut.style.transformOrigin = '50% 50%';
