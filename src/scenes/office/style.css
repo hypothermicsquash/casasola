@@ -32,7 +32,12 @@ body { background: #0d0907; color: var(--ink); font-family: var(--fell); overflo
 .btn kbd { font-family: var(--fellsc); font-size: 14px; opacity: .65; margin-left: 8px; }
 @media (hover: none) { .kbd-only { display: none; } }
 
-#talk { position: fixed; z-index: 4; left: 50%; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); width: min(580px, calc(100vw - 32px)); box-sizing: border-box; cursor: pointer; padding: 14px 20px 16px; }
+#talk { position: fixed; z-index: 4; left: 50%; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); width: min(1000px, calc(100vw - 32px)); box-sizing: border-box; cursor: pointer; padding: 14px 22px 16px; }
+/* the dialogue box: a plain box, near-white with a dark rule, no paper texture or tint (user, 2026-11-22) */
+#talk.card { background: #f2f0eb; box-shadow: 0 0 0 2px #2b2724, 0 8px 22px rgba(0,0,0,.5); }
+#talk.card::after { display: none; }
+#talk .btn.primary { background: #2b2724; color: #f2f0eb; box-shadow: none; }
+#talk h3 { color: #8a2e1c; }
 #talk h3 { margin: 0 0 4px; font-family: var(--fellsc); font-weight: 400; font-size: 22px; color: #7d2f18; }
 #talk p { margin: 0 0 10px; font-size: clamp(17px, 2vw, 20px); line-height: 1.38; min-height: 2.76em; }
 #talk p span.h { visibility: hidden; }
@@ -42,6 +47,6 @@ body { background: #0d0907; color: var(--ink); font-family: var(--fell); overflo
 .term { font-weight: 700; color: #6e2412; border-bottom: 1.5px dotted rgba(110,36,18,.75); cursor: help; }
 .term.h { border-bottom-color: transparent; }
 #gloss { position: fixed; z-index: 10; max-width: min(300px, calc(100vw - 32px)); box-sizing: border-box; font-family: var(--fell); font-size: 17px; line-height: 1.3; color: var(--ink); padding: 8px 12px 9px; pointer-events: none;
-  background: #e2d1a8 var(--paper) center / 300px; background-blend-mode: multiply; box-shadow: inset 0 0 0 1.5px rgba(36,24,15,.85), 3px 4px 0 rgba(40,45,90,.42); }
+  background: #f2f0eb; box-shadow: 0 0 0 1.5px #2b2724, 0 6px 16px rgba(0,0,0,.45); }
 #gloss b { font-family: var(--fellsc); font-weight: 400; color: #7d2f18; margin-right: 6px; }
 @media (max-width: 480px) { #talk { padding: 14px 16px 16px; } #talk h3 { font-size: 20px; } }
