@@ -31,5 +31,14 @@ async function boot() {
   }
   requestAnimationFrame(tick);
   window.__zones = zm;
+  if (id === 'scene1') nextScene('scene2.html');
+}
+// after scene 1's newspaper, a second button beside Play again leads on to the palace (its own page)
+function nextScene(href) {
+  const again = document.getElementById('bAgain'); if (!again) return;
+  const b = again.cloneNode(false); b.id = 'bNext'; b.textContent = 'Next scene'; b.style.marginLeft = '10px';
+  b.onclick = () => { location.href = href + location.search.replace(/[?&]scene=[^&]*/, ''); };
+  again.after(b);
+  new MutationObserver(() => b.classList.toggle('show', again.classList.contains('show'))).observe(again, { attributes: true, attributeFilter: ['class'] });
 }
 boot().catch(e => console.error('boot failed', e));
