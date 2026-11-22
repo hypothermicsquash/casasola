@@ -37,7 +37,8 @@ async function boot() {
     // inside the game shell: the title card is the shell's, so go straight into the opening pages once the town has
     // warmed its shaders behind the loading screen (scene 1 draws the street for 2.5 s after load for exactly that)
     const again = document.getElementById('bAgain'); if (again) again.onclick = () => S.next('scene1.html');
-    setTimeout(() => { S.ready(); }, 2600);
+    // the intro's opaque backdrop goes up under the loader first, so the village is never seen as the loader lifts
+    setTimeout(() => { const intro = document.getElementById('intro'); if (intro) intro.hidden = false; S.ready(); }, 2600);
     S.onShown(() => { const b = document.getElementById('bStart'); if (b) b.click(); });
   }
 }
