@@ -1656,7 +1656,7 @@ function createCrowd({ scene, renderer, spots, near = 18, mid: MIDD = 45, eyes =
     const midM = new THREE.Mesh(ds.mid.geo, ds.midMat); midM.castShadow = !!p.D.important; root.add(midM);
     const J = {}; bones.forEach(b => J[b.name] = b);
     const P = { root, D: p.D, J, i, d: p.d, hi, mid: midM, lvl: -1, lx: 0, nextLook: Math.random() * 3, nextBlink: 1 + Math.random() * 3, blink: 0, talking: false, beat: 4, nextBeat: 0, turn: 0, yaw: 0, headY: J.head ? J.head.rotation.y : 0,
-      setTalking(on) { this.talking = !!on; if (!on) { this.beat = -1; this.turn = 0; } }, r: p.D.hat === 'sombrero' || p.D.hat === 'charro' ? .42 : .22 };
+      setTalking(on) { on = !!on; if (on && !this.talking) { this.beat = 4; this.nextBeat = 0; } this.talking = on; if (!on) { this.beat = 4; this.turn = 0; } }, r: p.D.hat === 'sombrero' || p.D.hat === 'charro' ? .42 : .22 };
     root.userData.person = P; return P; });
   const m4 = new THREE.Matrix4(), wp = new THREE.Vector3(), q = new THREE.Quaternion(), one = new THREE.Vector3(1, 1, 1), sc = new THREE.Vector3();
   function update(camera, dt) {
@@ -1673,7 +1673,7 @@ function createCrowd({ scene, renderer, spots, near = 18, mid: MIDD = 45, eyes =
       if (p.nextBlink < 0) { p.blink = .12; p.nextBlink = 2 + Math.random() * 4; }
       if (p.blink > 0) p.blink -= dt;
       if (p.talking) { p.nextBeat -= dt; if (p.nextBeat < 0) { p.nextBeat = 1.1 + Math.random() * 1.4; p.beat = 4 + ((Math.random() * 4) | 0); p.turn = p.D.important && Math.random() < .55 ? (Math.random() - .5) * .5 : 0; } }
-      const st = p.blink > 0 ? 3 : p.talking ? p.beat : p.lx;
+      const st = p.blink > 0 ? 3 : p.talking ? Math.min(7, Math.max(4, p.beat)) : p.lx;   // clamp: a talk beat outside 4..7 would show another design's tile
       tileUV(faceTile(p.d) + st, p.hi.material.userData.off.value);
       if (p.J.head) { p.yaw += (p.turn - p.yaw) * Math.min(1, dt * 4); p.J.head.rotation.y = p.headY + p.yaw; } });
     imp.instanceMatrix.needsUpdate = true; blob.instanceMatrix.needsUpdate = true;
@@ -4271,9 +4271,39 @@ let focus = null;
 function findFocus() {
   const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw); let best = null, bs = 1e9;
   const consider = (o, name, act, y) => { if (Math.abs((y || 0) - player.y) > 1.5) return; const dx = o.x - player.x, dz = o.z - player.z, d = Math.hypot(dx, dz); if (d > 2.6 || d < .01) return; const cos = (dx * fx + dz * fz) / d; if (cos < .45) return; const s = d * (1.6 - cos); if (s < bs) { bs = s; best = { name, act }; } };
-  for (const n of npcs) if (n.name && G[n.g].visible && !(state.posed && sitters.includes(n) && n.D !== 'madero')) consider(n, n.name, () => { if (!n.seated && !n.path && !state.posed) faceTo(n, player.x, player.z); n.talkT = 4; n.P.setTalking(true); (n.talk || DEFAULT_TALK)(n); }, n.y);
+  for (const n of npcs) if (n.name && G[n.g].visible && !(state.posed && sitters.includes(n) && n.D !== 'madero')) consider(n, n.name, () => { if (!n.seated && !n.path && !state.posed) faceTo(n, player.x, player.z); n.talkT = 4; n.P.setTalking(true); n.P.beat = 4; n.P.nextBeat = 0; talkTo = n; (n.talk || DEFAULT_TALK)(n); }, n.y);
   for (const d of DOORS) if (!d.show || d.show()) consider(d, d.name, d.act, d.y);
   return best;
+}
+// ---------- talk marks: a bobbing white "!" over everyone you can talk to, a turning gold star over the ones the scene needs ----------
+function markTex(kind) { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); g.lineJoin = 'round'; g.strokeStyle = '#2b2724'; g.lineWidth = 10;
+  if (kind === 'star') { g.beginPath(); for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2 - Math.PI / 2, r = i % 2 ? 20 : 56; g[i ? 'lineTo' : 'moveTo'](64 + Math.cos(a) * r, 64 + Math.sin(a) * r); } g.closePath(); g.stroke(); g.fillStyle = '#e0a526'; g.fill(); }
+  else { const bang = () => { g.beginPath(); g.moveTo(50, 10); g.lineTo(78, 10); g.lineTo(72, 84); g.lineTo(56, 84); g.closePath(); g.moveTo(78, 108); g.arc(64, 108, 14, 0, Math.PI * 2); }; bang(); g.stroke(); g.fillStyle = '#ffffff'; bang(); g.fill(); }
+  const t = new THREE.CanvasTexture(c); t.anisotropy = 2; return t; }
+const MARK_MAT = { bang: new THREE.SpriteMaterial({ map: markTex('bang'), fog: false, transparent: true, alphaTest: .1 }), star: new THREE.SpriteMaterial({ map: markTex('star'), fog: false, transparent: true, alphaTest: .1 }) };
+const marks = new THREE.Group(); scene.add(marks); const MARKS = [];
+for (let i = 0; i < 14; i++) { const m = new THREE.Sprite(MARK_MAT.bang); m.visible = false; m.renderOrder = 3; m.userData.ph = i * 1.7; marks.add(m); MARKS.push(m); }
+// the star marks the people the scene needs, and only until you have what you need from them
+const ESSENTIAL = { 'Guard': () => !flags.searched, 'Steward': () => !flags.stamp, 'Conscript at the gate': () => !flags.gateOpen, 'Presidential aide': () => !flags.officeOpen, 'Madero': () => !state.posed };
+const isEssential = n => !!(ESSENTIAL[n.name] && ESSENTIAL[n.name]());
+function updateMarks(t) {
+  marks.visible = state.started && !state.busy && !state.raised && raise.t === 0; if (!marks.visible) return;
+  const near = [];
+  for (const n of npcs) { if (!n.name || !G[n.g].visible || Math.abs((n.y || 0) - player.y) > 3) continue; if (state.posed && sitters.includes(n) && n.D !== 'madero') continue;
+    const x = n.P.root.position.x, z = n.P.root.position.z, d = Math.hypot(x - player.x, z - player.z); if (d < 18) near.push([d - (isEssential(n) ? 100 : 0), n]); } // the needed ones always get a mark
+  near.sort((a, b) => a[0] - b[0]);
+  MARKS.forEach((m, i) => { const e = near[i]; if (!e) { m.visible = false; return; } const n = e[1], star = isEssential(n), p = n.P.root.position;
+    if (m.material !== (star ? MARK_MAT.star : MARK_MAT.bang)) m.material = star ? MARK_MAT.star : MARK_MAT.bang;
+    const h = star ? .7 : .55, ph = (n.x * 3.1 + n.z * 1.7) % 6.28; m.scale.set(star ? h * Math.abs(Math.cos(t * .6 + ph)) + .04 : h, h, 1);
+    m.position.set(p.x, p.y + (n.H || 1.7) + .3 + h / 2 + Math.sin(t * 2.2 + ph) * .06, p.z); m.visible = true; });
+}
+// while talking, the camera eases round to the speaker's face and stays there until the box closes
+let talkTo = null;
+function updateTalkLook(dt) {
+  if ($('dialog').hidden) { talkTo = null; return; } if (!talkTo || state.posing) return;
+  const p = talkTo.P.root.position, dx = p.x - player.x, dz = p.z - player.z, d = Math.max(.3, Math.hypot(dx, dz));
+  const yaw = Math.atan2(-dx, -dz), pitch = Math.atan2(p.y + (talkTo.H || 1.7) * .9 - (player.y + EYE), d), k = Math.min(1, dt / .12);
+  let dy = yaw - player.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); player.yaw += dy * k; player.pitch += (pitch - player.pitch) * k;
 }
 function interact() { if (focus && !state.raised && !state.busy) focus.act(); }
 
@@ -4395,6 +4425,7 @@ function frame(now) {
   drawWatch();
   updateRaise(dt);
   FP.pose(raise.t, dt, moving, t);
+  updateTalkLook(dt); updateMarks(t);
   placeCamera();
   crowd.update(camera, dt);
   for (const n of npcs) if (n.seated && n.P.lvl > 0) { n.P.hi.visible = true; n.P.mid.visible = false; } // a seated pose only exists on the near model
@@ -4412,7 +4443,7 @@ $('bStart').disabled = false;
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { watchFace = null; paintPlates(); });
 requestAnimationFrame(frame);
 // test hook for screenshots
-window.G2 = { player, flags, state, npcs, sitters, floorAt, blocked, shoot, toggleRaise, interact, posePeople, maderoTalk, conscriptTalk, setZone, POOL, renderer, scene, camera, THREE,
+window.G2 = { marks, MARKS, player, flags, state, npcs, sitters, floorAt, blocked, shoot, toggleRaise, interact, posePeople, maderoTalk, conscriptTalk, setZone, POOL, renderer, scene, camera, THREE,
   tp(x, y, z, yaw, pitch) { Object.assign(player, { x, y, z, yaw, pitch: pitch || 0 }); const f = floorAt(x, z, y); if (f) setZone(f.zone, true); } };
 })();
 </script>
