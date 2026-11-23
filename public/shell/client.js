@@ -63,6 +63,15 @@
       else location.href = href + location.search;
     }
   };
+  // the game's important buttons click (user, 2026-11-23: seconds 0:42-0:44 of their button sound, quiet); dialogue Continue does not
+  (function () {
+    var me = document.currentScript && document.currentScript.src, src = me ? me.replace(/shell\/client\.js(\?.*)?$/, 'audio/click.mp3') : 'audio/click.mp3', a = null;
+    var SEL = '#bStart,#bDevelop,#bDone,#bSend,#bTitle,#bAgain,.cas-go,button.print:not(.drag)';
+    document.addEventListener('click', function (e) {
+      var b = e.target && e.target.closest && e.target.closest(SEL); if (!b || b.disabled) return;
+      try { if (!a) { a = new Audio(src); a.volume = .35; } var c = a.cloneNode(); c.volume = .35; var p = c.play(); if (p && p.catch) p.catch(function () {}); } catch (err) {}
+    }, true);
+  })();
   // sound for the scenes (music, footsteps, horses, voices): shell/audio.js, beside this file
   if (/(scene1|scene2|office)\.html$/.test(location.pathname)) {
     var me = document.currentScript && document.currentScript.src, au = document.createElement('script');
