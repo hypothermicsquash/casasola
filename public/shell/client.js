@@ -61,4 +61,10 @@
       else location.href = href + location.search;
     }
   };
+  // sound for the scenes (music, footsteps, horses, voices): shell/audio.js, beside this file
+  if (/(scene1|scene2|office)\.html$/.test(location.pathname)) {
+    var me = document.currentScript && document.currentScript.src, au = document.createElement('script');
+    au.src = me ? me.replace(/client\.js(\?.*)?$/, 'audio.js') : 'shell/audio.js'; au.async = true;
+    (document.head || document.documentElement).appendChild(au);
+  }
 })();
