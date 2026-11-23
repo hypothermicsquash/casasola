@@ -3051,17 +3051,39 @@ const INSTR = (() => {
 })();
 // the hand's centre in an elbow's frame (people-kit: forearm .13 h, hand ball .03 h below it)
 const handOf = n => new THREE.Vector3(0, -.16 * n.H, 0);
-function reachArm(n, side, target) { // target in world space; solve shoulder x/z and elbow x by coordinate descent
-  const J = n.P.J, sh = J['sh' + side], el = J['el' + side], hand = handOf(n), w = new THREE.Vector3();
-  const err = () => { n.P.root.updateMatrixWorld(true); el.localToWorld(w.copy(hand)); return w.distanceToSquared(target); };
-  const knobs = [[sh.rotation, 'x', -3, .6], [sh.rotation, 'z', -1.6, 1.6], [el.rotation, 'x', -2.5, 0], [sh.rotation, 'y', -1, 1]];
-  let e = err(), step = .3;
-  for (let it = 0; it < 60 && step > .002; it++) {
-    let better = false;
-    for (const [o, k, lo, hi] of knobs) for (const d of [step, -step]) { const v = o[k]; o[k] = Math.max(lo, Math.min(hi, v + d)); const e2 = err(); if (e2 < e - 1e-7) { e = e2; better = true; } else o[k] = v; }
-    if (!better) step *= .5;
+function reachArm(n, side, target, avoid, starts) { // target in world space; shoulder x/y/z and elbow x by coordinate descent
+  const J = n.P.J, sh = J['sh' + side], el = J['el' + side], hand = handOf(n), w = new THREE.Vector3(), q = new THREE.Vector3();
+  // avoid(worldPoint) -> how deep that point is inside something; points along the upper arm and forearm are kept out
+  const pen = () => { if (!avoid) return 0; let s = 0; n.P.root.updateMatrixWorld(true);
+    for (let i = 1; i <= 4; i++) { s += Math.pow(avoid(el.localToWorld(q.set(0, hand.y * i / 4, 0))), 2); s += Math.pow(avoid(sh.localToWorld(q.set(0, el.position.y * i / 4, 0))), 2); }
+    return s; };
+  const err = () => { n.P.root.updateMatrixWorld(true); el.localToWorld(w.copy(hand)); return w.distanceToSquared(target) + 30 * pen(); };
+  const knobs = [[sh.rotation, 'x', -3, .6], [sh.rotation, 'z', -1.6, 1.6], [el.rotation, 'x', -2.5, 0], [sh.rotation, 'y', -1.2, 1.2]];
+  let best = null, bestE = 1e9;
+  for (const st of starts || [[sh.rotation.x, sh.rotation.y, sh.rotation.z, el.rotation.x]]) {
+    sh.rotation.set(st[0], st[1], st[2]); el.rotation.x = st[3];
+    let e = err(), step = .3;
+    for (let it = 0; it < 120 && step > .002; it++) {
+      let better = false;
+      for (const [o, k, lo, hi] of knobs) for (const d of [step, -step]) { const v = o[k]; o[k] = Math.max(lo, Math.min(hi, v + d)); const e2 = err(); if (e2 < e - 1e-7) { e = e2; better = true; } else o[k] = v; }
+      if (!better) step *= .5;
+    }
+    if (e < bestE) { bestE = e; best = [sh.rotation.x, sh.rotation.y, sh.rotation.z, el.rotation.x]; }
   }
-  return Math.sqrt(e);
+  sh.rotation.set(best[0], best[1], best[2]); el.rotation.x = best[3];
+  return bestE;
+}
+// how deep a world point is inside the guitarrón (body as a thick ellipse, neck as a box), with an arm's thickness of margin
+function insideGuitarron(inst) {
+  const v = new THREE.Vector3(), M = .035;
+  return p => {
+    inst.worldToLocal(v.copy(p));
+    let d = 0;
+    const r = Math.hypot(v.x / (.26 + M), (v.y + .03) / (.3 + M));
+    if (r < 1 && v.z < .012 + M && v.z > -.2 - M) d = Math.max(d, Math.min((1 - r) * .26, .012 + M - v.z, v.z + .2 + M));
+    if (Math.abs(v.x) < .03 + M && v.y > .25 && v.y < .7 && v.z < .02 + M && v.z > -.03 - M) d = Math.max(d, Math.min(.03 + M - Math.abs(v.x), .02 + M - v.z, v.z + .03 + M));
+    return d;
+  };
 }
 for (const n of musicians) {
   const P = n.P, J = P.J; n.forceNear = true; P.nextLook = 1e9; P.turn = 0; // they keep their eyes on the playing
@@ -3076,10 +3098,14 @@ for (const n of musicians) {
     reachArm(n, 'L', inst.localToWorld(new THREE.Vector3(.025, -.07, .14)));
   } else {
     // across the belly, neck rising to the player's left
-    J.spine.add(inst); inst.position.set(-.06 * n.H, .17 * n.H, .17 * n.H); inst.rotation.set(-.12, .2, -1.08); inst.scale.setScalar(n.H / 1.64 * 1.3);
+    J.spine.add(inst); inst.position.set(-.06 * n.H, .035 * n.H, .22 * n.H); inst.rotation.set(-.12, .2, -1.08); inst.scale.setScalar(n.H / 1.64 * 1.08);
     inst.updateMatrixWorld(true);
-    reachArm(n, 'L', inst.localToWorld(new THREE.Vector3(-.01, .4, .05)));
-    reachArm(n, 'R', inst.localToWorld(new THREE.Vector3(.04, .02, .07)));
+    // like the photos: the left hand round the neck from behind, the right forearm over the top of the body to the strings
+    const av = insideGuitarron(inst);
+    n.reachErr = [];
+    n.reachErr.push(reachArm(n, 'L', inst.localToWorld(new THREE.Vector3(-.005, .42, -.045)), av, [[-1.2, 0, .4, -1.6], [-.8, .4, .2, -2], [-1.6, -.3, .6, -1.2]]));
+    n.reachErr.push(reachArm(n, 'R', inst.localToWorld(new THREE.Vector3(.03, -.02, .075)), av, [[-.9, 0, -.5, -1.3], [-1.4, .3, -.9, -1], [-.5, -.4, -.3, -1.8], [-1.8, 0, -1.1, -.6]]));
+    n.inst = inst; n.avoid = av;
   }
   n.rest = {}; for (const k of ['shR', 'shL', 'elR', 'elL', 'spine', 'head']) if (J[k]) n.rest[k] = J[k].rotation.clone();
   for (const k of ['shR', 'shL', 'elR', 'elL']) n.base[k] = J[k].rotation.x;
@@ -3090,7 +3116,7 @@ function playMusicians(t) {
     const J = n.P.J, R = n.rest, b = t * 2.1 + (n.music === 'trumpet' ? 1.3 : 0);
     J.spine.rotation.z = R.spine.z + Math.sin(b) * .035; J.spine.rotation.x = R.spine.x + Math.sin(b * 2) * .015;
     if (n.music === 'trumpet') { const lift = Math.max(0, Math.sin(t * .7)) * .1; J.spine.rotation.x -= lift * .5; J.head.rotation.x = R.head.x - lift * .6; }
-    else { J.elR.rotation.x = R.elR.x + Math.sin(t * 13) * .06; J.shR.rotation.y = R.shR.y + Math.sin(t * 13) * .05; }
+    else { J.elR.rotation.x = R.elR.x + Math.sin(t * 13) * .03; }
   }
 }
 function setPose(n, mode) { // 'stand', 'sit' or a walk phase
@@ -4400,6 +4426,7 @@ async function choose(p, el) {
   el._send = { x: tx, y: ty, r: -2, s: s1 };
   tween(800, e => place(el, lerp(f.x, tx, e), lerp(f.y, ty, e), lerp(f.r, -2, e), lerp(s0, s1, e)), EZ.io);
   await sleep(250);
+  sndCue('letter');
   await tween(650, e => { env.style.transform = `translateX(${(1 - e) * W * .75}px) rotate(${(1 - e) * 6}deg)`; }, EZ.out);
   env.style.transform = 'none';
   // precompute the press while the player reads the button
@@ -4432,8 +4459,11 @@ function dragToEnvelope(el) {
   el.onpointerup = drop; el.onpointercancel = drop;
 }
 $('bSend').onclick = () => sendPrint();
+// sound cues for the game's sound (shell/audio.js); a no-op when it isn't loaded
+function sndCue(k) { try { if (window.CasasolaAudio) window.CasasolaAudio.cue(k); } catch (e) {} }
 async function sendPrint() {
   const b = $('bSend'); if (!b.classList.contains('show')) return; b.classList.remove('show');
+  sndCue('insert');
   const S = SEND, el = S.el, card = S.card;
   el.onpointerdown = el.onpointermove = el.onpointerup = el.onpointercancel = null; el.classList.remove('drag'); el.disabled = true;
   // the print goes into the pocket: over the opening, then down behind the front
@@ -4512,6 +4542,7 @@ async function runPress() {
   pr.remove();
   await sleep(380);
   // pull back until the headline and the photo fill the screen, the page's side edges in view
+  sndCue('fanfare');
   await tween(1700, e => {
     const k = lerp(P.K, P.K2, e), r = -.8 * e;
     P.page.style.transform = `translate(${lerp(P.tx, 0, e)}px, ${lerp(P.ty, P.ty2, e)}px) scale(${k}) rotate(${r}deg)`;
