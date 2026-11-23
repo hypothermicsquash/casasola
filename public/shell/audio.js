@@ -13,7 +13,7 @@
   // every loop file carries 0.15 s of wrap-around on both ends, so the loop window below is seamless
   // whatever the decoder does with the MP3 padding
   var LOOPS = { dirt: 9.35, marble: 9.2, stone: 8.58, gallop: 21.0, crowd: 30.5 }, PAD = .15;
-  var WANT = { village: ['dirt', 'gallop', 'crowd', 'neigh', 'paper-letter', 'paper-insert', 'fanfare'], palace: ['stone', 'marble', 'crowd', 'paper-letter', 'paper-insert', 'fanfare'], office: [] }[page];
+  var WANT = { village: ['dirt', 'gallop', 'crowd', 'neigh', 'paper-insert', 'fanfare'], palace: ['stone', 'marble', 'crowd', 'paper-insert', 'fanfare'], office: [] }[page];
   var MUSIC = { village: 'music1.mp3', palace: 'music2.mp3' }[page];
 
   var ctx = null, master, voiceBus, buf = {}, loops = {}, music = null, muted = false;
@@ -119,7 +119,7 @@
     var tutorial = st.room || (G.ROOM && !G.ROOM.left), duck = Math.max(0, 1 - lv / .9);
     var mv = st.seqCover ? .012 : tutorial ? .1 : dlgOpen() ? .15 : .22;
     setMusic(st.seqCover ? .012 : Math.max(.05, mv * (.35 + .65 * duck)));
-    setBed('dirt', outside && walking ? .5 : 0, { fast: true, fromTop: true, stopWhenSilent: true, rate: st.raised ? .8 : 1 });
+    setBed('dirt', outside && walking ? .42 : 0, { fast: true, fromTop: true, stopWhenSilent: true, rate: st.raised ? .8 : 1 });
     setBed('crowd', outside ? .045 : st.started ? .015 : 0);
     setBed('gallop', st.seqCover ? 0 : lv, { pan: near < 1e8 ? panFrom(me, nx, nz) : 0 });
     if (lv > 0) {
@@ -149,8 +149,8 @@
     if (!st.started) lv *= .4;
     if (st.seqCover) lv = .012; // developing, choosing, the newspaper: the music all but stops (user, 2026-11-23)
     setMusic(Math.min(.9, lv), q[1]);
-    setBed('stone', walking && !INSIDE[z] ? .45 : 0, { fast: true, fromTop: true, stopWhenSilent: true, rate: st.raised ? .8 : 1 });
-    setBed('marble', walking && INSIDE[z] ? .38 : 0, { fast: true, fromTop: true, stopWhenSilent: true, rate: st.raised ? .8 : 1 });
+    setBed('stone', walking && !INSIDE[z] ? .38 : 0, { fast: true, fromTop: true, stopWhenSilent: true, rate: st.raised ? .8 : 1 });
+    setBed('marble', walking && INSIDE[z] ? .32 : 0, { fast: true, fromTop: true, stopWhenSilent: true, rate: st.raised ? .8 : 1 });
     setBed('crowd', st.seqCover ? 0 : !st.started ? .02 : z === 'zocalo' ? .06 : z === 'guard' ? .03 : z === 'patio' ? .02 : 0);
   }
 
@@ -257,7 +257,8 @@
   (function wait() { if (!hookDialog()) setTimeout(wait, 300); })();
 
   // one-off sounds the scenes call for (sndCue in the scene code): the letter, the print going in, the newspaper
-  var CUES = { letter: ['paper-letter', .9], insert: ['paper-insert', 1], fanfare: ['fanfare', .85] };
+  // user, 2026-11-23: no paper sound before the photo goes in; the insert sound much quieter
+  var CUES = { insert: ['paper-insert', .3], fanfare: ['fanfare', .85] };
   function cue(k) { var c = CUES[k]; if (!c || !ctx || ctx.state !== 'running') return; once(c[0], c[1], 1, 0); }
 
   window.CasasolaAudio = {
