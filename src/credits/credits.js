@@ -86,17 +86,11 @@ requestAnimationFrame(frame);
 const CREDITS = [
   "The Art of the Mexican Revolution: Casasola's Photography",
   'Game design: Suzy Arnold',
-  'Dialogue and script: Kylena',
+  'Dialogue and script: Kylena Prom',
   'Game logo and HUD: Kelly Su',
   'Sound design: Madeleine Diep',
-  'Photographs: Agustín Víctor Casasola, Miguel Casasola and the Casasola Archive, Fototeca Nacional del INAH',
-  'Snoopy, from Peanuts, by Charles M. Schulz, © Peanuts Worldwide LLC',
-  'Paintings: Frederic Remington, Ernesto Icaza, and portraits of Juárez, Iturbide and Díaz',
-  'Inspired by Diego Rivera and Mario Borella',
-  'Maps: Natural Earth',
-  'Fonts: IM Fell English and others from Google Fonts',
-  'Built with three.js',
-  'Thank you for playing'
+  'Photographs: Agustín Víctor Casasola, Miguel Casasola and the Casasola Archive',
+  'Thanks for playing!'
 ];
 const list = $('lines');
 CREDITS.forEach((t, i) => { const li = document.createElement('li'); li.textContent = t; if (i === 0) li.className = 'first'; if (i === CREDITS.length - 1) li.className = 'last'; list.appendChild(li); });
