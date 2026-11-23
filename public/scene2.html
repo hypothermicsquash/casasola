@@ -3137,7 +3137,7 @@ const SHOW = {
 };
 function cull(zone) { const s = SHOW[zone]; for (const n of GROUPS) G[n].visible = s.includes(n); }
 // the name of each space, shown the first time the player steps into it
-const PLACE = { zocalo: 'El Zócalo', guard: 'Cuerpo de Guardia', patio: 'Patio Central', pantry: 'Despensa', stair: 'Escalera de Honor', hall: 'Galería', office: 'Despacho del Presidente' }, seen = {};
+const PLACE = { zocalo: 'El Zócalo', guard: 'Cuerpo de Guardia', patio: 'Patio Central', pantry: 'Despensa', stair: 'Escalera de Honor', hall: 'Galería', office: 'Despacho del Presidente' }, seen = { zocalo: true }; // no name over the opening square
 let placeT = 0; function announce(zone) { if (seen[zone] || !PLACE[zone]) return; seen[zone] = true; $('placeName').textContent = PLACE[zone]; $('place').classList.add('on'); placeT = 3.2; }
 
 // ---------- light: the sun from the south-east morning, and a few warm lamps that follow you indoors ----------
@@ -4951,7 +4951,7 @@ function frame(now) {
   drawWatch();
   updateRaise(dt);
   FP.pose(raise.t, dt, moving, t);
-  updateTalkLook(dt); updateMarks(t); updateMoods(dt, t);
+  updateTalkLook(dt); updateMarks(t); updateMoods(dt, t); { const o = $('objective'); if (!o.hidden) o.classList.toggle('away', state.raised || state.posing || !$('dialog').hidden); }
   if (G.zocalo.visible && Math.hypot(player.x + 2.4, player.z + 19.4) < 40) playMusicians(t);
   placeCamera();
   crowd.update(camera, dt);
@@ -4962,7 +4962,9 @@ function frame(now) {
 }
 
 // ---------- start ----------
-$('bStart').onclick = () => { $('start').hidden = true; state.started = true; setZone(player.zone); };
+const OBJECTIVE = 'Find and photograph Madero and his cabinet in the Palacio Nacional.';
+function showObjective(text) { state.objective = text; const o = $('objective'); $('objText').textContent = text; o.classList.add('fresh'); o.hidden = false; setTimeout(() => o.classList.remove('fresh'), 5200); }
+$('bStart').onclick = () => { $('start').hidden = true; state.started = true; setZone(player.zone); if (!state.objective) showObjective(OBJECTIVE); };
 $('prompt').addEventListener('click', () => { if (!focus && state.posed && !state.raised) toggleRaise(); });
 window.addEventListener('resize', () => { resize(); paintPlates(); paintBulb(); watchFace = null; });
 resize(); updatePlates(); paintBulb(); tintPeople(); setZone('zocalo', true);
