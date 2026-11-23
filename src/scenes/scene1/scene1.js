@@ -1290,13 +1290,16 @@ const skBlack = new THREE.MeshBasicMaterial({ color: 0x000000, fog: false, skinn
 seed = 1911;
 // across the main line and the strip beside it, a few abreast; Madero in the middle of the strip
 const RIDER_Z = [8.3, 11.3, 9.9, 12.5, 10.6, 8.6, 11.0, 12.3, 9.6, 11.9, 8.2, 10.4, 12.6, 9.8, 11.5, 8.5];
-const riderCoats = ['bay', 'darkbay', 'chestnut', 'buckskin', 'grullo', 'gray', 'madero', 'sorrel', 'roan', 'pinto', 'palomino', 'bay', 'darkbay', 'buckskin', 'chestnut', 'grullo'];
+// Madero's is the only black horse. No bays or dark bays in this column, so nothing else reads near-black in a
+// black-and-white plate, and the lightest coats (gray, palomino, buckskin) ride closest to him so he sits in contrast.
+const riderCoats = ['roan', 'sorrel', 'chestnut', 'grullo', 'buckskin', 'gray', 'madero', 'palomino', 'gray', 'pinto', 'sorrel', 'chestnut', 'grullo', 'buckskin', 'chestnut', 'palomino'];
 for (let i = 0; i < 16; i++) {
   const madero = i === 6;
-  rider({ key: madero ? 'madero' : 'riders', id: madero ? 'madero_ride' : 'rider' + (i % 5 + 1), x: 205 + i * 1.75 + rnd() * 1.1, z: RIDER_Z[i], speed: 7.2, coat: riderCoats[i], tack: madero ? 'gala' : i % 3 === 0 ? 'plain' : 'ranchero', seed: i + 1, rifle: !madero && i % 2 === 0 });
+  // a little open road around Madero: the riders ahead and behind keep a length off him
+  rider({ key: madero ? 'madero' : 'riders', id: madero ? 'madero_ride' : 'rider' + (i % 5 + 1), x: 205 + i * 1.75 + rnd() * 1.1 + (i < 6 ? -.7 : i > 6 ? .9 : 0), z: RIDER_Z[i], speed: 7.2, coat: riderCoats[i], tack: madero ? 'gala' : i % 3 === 0 ? 'plain' : 'ranchero', seed: i + 1, rifle: !madero && i % 2 === 0 });
 }
 // soldaderas: two riding, the rest walking behind the column
-rider({ key: 'soldaderas', id: 'soldadera_ride', x: 236, z: 10.2, speed: 7.2, coat: 'bay', tack: 'plain', seed: 21 });
+rider({ key: 'soldaderas', id: 'soldadera_ride', x: 236, z: 10.2, speed: 7.2, coat: 'chestnut', tack: 'plain', seed: 21 });
 rider({ key: 'soldaderas', id: 'soldadera_ride', x: 238.5, z: 12.1, speed: 7.2, coat: 'grullo', tack: 'plain', seed: 22 });
 for (let i = 0; i < 7; i++) {
   const g = new THREE.Group(), zs = 10.2 + (i % 3) * .8;
