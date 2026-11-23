@@ -89,6 +89,7 @@ const CREDITS = [
   'Dialogue and script: Kylena Prom',
   'Game logo and HUD: Kelly Su',
   'Sound design: Madeleine Diep',
+  'Music: “Relaxing Mexico” (Chillout Mexican Music) and “Mexican Hacienda 1950s” (Traditional Mexican Mariachi Music and Ambience)',
   'Photographs: Agustín Víctor Casasola, Miguel Casasola and the Casasola Archive',
   'Thanks for playing!'
 ];
