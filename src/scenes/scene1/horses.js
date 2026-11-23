@@ -39,7 +39,7 @@ function CasHorses(THREE, deps) {
   // joints kept at the sheet's ratios (knee ~0.65, hock ~0.7, fetlock ~0.2 of belly height), cannons and pasterns slimmer
   const LIFT = .07, KF_ = (1.12 + LIFT) / 1.12, KH_ = (1.18 + LIFT) / 1.18;
   let LEGK = 1;
-  const HSHIFT = -.05; // hind legs set back under the point of the buttock (measured on the rigged reference horse)
+  const HSHIFT = -.09; // hind legs set back under the point of the buttock (measured on the rigged reference horse)
   function warp(p) { if (LEGSHIFT != null) { p.x += LEGSHIFT; p.y *= LEGK; } else { p.x = warpX(p.x); p.y += LIFT; } return p; }
   // ---------- skeleton (rest positions in horse space) ----------
   const B = {}, BN = [], BP = [], BPOS = [];
@@ -51,17 +51,19 @@ function CasHorses(THREE, deps) {
   bone('neck1', 'front', .58, 1.34, 0);
   bone('neck2', 'neck1', .83, 1.64, 0);
   bone('head', 'neck2', 1.03, 1.88, 0);
-  bone('tail0', 'hind', -1.0, 1.31, 0);
-  bone('tail1', 'tail0', -1.09, 1.14, 0);
-  bone('tail2', 'tail1', -1.13, .9, 0);
+  bone('tail0', 'hind', -.96, 1.31, 0);
+  bone('tail1', 'tail0', -1.05, 1.14, 0);
+  bone('tail2', 'tail1', -1.09, .9, 0);
   // legs: upper (humerus / femur), middle (forearm / gaskin), cannon, pastern + hoof
   const FL = [[.6, 1.12], [.47, .86], [.49, .48], [.49, .17], [.555, 0]];
   const HL = [[-.6, 1.18], [-.42, .88], [-.72, .54], [-.69, .17], [-.625, 0]];
   const LEGS = [['LF', FL, .16], ['RF', FL, -.16], ['LH', HL, .15], ['RH', HL, -.15]];
   LEGS.forEach(([n, P, z]) => { const par = n[1] === 'F' ? 'front' : 'hind'; ['u', 'm', 'c', 'p'].forEach((s, i) => bone(n + s, i ? n + 'umcp'[i - 1] : par, P[i][0], P[i][1], z)); });
+  bone('haunch', 'hind', -.6, 1.18, 0); // the back of the haunch rides with the thighs
   bone('stL', 'body', .03, 1.36, .28);
   bone('stR', 'body', .03, 1.36, -.28);
   BN.forEach((n, i) => { const leg = /^[LR][FH][umcp]$/.test(n); if (leg) { const r = n[1] === 'F' ? FL[0][0] : HL[0][0]; BPOS[i].x += warpX(r) - r + (n[1] === 'F' ? 0 : HSHIFT); BPOS[i].y *= n[1] === 'F' ? KF_ : KH_; } else if (i > 0) { BPOS[i].x = warpX(BPOS[i].x); BPOS[i].y += LIFT; } });
+  BPOS[B.haunch].set(BPOS[B.LHu].x, BPOS[B.LHu].y, 0);
   const restAbs = P => P.slice(0, 4).map((p, i) => Math.atan2(P[i + 1][0] - p[0], p[1] - P[i + 1][1]) / DEG);
   const SEGL = P => P.slice(0, 4).map((p, i) => Math.hypot(P[i + 1][0] - p[0], P[i + 1][1] - p[1]));
   const FLs = FL.map(([x, y]) => [x, y * KF_]), HLs = HL.map(([x, y]) => [x, y * KH_]);
@@ -287,7 +289,7 @@ function CasHorses(THREE, deps) {
     const G = new Geo(), R = rng(opts.seed || 1);
     const NB = hi ? 18 : 8, NL = hi ? 9 : 5;
     // body
-    const BODY = [[-1.07, 1.33, 1.22, .05], [-1.04, 1.41, 1.11, .12], [-.98, 1.46, 1.0, .18], [-.9, 1.475, .91, .22], [-.76, 1.48, .85, .245], [-.54, 1.47, .86, .26], [-.34, 1.44, .84, .27],
+    const BODY = [[-1.02, 1.33, 1.22, .05], [-.995, 1.41, 1.11, .12], [-.94, 1.46, 1.0, .18], [-.87, 1.475, .91, .22], [-.76, 1.48, .85, .245], [-.54, 1.47, .86, .26], [-.34, 1.44, .84, .27],
       [-.12, 1.42, .78, .29], [.1, 1.42, .75, .3], [.3, 1.47, .74, .29], [.5, 1.52, .78, .26], [.66, 1.42, .84, .22], [.78, 1.22, .86, .16], [.84, 1.06, .92, .07]].map(([x, t, b, w]) => [x, (t + b) / 2, (t - b) / 2, w]);
     const body = new Surface(BODY.map(([x, y, d, w]) => ({ c: V(x, y, 0), d, w })), {
       p: 2.25, zf: (ct) => 1 - .2 * Math.max(0, ct) * Math.max(0, ct),
@@ -296,7 +298,7 @@ function CasHorses(THREE, deps) {
     const bS = []; for (let i = 0; i <= (hi ? 30 : 12); i++) bS.push(i / (hi ? 30 : 12) * (BODY.length - 1));
     const bodySkin = (p, bw) => {
       const az = Math.abs(p.z), side = sstep(.03, .2, az);
-      if (p.x < -.3) { const t = .6 * sstep(1.34, 1.0, p.y) * sstep(-.42, -.72, p.x) * side; return t > .01 ? [B.hind, B[(p.z > 0 ? 'L' : 'R') + 'Hu'], t] : bw; }
+      if (p.x < -.3) { const t = .9 * sstep(1.45, 1.0, p.y) * sstep(-.4, -.8, p.x); return t > .01 ? [B.hind, B.haunch, t] : bw; }
       if (p.x > .4) { const t = .45 * sstep(1.3, 1.0, p.y) * sstep(.42, .62, p.x) * side; return t > .01 ? [B.front, B[(p.z > 0 ? 'L' : 'R') + 'Fu'], t] : bw; }
       return bw;
     };
@@ -348,7 +350,7 @@ function CasHorses(THREE, deps) {
     // tail: dock plus long hair, three bones
     {
       const TP = [[-1.0, 1.31, .05, .045], [-1.06, 1.24, .065, .05], [-1.1, 1.12, .085, .055], [-1.13, .98, .1, .06], [-1.145, .82, .11, .06], [-1.14, .66, .1, .055], [-1.13, .54, .07, .04], [-1.12, .47, .02, .015]];
-      const tl = new Surface(TP.map(([x, y, d, w]) => ({ c: V(x, y, 0), d: d * .78, w: w * .8 })), { bones: bonesSeg([[0, B.tail0], [2, B.tail1], [4.5, B.tail2]]) });
+      const tl = new Surface(TP.map(([x, y, d, w]) => ({ c: V(x + .04, y, 0), d: d * .78, w: w * .8 })), { bones: bonesSeg([[0, B.tail0], [2, B.tail1], [4.5, B.tail2]]) });
       patch(G, range(0, TP.length - 1, hi ? 10 : 6), tl, ringT(hi ? 8 : 6), 0, (p, s) => coatColor(K, p, 'tail', { k: s / 7 }), { closed: true, cap0: true, cap1: true, uvA: (p, s, th) => th * .5, uvB: p => p.y * 2 });
     }
     // legs
@@ -362,8 +364,8 @@ function CasHorses(THREE, deps) {
         [[.482, .6], .066, .058, [bm, bm, 0]], [[.49, .48], .06, .06, [bm, bc, .5]], [[.49, .4], .046, .044, [bc, bc, 0]], [[.49, .26], .044, .04, [bc, bc, 0]],
         [[.49, .17], .056, .05, [bc, bp, .5]], [[.51, .11], .042, .042, [bp, bp, 0]], [[.535, .062], .05, .05, [bp, bp, 0], 'hoof'], [[.555, .005], .065, .062, [bp, bp, 0], 'hoof']
       ] : [
-        [[-.63, 1.2], .28, .16, [bu, bu, 0]], [[-.55, 1.04], .26, .155, [bu, bu, 0]], [[-.45, .9], .2, .14, [bu, bm, .5]], [[-.53, .78], .14, .105, [bm, bm, 0]],
-        [[-.63, .64], .085, .066, [bm, bm, 0]], [[-.72, .54], .07, .055, [bm, bc, .5], 'hock'], [[-.715, .44], .048, .042, [bc, bc, 0]], [[-.7, .28], .044, .04, [bc, bc, 0]],
+        [[-.61, 1.2], .24, .12, [bu, bu, 0]], [[-.58, 1.04], .3, .135, [bu, bu, 0]], [[-.5, .9], .25, .145, [bu, bm, .5]], [[-.56, .77], .165, .11, [bm, bm, 0]],
+        [[-.64, .64], .095, .07, [bm, bm, 0]], [[-.72, .54], .07, .055, [bm, bc, .5], 'hock'], [[-.715, .44], .048, .042, [bc, bc, 0]], [[-.7, .28], .044, .04, [bc, bc, 0]],
         [[-.69, .17], .055, .05, [bc, bp, .5]], [[-.665, .11], .042, .042, [bp, bp, 0]], [[-.64, .062], .05, .05, [bp, bp, 0], 'hoof'], [[-.62, .005], .063, .06, [bp, bp, 0], 'hoof']
       ];
       const SLIM = front ? [1, 1, .98, .95, .86, .8, .78, .78, .8, .8, .9, .9] : [1, 1, 1, .95, .88, .84, .8, .8, .8, .8, .9, .9];
@@ -604,7 +606,7 @@ function CasHorses(THREE, deps) {
     LH: [[-53, 57, 65], [-60, 69, 60], [-10, 41, 49], [-31, 22, 66], [-44, 2, 63], [-58, -13, 24], [-73, -28, -22], [-55, -32, -34], [-76, -17, -41], [-82, -8, -5], [-70, 22, -6], [-55, 45, 14]]
   };
   // frames where the hoof is on the ground (1-based, as numbered on the sheet)
-  const SHEET_DOWN = { RF: [5, 6, 7, 8], LF: [7, 8, 9, 10], RH: [2, 3, 4], LH: [3, 4, 5, 6] };
+  const SHEET_DOWN = { RF: [5, 6, 7, 8], LF: [8, 9, 10], RH: [2, 3], LH: [3, 4, 5, 6] }; // hooves on the ground line, frame by frame
   function sheetPose(leg, p, amp) {
     const K = SHEET[leg], n = K.length, f = (((p % 1) + 1) % 1) * n, i = Math.floor(f), t = f - i;
     const P0 = K[(i - 1 + n) % n], P1 = K[i % n], P2 = K[(i + 1) % n], P3 = K[(i + 2) % n], t2 = t * t, t3 = t2 * t;
@@ -728,8 +730,25 @@ function CasHorses(THREE, deps) {
     }
     return a;
   }
-  function ik(a0, front, tx, ty) {
-    if (front) return ik2(a0, front, tx, ty);
+  // a planted foreleg: the knee locks straight and the fetlock gives; solve the column (forearm+cannon) and pastern
+  function ikFrontStance(a0, tx, ty) {
+    const L = FLEN; let c = (a0[1] + a0[2]) / 2, q = clamp(a0[3], c + 15, c + 60);
+    const pose = (c, q) => couple([a0[0], c, c, q], true);
+    for (let it = 0; it < 8; it++) {
+      const e0 = fk(pose(c, q), true), rx = tx - e0[0], ry = ty - e0[1];
+      if (rx * rx + ry * ry < 1e-6) break;
+      const e1 = fk(pose(c + .5, q), true), e2 = fk(pose(c, q + .5), true);
+      const j11 = (e1[0] - e0[0]) / .5, j21 = (e1[1] - e0[1]) / .5, j12 = (e2[0] - e0[0]) / .5, j22 = (e2[1] - e0[1]) / .5;
+      const lam = 1e-5, a = j11 * j11 + j21 * j21 + lam, bb = j11 * j12 + j21 * j22, d = j12 * j12 + j22 * j22 + lam, det = a * d - bb * bb;
+      const g1 = j11 * rx + j21 * ry, g2 = j12 * rx + j22 * ry;
+      let d1 = (d * g1 - bb * g2) / det, d2 = (a * g2 - bb * g1) / det;
+      const mx = Math.max(Math.abs(d1), Math.abs(d2)); if (mx > 20) { d1 *= 20 / mx; d2 *= 20 / mx; }
+      c += d1; q = clamp(q + d2, c + 12, c + 62);
+    }
+    return pose(c, q);
+  }
+  function ik(a0, front, tx, ty, planted) {
+    if (front) return planted ? ikFrontStance(a0, tx, ty) : ik2(a0, front, tx, ty);
     let x1 = a0[1], x2 = a0[2];
     const pose = (u, v) => couple([a0[0], u, v, a0[3]], front);
     for (let it = 0; it < 6; it++) {
@@ -808,27 +827,28 @@ function CasHorses(THREE, deps) {
     // place the body from the hip heights, plant or fold each leg; if a planted leg can't reach, drop that end and redo
     const body = bones[B.body], legOut = {};
     let pitch = 0;
-    for (let pass = 0; pass < 2; pass++) {
+    for (let pass = 0; pass < 3; pass++) {
       pitch = clamp(Math.asin(clamp((yF - yH) / rr, -.4, .4)) - Math.atan2(ddy, ddx), -.25, .25);
       const cp = Math.cos(pitch), sp = Math.sin(pitch), by = yF - (oFx * sp + oFy * cp);
       body.rotation.z = pitch; body.position.y = by;
       const hip = { F: [oFx * cp - oFy * sp, oFx * sp + oFy * cp + by], H: [oHx * cp - oHy * sp, oHx * sp + oHy * cp + by] };
-      let rF = 0, rH = 0;
+      let rF = 0, rH = 0, uF = 0, uH = 0;
       LEG_ORDER.forEach(leg => {
         const front = leg[1] === 'F', hp = hip[leg[1]], [m, tx] = plant[leg];
         let acc = absAcc[leg];
         if (m > 0) {
-          const k2 = ik(acc, front, tx - hp[0], -hp[1]), miss = hp[1] + fk(k2, front)[1];
+          const k2 = ik(acc, front, tx - hp[0], -hp[1], true), miss = hp[1] + fk(k2, front)[1];
           acc = acc.map((v, i) => v + (k2[i] - v) * m);
-          if (m > .5 && miss > 0) { if (front) rF = Math.max(rF, miss * m); else rH = Math.max(rH, miss * m); }
+          if (m > .5) { if (front) { rF = Math.max(rF, miss * m); uF = Math.min(uF, miss * m); } else { rH = Math.max(rH, miss * m); uH = Math.min(uH, miss * m); } }
         }
         const e = fk(acc, front), hy = hp[1] + e[1], fl = m > 0 ? 0 : FLOOR;
-        if (hy < fl) acc = ik(acc, front, e[0], fl - hp[1]);
+        if (hy < fl - 1e-3) acc = ik(acc, front, e[0], fl - hp[1], m > .5);
         legOut[leg] = acc;
       });
-      if (rF < .003 && rH < .003) break;
-      yF -= rF; yH -= rH;
+      if (rF < .003 && rH < .003 && uF > -.003 && uH > -.003) break;
+      yF -= rF + uF; yH -= rH + uH;
     }
+    A.legs = legOut;
     // pose the leg bones; legs keep their angles to the ground, so the body's pitch and flex come back out at the hip and shoulder
     LEG_ORDER.forEach(leg => {
       const front = leg[1] === 'F', acc = legOut[leg], REST = front ? FREST : HREST, ids = [B[leg + 'u'], B[leg + 'm'], B[leg + 'c'], B[leg + 'p']];
@@ -836,6 +856,7 @@ function CasHorses(THREE, deps) {
       for (let i = 0; i < 4; i++) { const d = acc[i] - REST[i]; bones[ids[i]].rotation.z = (d - prev) * DEG; prev = d; }
       bones[ids[0]].rotation.z -= pitch + (front ? flexF : flexH);
     });
+    bones[B.haunch].rotation.z = .8 * (bones[B.LHu].rotation.z + bones[B.RHu].rotation.z) / 2;
     // neck and head: nod, carriage; head keeps half the nod off so the eye stays steadier
     bones[B.neck1].rotation.z = (neck + nod * .6) * DEG;
     bones[B.neck2].rotation.z = (nod * .4) * DEG;
