@@ -32,7 +32,7 @@ horse.rotation.y = Math.PI;   // facing left, toward the names
 scene.add(horse);
 
 const base = LowPolyPeople.DRAFTS.find(D => D.id === 'rebel');
-const RIDE = { hipR: [-1.2, 0, -.45], hipL: [-1.2, 0, .45], knR: [1.0, 0, 0], knL: [1.0, 0, 0], shR: [-.4, 0, -.1], shL: [-2.3, 0, .35], elR: [-.8, 0, 0], elL: [-.3, 0, 0] };
+const RIDE = { hipR: [-1.2, 0, -.45], hipL: [-1.2, 0, .45], knR: [1.0, 0, 0], knL: [1.0, 0, 0], shR: [-.4, 0, -.1], shL: [-1.7, 0, .75], elR: [-.8, 0, 0], elL: [-.3, 0, 0] };
 const D = Object.assign({}, base, { id: 'credits_rider', faceOf: undefined, important: true, cane: null, pose: RIDE, expr: Object.assign({}, base.expr) });
 const man = LowPolyPeople.figure(D);
 const { J, face } = man.userData;
@@ -64,10 +64,10 @@ addEventListener('resize', resize); resize();
 
 let last = performance.now(), t = 0, frames = 0;
 function frame(now) {
-  const dt = Math.min(.05, (now - last) / 1000); last = now; t += dt;
+  const dt = Math.max(0, Math.min(.05, (now - last) / 1000)); last = now; t += dt;
   HORSES.update(horse, dt, { speed: 7.6, gait: 'gallop' });
   // a wave with the free arm, and the head turned a little toward you
-  J.shL.rotation.z = .35 + Math.sin(t * 5.2) * .3; J.elL.rotation.x = -.35 + Math.sin(t * 5.2 + .8) * .3;   // the near arm (he rides to the left)
+  J.shL.rotation.z = .75 + Math.sin(t * 5.2) * .3; J.elL.rotation.x = -.35 + Math.sin(t * 5.2 + .8) * .3;   // the near arm (he rides to the left)
   if (J.head) J.head.rotation.y = .35;
   for (const s of dust) {
     s.userData.t += dt * .9; if (s.userData.t > 1) { s.userData.t -= 1; s.userData.z = (Math.random() - .5) * .7; s.userData.x0 = .2 + Math.random() * .7; }
@@ -81,22 +81,30 @@ function frame(now) {
 }
 requestAnimationFrame(frame);
 
-// ---------- the roll ----------
-const roll = $('roll'), win = $('rollWin'), SPEED = 72;   // pixels a second
-function startRoll() {
-  const H = win.clientHeight, end = $('end'), stop = -(end.offsetTop + end.offsetHeight / 2) + H / 2, from = H;
-  const dur = (from - stop) / SPEED * 1000;
-  const a = roll.animate([{ transform: `translateY(${from}px)` }, { transform: `translateY(${stop}px)` }], { duration: dur, easing: 'linear', fill: 'forwards' });
-  a.onfinish = () => { $('bTitle').classList.add('show'); $('bTitle').focus({ preventScroll: true }); };
-  // hold a key or the mouse to roll faster
-  const fast = on => { a.playbackRate = on ? 4 : 1; };
-  addEventListener('pointerdown', e => { if (!e.target.closest('button')) fast(true); });
-  addEventListener('pointerup', () => fast(false)); addEventListener('pointercancel', () => fast(false));
-  addEventListener('keydown', e => { if (e.code === 'Space' || e.code === 'ArrowDown') fast(true); });
-  addEventListener('keyup', () => fast(false));
+// ---------- the credits: one still page (no scrolling). Edit the lines here; they show in capitals. ----------
+// Source of truth for the wording: the user's credits doc (claude.ai/artifact/3gtwKTX1PmLSzi4GFYUYsQ).
+const CREDITS = [
+  "The Art of the Mexican Revolution: Casasola's Photography",
+  'Game design: Suzy Arnold',
+  'Dialogue and script: Kylena',
+  'Game logo and HUD: Kelly Su',
+  'Sound design: Madeleine Diep',
+  'Photographs: Agustín Víctor Casasola, Miguel Casasola and the Casasola Archive, Fototeca Nacional del INAH',
+  'Snoopy, from Peanuts, by Charles M. Schulz, © Peanuts Worldwide LLC',
+  'Paintings: Frederic Remington, Ernesto Icaza, and portraits of Juárez, Iturbide and Díaz',
+  'Inspired by Diego Rivera and Mario Borella',
+  'Maps: Natural Earth',
+  'Fonts: IM Fell English and others from Google Fonts',
+  'Built with three.js',
+  'Thank you for playing'
+];
+const list = $('lines');
+CREDITS.forEach((t, i) => { const li = document.createElement('li'); li.textContent = t; if (i === 0) li.className = 'first'; if (i === CREDITS.length - 1) li.className = 'last'; list.appendChild(li); });
+function showCredits() {
+  [...list.children].forEach((li, i) => setTimeout(() => li.classList.add('on'), 300 + i * 220));
+  setTimeout(() => { $('bTitle').classList.add('show'); $('bTitle').focus({ preventScroll: true }); }, 300 + CREDITS.length * 220 + 600);
 }
-roll.style.transform = `translateY(${win.clientHeight}px)`;
 // Play again: back to the start of the game, through the loading screen
 $('bTitle').onclick = () => { if (S && S.inShell) S.next('scene1.html'); else location.href = 'scene1.html' + location.search; };
-const go = () => (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(() => setTimeout(startRoll, 500));
+const go = () => (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(showCredits);
 if (S) S.onShown(go); else go();
