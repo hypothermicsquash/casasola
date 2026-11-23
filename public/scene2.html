@@ -2831,9 +2831,6 @@ for (const z of [-18.6, -13.4]) { urn('zocalo', -1.1, 0, z, 1.1); ob(-1.7, -.5, 
     for (let x = .2; x < .9; x += .22) for (let y = .4; y < 3; y += .5) ball('facade', .025, x, y, zs, C.brass); }
   // a red runner along the walkway to the door
   bx('zocalo', -9, -.4, .019, .027, ZC - .6, ZC + .6, C.velvet); bx('zocalo', -9, -.4, .019, .031, ZC - .62, ZC - .55, C.gilt); bx('zocalo', -9, -.4, .019, .031, ZC + .55, ZC + .62, C.gilt); }
-// the sad photographer's camera on its tripod, beside him by the side door: three splayed legs, the box camera and a dark cloth
-{ const X = -3.75, Z = -11.75; for (const a of [0, 2.1, 4.2]) { const q = new THREE.CylinderGeometry(.018, .022, 1.32, 4); q.translate(0, .66, 0); q.rotateX(.2); q.rotateY(a); q.translate(X, 0, Z); geoAdd('zocalo', q, C.woodD); }
-  bx('zocalo', X - .14, X + .14, 1.29, 1.5, Z - .16, Z + .16, 0x2a2420); bx('zocalo', X - .2, X - .14, 1.33, 1.46, Z - .06, Z + .06, C.brass); bx('zocalo', X + .14, X + .2, 1.28, 1.52, Z - .17, Z + .17, 0x1c1a18); ob(X - .3, X + .3, Z - .3, Z + .3); }
 // sacks and barrels on the carters' wagons
 for (const [x, z, ry] of [[-9.5, -43.5, .15], [-5, -42.6, -.1], [-35.8, 53, .05], [-31.6, 52.4, -.2], [-67.5, 4.2, 1.5], [-67.8, 8.4, 1.62]]) {
   for (const [ox, oz] of [[-1, .3], [-.3, -.3], [.5, .25], [1.1, -.2]]) { const q = new THREE.IcosahedronGeometry(.32, 0); q.scale(1.2, .75, .9); q.translate(ox, 1.62, oz); q.rotateY(ry); q.translate(x, 0, z); geoAdd('zocalo', q, rand() < .5 ? 0xb8a27a : 0x9a8460); }
@@ -2984,8 +2981,8 @@ if (Q < 2) walkers.push(person({ D: 'priest', x: -30, z: -38, g: 'zocalo', route
 // the musicians, right outside the side door into the palace, playing toward the plaza (the music comes from them: shell/audio.js reads G2.musicians)
 const musicians = [person({ D: 'guitarronero', x: -2.2, z: -20.05, g: 'zocalo', ry: -1.9, r: .5, subject: 'townsfolk', music: 'guitarron' }), person({ D: 'trompetista', x: -2.5, z: -18.75, g: 'zocalo', ry: -1.3, r: .45, subject: 'townsfolk', music: 'trumpet' })];
 
-// a sad photographer by the side door, turned away by the guard (user, 2026-11-23): hunched, his camera on its tripod beside him
-const sadPhotographer = person({ name: 'Photographer', subject: 'press', D: 'clerk', x: -2.9, z: -12.4, g: 'zocalo', ry: -2.0, hunch: true, tears: true,
+// a sad photographer by the side door, turned away by the guard (user, 2026-11-23): hunched, standing clear of the lamp at z -12
+const sadPhotographer = person({ name: 'Photographer', subject: 'press', D: 'clerk', x: -2.4, z: -10.1, g: 'zocalo', ry: -2.0, hunch: true, tears: true,
   talk: line(0, ['The guard won’t let me in the ', EM('side entrance'), ' because I’m too pathetic looking... How am I going to take Madero’s photo now?']) });
 // guardroom
 const guard = person({ name: 'Guard', D: 'federal', x: 8.4, z: -16, g: 'guard', ry: -Math.PI / 2, r: .9, subject: 'soldiers', talk: n => { if (!flags.searched) { flags.searched = true; say(n.name, ['Clear... You better not be hiding anything in that ', T('cámara', 'camera'), '.'], 'Bag searched. You may pass.'); walkTo(n, [[6.6, -14.4]], () => { n.ry = -Math.PI / 2; }); n.r = .4; } else say(n.name, ['These rebels are total amateurs... ', T('Los federales', 'the Federal Army'), ' will crush them eventually, ', T('es inevitable', 'it’s inevitable'), '.']); } });
@@ -4846,17 +4843,22 @@ function veinTex() { const c = document.createElement('canvas'); c.width = c.hei
   return new THREE.CanvasTexture(c); }
 const vein = new THREE.Sprite(new THREE.SpriteMaterial({ map: veinTex(), fog: false, transparent: true })); vein.visible = false; vein.renderOrder = 3; scene.add(vein);
 const gestured = new Set(); let faced = null;
-// the tear bubble: a little white speech bubble with a blue teardrop, for speakers marked 'tears'
-function tearTex() { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
-  g.fillStyle = '#f7f5f0'; g.strokeStyle = '#2b2724'; g.lineWidth = 6; g.beginPath(); g.ellipse(64, 56, 50, 44, 0, 0, Math.PI * 2); g.fill(); g.stroke();
-  g.beginPath(); g.moveTo(30, 88); g.lineTo(18, 120); g.lineTo(52, 96); g.fill(); g.stroke(); g.fillStyle = '#f7f5f0'; g.fillRect(28, 84, 26, 10);
-  g.fillStyle = '#4a8fd6'; g.strokeStyle = '#1d3f66'; g.lineWidth = 4; g.beginPath(); g.moveTo(64, 22); g.bezierCurveTo(78, 44, 88, 58, 88, 70); g.arc(64, 70, 24, 0, Math.PI); g.bezierCurveTo(40, 58, 50, 44, 64, 22); g.fill(); g.stroke();
-  g.fillStyle = '#d6ecff'; g.beginPath(); g.ellipse(56, 66, 5, 9, -.3, 0, Math.PI * 2); g.fill(); return new THREE.CanvasTexture(c); }
-const tear = new THREE.Sprite(new THREE.SpriteMaterial({ map: tearTex(), fog: false, transparent: true })); tear.visible = false; tear.renderOrder = 3; scene.add(tear);
+// tears: small blue drops that well up beside the eyes in short bursts, slide down a little and fade, for speakers marked 'tears'
+function tearTex() { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
+  g.fillStyle = '#5aa0e6'; g.strokeStyle = '#1d3f66'; g.lineWidth = 3; g.beginPath(); g.moveTo(32, 6); g.bezierCurveTo(42, 22, 48, 32, 48, 40); g.arc(32, 40, 16, 0, Math.PI); g.bezierCurveTo(16, 32, 22, 22, 32, 6); g.fill(); g.stroke();
+  g.fillStyle = '#e2f2ff'; g.beginPath(); g.ellipse(27, 38, 3.5, 6, -.3, 0, Math.PI * 2); g.fill(); return new THREE.CanvasTexture(c); }
+const TEAR_MAP = tearTex(), TEARS = [0, 1, 2, 3, 4, 5].map(k => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEAR_MAP, fog: false, transparent: true, depthWrite: false })); s.visible = false; s.renderOrder = 3; scene.add(s); return s; });
+const _hw = new THREE.Vector3();
+function updateTears(n, t) { // a burst every 3.4 s lasting 2.4 s; each drop starts at an eye corner, slides down and fades
+  const cyc = t % 3.4, on = cyc < 2.4, a = n.P.root.rotation.y, fx = Math.sin(a), fz = Math.cos(a), sx = Math.cos(a), sz = -Math.sin(a);
+  n.P.J.head.getWorldPosition(_hw);
+  TEARS.forEach((s, k) => { const side = k % 2 ? 1 : -1, d = cyc - k * .25; if (!on || d < 0 || d > 1) { s.visible = false; return; }
+    const w = n.hunch ? .16 : .13; s.position.set(_hw.x + sx * side * w + fx * .2, _hw.y + .3 - d * .2, _hw.z + sz * side * w + fz * .14);
+    s.material.opacity = Math.min(1, d * 6) * (1 - d); s.scale.set(.13, .13, 1); s.visible = true; }); }
 function updateMoods(dt, t) {
   const sp = !$('dialog').hidden && talkTo && !state.posing ? talkTo : null;
   if (sp && !sp.path && !sp.seated) gestured.add(sp);
-  vein.visible = false; tear.visible = false;
+  vein.visible = false; for (const s of TEARS) s.visible = false;
   if (faced && faced !== sp) { if (!faced.hunch) faced.P.nextLook = 1 + Math.random() * 2; faced = null; }
   if (sp) { const m = moodOf(sp), f = FACE[m]; faced = sp; sp.P.talking = false; sp.P.nextLook = 1e9; sp.P.lx = f >= 0 ? f : f === -2 ? (Math.sin(t * 1.4) > 0 ? 1 : 2) : (Math.floor(t * 1.3) % 2 ? 4 : 0); }
   for (const n of gestured) {
@@ -4865,8 +4867,7 @@ function updateMoods(dt, t) {
     const m = moodOf(n), off = GEST[m](t + (n.ph || 0)); if (n.hunch) off[6] = -.22; // the hunched one lifts his face to you as he speaks
     GJ.forEach((k, i) => { if (J[k]) J[k].rotation[GA[i]] = n.gb[i] + off[i] * n.gw; });
     if (on) {
-      if (n.tears) { const p = n.P.root.position, a = n.P.root.rotation.y + Math.PI / 2, o = Math.max(.42, n.P.r + .12), b = .05 * Math.sin(t * 3); if (n.top === undefined) { n.P.root.updateMatrixWorld(true); n.top = new THREE.Box3().setFromObject(n.P.hi).max.y - p.y; }
-        tear.position.set(p.x + Math.sin(a) * o, p.y + n.top + .12 + b, p.z + Math.cos(a) * o); tear.scale.set(.36, .36, 1); tear.visible = true; }
+      if (n.tears) updateTears(n, t);
       if (m === 'angry') { const p = n.P.root.position, s = .3 + .05 * Math.abs(Math.sin(t * 6)), a = n.P.root.rotation.y + Math.PI / 2; if (n.top === undefined) { n.P.root.updateMatrixWorld(true); n.top = new THREE.Box3().setFromObject(n.P.hi).max.y - p.y; }
         const o = Math.max(.45, n.P.r + .12); vein.position.set(p.x + Math.sin(a) * o, p.y + n.top + .06, p.z + Math.cos(a) * o); vein.scale.set(s, s, 1); vein.visible = true; } }
     if (!on && n.gw === 0) gestured.delete(n);
