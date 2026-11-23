@@ -4,24 +4,20 @@ html, body { margin: 0; height: 100%; background: #000; color: #f1efea; overflow
 #rider { position: fixed; right: 0; top: 0; bottom: 0; width: 48vw; }
 #rider canvas { display: block; width: 100%; height: 100%; }
 #rider { -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14%, #000 92%, transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 14%, #000 92%, transparent 100%); }
-#rollWin { position: fixed; left: 0; top: 0; bottom: 0; width: 56vw; overflow: hidden;
-  -webkit-mask-image: linear-gradient(transparent 0, #000 12%, #000 88%, transparent 100%); mask-image: linear-gradient(transparent 0, #000 12%, #000 88%, transparent 100%); }
-#roll { position: absolute; left: 0; right: 0; top: 0; text-align: center; text-transform: uppercase; font-family: var(--fell); will-change: transform; padding: 0 24px; }
-#roll section { margin: 0 auto 64px; max-width: 560px; }
-#roll h1 { margin: 0; font-family: var(--fellsc); font-weight: 400; font-size: clamp(23px, 2.6vw, 34px); line-height: 1.1; letter-spacing: .04em; }
-#roll .sub { margin: 10px 0 0; font-style: italic; font-size: clamp(19px, 2vw, 26px); color: #cfccc5; letter-spacing: .06em; }
-#roll .head { margin-bottom: 96px; }
-#roll h2 { margin: 0 0 8px; font-family: var(--fell); font-weight: 400; font-size: 17px; letter-spacing: .18em; color: #a9a59d; }
-#roll .name { margin: 0 0 6px; font-family: var(--fellsc); font-size: clamp(20px, 1.9vw, 25px); letter-spacing: .08em; }
-#roll p { margin: 0 0 14px; font-size: 18px; line-height: 1.5; letter-spacing: .08em; }
-#roll ul { list-style: none; margin: 14px 0 0; padding: 0; font-size: 17px; line-height: 1.75; letter-spacing: .08em; color: #d8d5ce; }
-#roll i { font-style: italic; }
-#roll .end { margin-top: 140px; margin-bottom: 0; }
-#bTitle { margin-top: 22px; font-family: var(--fellsc); font-size: 22px; letter-spacing: .08em; text-transform: uppercase; color: #f1efea; background: transparent; border: 1.5px solid #f1efea; border-radius: 0;
+/* one still page, no scrolling (user, 2026-11-23): short lines that fade in one after another */
+#rollWin { position: fixed; left: 0; top: 0; bottom: 0; width: 56vw; display: flex; flex-direction: column; overflow-y: auto; }
+#rollWin > #roll { margin: auto; }
+#roll { text-align: center; text-transform: uppercase; font-family: var(--fellsc); padding: 32px 24px; max-width: 640px; }
+#lines { list-style: none; margin: 0; padding: 0; }
+#lines li { margin: 0 0 9px; font-size: clamp(13px, 1.2vw, 16px); line-height: 1.3; letter-spacing: .08em; color: #e9e6e0; opacity: 0; transform: translateY(6px); transition: opacity .8s ease, transform .8s ease; }
+#lines li.first { font-size: clamp(19px, 1.9vw, 26px); line-height: 1.15; letter-spacing: .04em; color: #f4f2ee; margin-bottom: 18px; }
+#lines li.last { margin-top: 18px; font-size: clamp(16px, 1.5vw, 20px); color: #f4f2ee; }
+#lines li.on { opacity: 1; transform: none; }
+#bTitle { margin-top: 14px; font-family: var(--fellsc); font-size: 22px; letter-spacing: .08em; text-transform: uppercase; color: #f1efea; background: transparent; border: 1.5px solid #f1efea; border-radius: 0;
   padding: 10px 26px 11px; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity .8s, background .2s, color .2s; touch-action: manipulation; }
 #bTitle.show { opacity: 1; pointer-events: auto; }
 #bTitle:hover, #bTitle:focus-visible { background: #f1efea; color: #000; outline: none; }
 @media (max-aspect-ratio: 1/1) {
-  #rollWin { width: 100vw; bottom: 34vh; }
+  #rollWin { width: 100vw; bottom: 34vh; align-items: flex-start; }
   #rider { width: 100vw; top: auto; height: 36vh; }
 }

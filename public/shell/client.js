@@ -18,6 +18,19 @@
     + '.cas-go.fixed{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom,0px));margin:0;z-index:60;transform:translate(-50%,10px)}.cas-go.fixed.on{transform:translate(-50%,0)}.cas-go.fixed:active{transform:translate(-50%,2px)}';
   // no Play again after a scene: the only way on is the next-scene button (user, 2026-11-22); Play again lives at the end of the credits
   css.textContent += '#bAgain{display:none!important}';
+  // dialogue boxes in every scene: no Continue button, a small light line at the bottom of the box instead (user, 2026-11-23)
+  css.textContent += '.cas-hint.btn,.cas-hint{all:unset;display:block;box-sizing:border-box;width:100%;margin:8px 0 -4px;text-align:right;cursor:pointer;'
+    + 'font-family:"IM Fell English","Old Standard TT",Georgia,serif;font-style:italic;font-size:14px;letter-spacing:.02em;color:#8f8a82;transition:color .2s}'
+    + '.cas-hint:hover,.cas-hint:focus-visible{color:#2b2724}.cas-hint[hidden]{display:none!important}'
+    + '#talk .cas-hint{float:none}';
+  function hints() {
+    ['dlgClose', 'bNext'].forEach(function (id) {
+      var b = document.getElementById(id);
+      if (!b || b.classList.contains('cas-go') || !b.closest('#dialog, #talk')) return;
+      b.className = 'cas-hint'; b.textContent = 'Click or press Enter to continue';
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hints); else hints();
   document.head.appendChild(css);
   if (host) {
     document.documentElement.classList.add('in-shell');
