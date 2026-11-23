@@ -96,6 +96,7 @@ function startRoll() {
   addEventListener('keyup', () => fast(false));
 }
 roll.style.transform = `translateY(${win.clientHeight}px)`;
-$('bTitle').onclick = () => { if (S && S.inShell) S.next('title'); else location.href = './' + location.search; };
+// Play again: back to the start of the game, through the loading screen
+$('bTitle').onclick = () => { if (S && S.inShell) S.next('scene1.html'); else location.href = 'scene1.html' + location.search; };
 const go = () => (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(() => setTimeout(startRoll, 500));
 if (S) S.onShown(go); else go();

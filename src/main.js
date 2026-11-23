@@ -36,13 +36,12 @@ async function boot() {
   if (S && S.inShell) {
     // inside the game shell: the title card is the shell's, so go straight into the opening pages once the town has
     // warmed its shaders behind the loading screen (scene 1 draws the street for 2.5 s after load for exactly that)
-    const again = document.getElementById('bAgain'); if (again) again.onclick = () => S.next('scene1.html');
     // the intro's opaque backdrop goes up under the loader first, so the village is never seen as the loader lifts
     setTimeout(() => { const intro = document.getElementById('intro'); if (intro) intro.hidden = false; S.ready(); }, 2600);
     S.onShown(() => { const b = document.getElementById('bStart'); if (b) b.click(); });
   }
 }
-// after scene 1's newspaper, a big button above Play again takes you on to the publisher's office
+// after scene 1's newspaper, a big button (where Play again used to be) takes you on to the publisher's office
 function nextScene(href) {
   const again = document.getElementById('bAgain'); if (!again || !window.CasasolaShell) return;
   const b = window.CasasolaShell.goButton('Talk to the publisher', href); b.id = 'bNext';

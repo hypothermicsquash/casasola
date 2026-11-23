@@ -13,9 +13,11 @@
     + 'opacity:0;transform:translateY(10px);pointer-events:none;transition:opacity .5s,transform .5s,background .2s,color .2s}'
     + '.cas-go.on{opacity:1;transform:none;pointer-events:auto}.cas-go:hover,.cas-go:focus-visible{background:#f2f0eb;color:#2b2724;outline:none}.cas-go:active{transform:translateY(2px)}'
     + '.cas-go .arrow{display:inline-block;margin-left:.45em;transition:transform .2s}.cas-go:hover .arrow{transform:translateX(5px)}'
-    + '.cas-go.arrow-only{min-width:0;padding:10px 30px 14px;font-size:44px;line-height:1}.cas-go.arrow-only .arrow{margin:0}'
+    + '.cas-go.arrow-only{min-width:0;padding:12px 52px 18px;font-size:60px;line-height:1}.cas-go.arrow-only .arrow{margin:0}'
     + '.cas-go.corner{position:fixed;right:calc(28px + env(safe-area-inset-right,0px));bottom:calc(28px + env(safe-area-inset-bottom,0px));margin:0;z-index:60}'
     + '.cas-go.fixed{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom,0px));margin:0;z-index:60;transform:translate(-50%,10px)}.cas-go.fixed.on{transform:translate(-50%,0)}.cas-go.fixed:active{transform:translate(-50%,2px)}';
+  // no Play again after a scene: the only way on is the next-scene button (user, 2026-11-22); Play again lives at the end of the credits
+  css.textContent += '#bAgain{display:none!important}';
   document.head.appendChild(css);
   if (host) {
     document.documentElement.classList.add('in-shell');
