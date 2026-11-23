@@ -289,7 +289,7 @@ function CasHorses(THREE, deps) {
     const G = new Geo(), R = rng(opts.seed || 1);
     const NB = hi ? 18 : 8, NL = hi ? 9 : 5;
     // body
-    const BODY = [[-1.02, 1.33, 1.22, .05], [-.995, 1.41, 1.11, .12], [-.94, 1.46, 1.0, .18], [-.87, 1.475, .91, .22], [-.76, 1.48, .85, .245], [-.54, 1.47, .86, .26], [-.34, 1.44, .84, .27],
+    const BODY = [[-1.02, 1.33, 1.25, .05], [-.995, 1.40, 1.15, .11], [-.94, 1.45, 1.05, .17], [-.87, 1.47, .96, .21], [-.76, 1.48, .88, .24], [-.54, 1.47, .86, .26], [-.34, 1.44, .84, .27],
       [-.12, 1.42, .78, .29], [.1, 1.42, .75, .3], [.3, 1.47, .74, .29], [.5, 1.52, .78, .26], [.66, 1.42, .84, .22], [.78, 1.22, .86, .16], [.84, 1.06, .92, .07]].map(([x, t, b, w]) => [x, (t + b) / 2, (t - b) / 2, w]);
     const body = new Surface(BODY.map(([x, y, d, w]) => ({ c: V(x, y, 0), d, w })), {
       p: 2.25, zf: (ct) => 1 - .2 * Math.max(0, ct) * Math.max(0, ct),
@@ -364,7 +364,7 @@ function CasHorses(THREE, deps) {
         [[.482, .6], .066, .058, [bm, bm, 0]], [[.49, .48], .06, .06, [bm, bc, .5]], [[.49, .4], .046, .044, [bc, bc, 0]], [[.49, .26], .044, .04, [bc, bc, 0]],
         [[.49, .17], .056, .05, [bc, bp, .5]], [[.51, .11], .042, .042, [bp, bp, 0]], [[.535, .062], .05, .05, [bp, bp, 0], 'hoof'], [[.555, .005], .065, .062, [bp, bp, 0], 'hoof']
       ] : [
-        [[-.61, 1.2], .24, .12, [bu, bu, 0]], [[-.58, 1.04], .3, .135, [bu, bu, 0]], [[-.5, .9], .25, .145, [bu, bm, .5]], [[-.56, .77], .165, .11, [bm, bm, 0]],
+        [[-.6, 1.2], .25, .12, [bu, bu, 0]], [[-.56, 1.04], .26, .135, [bu, bu, 0]], [[-.5, .9], .23, .145, [bu, bm, .5]], [[-.56, .77], .165, .11, [bm, bm, 0]],
         [[-.64, .64], .095, .07, [bm, bm, 0]], [[-.72, .54], .07, .055, [bm, bc, .5], 'hock'], [[-.715, .44], .048, .042, [bc, bc, 0]], [[-.7, .28], .044, .04, [bc, bc, 0]],
         [[-.69, .17], .055, .05, [bc, bp, .5]], [[-.665, .11], .042, .042, [bp, bp, 0]], [[-.64, .062], .05, .05, [bp, bp, 0], 'hoof'], [[-.62, .005], .063, .06, [bp, bp, 0], 'hoof']
       ];
@@ -380,7 +380,10 @@ function CasHorses(THREE, deps) {
         if (tag === 'hoof' && s >= rings.length - 2.05) return coatColor(K, p, 'hoof', { sock });
         const bulge = Math.exp(-Math.pow((p.y - (front ? .76 : .8)) / .12, 2)) * Math.min(1, Math.abs(p.z - z) * 12);
         return coatColor(K, p, s < 2.5 ? 'upper' : 'leg', { front, bulge, sock });
-      }, { closed: true, cap1: true, uvA: p => p.y * 2, uvB: (p, s, th) => th * .15 });
+      }, { closed: true, cap1: true, uvA: p => p.y * 2, uvB: (p, s, th) => th * .15,
+        // the top of the thigh is buried in the body: let it ride with the haunch so its back edge can't swing out
+        // as a flap behind the leg when the hinds reach forward
+        skin: front ? null : (p, bw) => { const k = .9 * sstep(.84, 1.14, p.y) * (p.x < -.6 ? 1 : .6); return k > .01 && bw[0] === bw[1] ? [bw[0], B.haunch, k] : bw; } });
       LEGSHIFT = null;
     });
 
@@ -607,10 +610,24 @@ function CasHorses(THREE, deps) {
   };
   // frames where the hoof is on the ground (1-based, as numbered on the sheet)
   const SHEET_DOWN = { RF: [5, 6, 7, 8], LF: [8, 9, 10], RH: [2, 3], LH: [3, 4, 5, 6] }; // hooves on the ground line, frame by frame
+  // The hand-measured keys carry a few degrees of reading error frame to frame, which played back as jitter.
+  // Each joint's curve is fitted with a short Fourier series (first SHEET_H harmonics), which passes smoothly
+  // near every drawn pose instead of kinking through each one.
+  const SHEET_H = 3, SHEET_F = {};
+  Object.keys(SHEET).forEach(leg => {
+    const K = SHEET[leg], n = K.length;
+    SHEET_F[leg] = [0, 1, 2].map(j => {
+      const c = [K.reduce((a, r) => a + r[j], 0) / n];
+      for (let k = 1; k <= SHEET_H; k++) {
+        let ca = 0, sa = 0; K.forEach((r, i) => { const t = 2 * Math.PI * k * i / n; ca += r[j] * Math.cos(t); sa += r[j] * Math.sin(t); });
+        c.push(2 * ca / n, 2 * sa / n);
+      }
+      return c;
+    });
+  });
   function sheetPose(leg, p, amp) {
-    const K = SHEET[leg], n = K.length, f = (((p % 1) + 1) % 1) * n, i = Math.floor(f), t = f - i;
-    const P0 = K[(i - 1 + n) % n], P1 = K[i % n], P2 = K[(i + 1) % n], P3 = K[(i + 2) % n], t2 = t * t, t3 = t2 * t;
-    const v = [0, 1, 2].map(j => .5 * ((2 * P1[j]) + (-P0[j] + P2[j]) * t + (2 * P0[j] - 5 * P1[j] + 4 * P2[j] - P3[j]) * t2 + (-P0[j] + 3 * P1[j] - 3 * P2[j] + P3[j]) * t3));
+    const F = SHEET_F[leg], ph = (((p % 1) + 1) % 1) * Math.PI * 2;
+    const v = [0, 1, 2].map(j => { const c = F[j]; let y = c[0]; for (let k = 1; k <= SHEET_H; k++) y += c[2 * k - 1] * Math.cos(k * ph) + c[2 * k] * Math.sin(k * ph); return y; });
     const R = leg[1] === 'F' ? FREST : HREST; if (amp != null && amp !== 1) for (let j = 0; j < 3; j++) v[j] = R[j + 1] + (v[j] - R[j + 1]) * amp;
     return leg[1] === 'F' ? [FREST[0] + .35 * (v[0] - FREST[1]), v[0], v[1], v[2]] : [v[1] + (HREST[0] - HREST[2]), v[0], v[1], v[2]];
   }
@@ -675,7 +692,9 @@ function CasHorses(THREE, deps) {
     // a swinging end rides high enough that its hooves pass clear of the ground; then smooth the track
     for (const e of ['F', 'H']) {
       for (let i = 0; i < NTR; i++) if (!down[e][i]) T[e][i] = Math.max(T[e][i], low[e][i] + SWING_CLEAR);
-      for (let pass = 0; pass < 2; pass++) { const y = T[e].slice(); for (let i = 0; i < NTR; i++) T[e][i] = (y[(i + NTR - 2) % NTR] + 2 * y[(i + NTR - 1) % NTR] + 3 * y[i] + 2 * y[(i + 1) % NTR] + y[(i + 2) % NTR]) / 9; }
+      for (let pass = 0; pass < 16; pass++) { const y = T[e].slice(); for (let i = 0; i < NTR; i++) T[e][i] = (y[(i + NTR - 2) % NTR] + 2 * y[(i + NTR - 1) % NTR] + 3 * y[i] + 2 * y[(i + 1) % NTR] + y[(i + 2) % NTR]) / 9; }
+      for (let i = 0; i < NTR; i++) if (!down[e][i]) T[e][i] = Math.max(T[e][i], low[e][i] + SWING_CLEAR);
+      for (let pass = 0; pass < 3; pass++) { const y = T[e].slice(); for (let i = 0; i < NTR; i++) T[e][i] = (y[(i + NTR - 2) % NTR] + 2 * y[(i + NTR - 1) % NTR] + 3 * y[i] + 2 * y[(i + 1) % NTR] + y[(i + 2) % NTR]) / 9; }
     }
     return T;
   }
@@ -705,7 +724,7 @@ function CasHorses(THREE, deps) {
     if (g !== 'stand' && den > 0) G.stride = num / den;
     LEG_ORDER.forEach(leg => {
       const W = new Float32Array(NTR), X = new Float32Array(NTR);
-      runs[leg].forEach(r => { for (let j = 0; j < r.n; j++) { const k = (r.a + j) % NTR; W[k] = r.full ? 1 : Math.min(1, (Math.min(j, r.n - 1 - j) + .5) / 2.5); X[k] = r.full ? r.xm : r.xm - G.stride * ((j - (r.n - 1) / 2) / NTR); } });
+      runs[leg].forEach(r => { for (let j = 0; j < r.n; j++) { const k = (r.a + j) % NTR; W[k] = r.full ? 1 : sstep(0, 1, (Math.min(j, r.n - 1 - j) + .5) / 6); X[k] = r.full ? r.xm : r.xm - G.stride * ((j - (r.n - 1) / 2) / NTR); } });
       S[leg] = { W, X };
     });
   });
@@ -768,6 +787,112 @@ function CasHorses(THREE, deps) {
   }
   const SY = 1.12 * KF_, HY = 1.18 * KH_, SX = warpX(.6), HX = warpX(-.6) + HSHIFT, BY = 1.12 + LIFT;
 
+  // Full pose solve for one phase (body height, pitch, and every leg's angles with planted hooves IK'd).
+  // It is run once per gait at load, and the results are smoothed around the cycle and played back from a table:
+  // the solver's contact switches and joint limits leave small kinks that read as jitter at 60 fps.
+  function solvePose(W, ph, fix) {
+    let AF = 0, AH = 0, yF = 0, yH = 0;
+    const absAcc = {};
+    LEG_ORDER.forEach(leg => {
+      const front = leg[1] === 'F', acc = [0, 0, 0, 0];
+      for (const g in W) {
+        const w = W[g]; if (w < 1e-3) continue;
+        const G = GAITS[g], p = ((ph - G.off[leg]) % 1 + 1) % 1, a = legAbs(g, leg, p);
+        for (let i = 0; i < 4; i++) acc[i] += a[i] * w;
+      }
+      absAcc[leg] = acc;
+      const drop = -fk(acc, front)[1];
+      if (front) AF = Math.max(AF, drop); else AH = Math.max(AH, drop);
+    });
+    for (const g in W) {
+      const w = W[g];
+      if (w > 1e-3) { yF += w * trackAt(TRACK[g].F, ph); yH += w * trackAt(TRACK[g].H, ph); }
+    }
+    // spine flex in the gallop: the back gathers and stretches with the stride (sheet: frame 1 most compressed,
+    // 7 most stretched); the croup tucks as the hinds reach under and opens as they push off
+    const gw = W.gallop + W.canter * .7, cph = Math.cos(ph * Math.PI * 2), tuck = Math.cos((ph - 1 / 12) * Math.PI * 2);
+    const flexH = tuck * .09 * gw, flexF = -cph * .03 * gw, txH = cph * .045 * gw, txF = -cph * .025 * gw;
+    // place the body so the hips sit at the heights the tracks ask for (never letting a hoof sink)
+    const cF = Math.cos(flexF), sF = Math.sin(flexF), cH = Math.cos(flexH), sH = Math.sin(flexH);
+    const oFx = FB0.x + txF + cF * HIPF.x - sF * HIPF.y, oFy = FB0.y + sF * HIPF.x + cF * HIPF.y;
+    const oHx = HB0.x + txH + cH * HIPH.x - sH * HIPH.y, oHy = HB0.y + sH * HIPH.x + cH * HIPH.y;
+    const ddx = oFx - oHx, ddy = oFy - oHy, rr = Math.hypot(ddx, ddy);
+    // stance weight and planted spot for each leg this frame
+    const plant = {};
+    LEG_ORDER.forEach(leg => {
+      let sw = 0, sx = 0;
+      for (const g in W) {
+        const w = W[g]; if (w < 1e-3) continue;
+        const G = GAITS[g], p = ((ph - G.off[leg]) % 1 + 1) % 1, f = p * NTR, i = Math.floor(f) % NTR, j = (i + 1) % NTR, t = f - Math.floor(f), S = STANCE[g][leg];
+        const wi = S.W[i] + (S.W[j] - S.W[i]) * t; if (wi <= 0) continue;
+        const xi = S.W[i] > 0 && S.W[j] > 0 ? S.X[i] + (S.X[j] - S.X[i]) * t : (S.W[i] > 0 ? S.X[i] : S.X[j]);
+        sw += w * wi; sx += w * wi * xi;
+      }
+      plant[leg] = [Math.min(1, sw), sw > 1e-3 ? sx / sw : 0];
+    });
+    // place the body from the hip heights, plant or fold each leg; if a planted leg can't reach, drop that end and redo
+    const legOut = {};
+    let pitch = 0, byOut = 0;
+    for (let pass = 0; pass < 3; pass++) {
+      pitch = fix ? fix[1] : clamp(Math.asin(clamp((yF - yH) / rr, -.4, .4)) - Math.atan2(ddy, ddx), -.25, .25);
+      const cp = Math.cos(pitch), sp = Math.sin(pitch), by = fix ? fix[0] : yF - (oFx * sp + oFy * cp);
+      byOut = by;
+      const hip = { F: [oFx * cp - oFy * sp, oFx * sp + oFy * cp + by], H: [oHx * cp - oHy * sp, oHx * sp + oHy * cp + by] };
+      let rF = 0, rH = 0, uF = 0, uH = 0;
+      LEG_ORDER.forEach(leg => {
+        const front = leg[1] === 'F', hp = hip[leg[1]], [m, tx] = plant[leg];
+        let acc = absAcc[leg];
+        if (m > 0) {
+          const k2 = ik(acc, front, tx - hp[0], -hp[1], true), miss = hp[1] + fk(k2, front)[1];
+          acc = acc.map((v, i) => v + (k2[i] - v) * m);
+          { if (front) { rF = Math.max(rF, miss * m); uF = Math.min(uF, miss * m); } else { rH = Math.max(rH, miss * m); uH = Math.min(uH, miss * m); } }
+        }
+        const e = fk(acc, front), hy = hp[1] + e[1], fl = m > 0 ? 0 : FLOOR;
+        if (hy < fl - 1e-3) acc = ik(acc, front, e[0], fl - hp[1], m > 0 || (e[0] > 0 && acc[2] - acc[1] > -20));
+        legOut[leg] = acc;
+      });
+      if (fix || (rF < .003 && rH < .003 && uF > -.003 && uH > -.003)) break;
+      yF -= rF + uF; yH -= rH + uH;
+    }
+    return { by: byOut, pitch, legs: legOut };
+  }
+  const NB = 144, BAKE = {};
+  const BAKE_LEG_SMOOTH = 40;
+  function smoothRing(rows, j0, j1, passes) {
+    for (let k = 0; k < passes; k++) {
+      const c = rows.map(r => r.slice());
+      for (let i = 0; i < NB; i++) { const a = c[(i - 1 + NB) % NB], b = c[i], d = c[(i + 1) % NB]; for (let j = j0; j < j1; j++) rows[i][j] = .25 * a[j] + .5 * b[j] + .25 * d[j]; }
+    }
+  }
+  function bake(g) {
+    const W = { stand: 0, walk: 0, trot: 0, canter: 0, gallop: 0 }; W[g] = 1;
+    const mov = g !== 'stand', row = (r) => { const v = [r.by, r.pitch]; LEG_ORDER.forEach(leg => v.push(...r.legs[leg])); return v; };
+    const rows = [];
+    for (let i = 0; i < NB; i++) rows.push(row(solvePose(W, i / NB)));
+    if (mov) {
+      // body first: smooth height and pitch, then plant the legs again under that smooth body,
+      // then ease the legs a little so contact switches and joint limits don't snap
+      smoothRing(rows, 0, 2, 80);
+      for (let i = 0; i < NB; i++) rows[i] = row(solvePose(W, i / NB, rows[i]));
+      smoothRing(rows, 2, rows[0].length, BAKE_LEG_SMOOTH);
+      // smoothing lets a hoof dip a centimetre or so into the ground; lift the body by a smoothed envelope of that
+      const pen = rows.map((r, i) => {
+        const ph = i / NB, gw = W.gallop + W.canter * .7, cph = Math.cos(ph * Math.PI * 2), tuck = Math.cos((ph - 1 / 12) * Math.PI * 2);
+        const flexH = tuck * .09 * gw, flexF = -cph * .03 * gw, txH = cph * .045 * gw, txF = -cph * .025 * gw;
+        const cp = Math.cos(r[1]), sp = Math.sin(r[1]);
+        const hy = (fx, fy) => fx * sp + fy * cp + r[0];
+        const yF = hy(FB0.x + txF + Math.cos(flexF) * HIPF.x - Math.sin(flexF) * HIPF.y, FB0.y + Math.sin(flexF) * HIPF.x + Math.cos(flexF) * HIPF.y);
+        const yH = hy(HB0.x + txH + Math.cos(flexH) * HIPH.x - Math.sin(flexH) * HIPH.y, HB0.y + Math.sin(flexH) * HIPH.x + Math.cos(flexH) * HIPH.y);
+        let lo = 9; LEG_ORDER.forEach((leg, li) => { const f = leg[1] === 'F'; lo = Math.min(lo, (f ? yF : yH) + fk(r.slice(2 + li * 4, 6 + li * 4), f)[1]); });
+        return Math.max(0, -lo);
+      });
+      const lift = pen.map((_, i) => { let m = 0; for (let d = -8; d <= 8; d++) m = Math.max(m, pen[(i + d + NB) % NB]); return [m]; });
+      for (let k = 0; k < 16; k++) { const c = lift.map(v => v[0]); for (let i = 0; i < NB; i++) lift[i][0] = .25 * c[(i - 1 + NB) % NB] + .5 * c[i] + .25 * c[(i + 1) % NB]; }
+      for (let i = 0; i < NB; i++) rows[i][0] += lift[i][0];
+    }
+    BAKE[g] = rows;
+  }
+
   function update(h, dt, o) {
     o = o || {};
     const A = h.userData.anim, bones = h.userData.bones, speed = o.speed || 0, target = o.gait || pickGait(speed);
@@ -780,74 +905,25 @@ function CasHorses(THREE, deps) {
     const cad = speed > .01 ? speed / stride : 0;
     A.phase = (A.phase + cad * dt) % 1; A.t += dt;
     const ph = A.phase;
-    // legs
-    let AF = 0, AH = 0, nod = 0, neck = 0, head = 0, tail = 0, yF = 0, yH = 0;
-    const absAcc = {};
-    LEG_ORDER.forEach(leg => {
-      const front = leg[1] === 'F', acc = [0, 0, 0, 0];
-      for (const g in A.w) {
-        const w = A.w[g]; if (w < 1e-3) continue;
-        const G = GAITS[g], p = ((ph - G.off[leg]) % 1 + 1) % 1, a = legAbs(g, leg, p);
-        for (let i = 0; i < 4; i++) acc[i] += a[i] * w;
-      }
-      absAcc[leg] = acc;
-      const drop = -fk(acc, front)[1];
-      if (front) AF = Math.max(AF, drop); else AH = Math.max(AH, drop);
-    });
+    // legs, body height and pitch: blend each gait's baked, smoothed cycle
+    let nod = 0, neck = 0, head = 0, tail = 0, by = 0, pitch = 0;
+    const legOut = {}; LEG_ORDER.forEach(leg => { legOut[leg] = [0, 0, 0, 0]; });
+    const f = ph * NB, i0 = Math.floor(f) % NB, i1 = (i0 + 1) % NB, ft = f - Math.floor(f);
     for (const g in A.w) {
       const w = A.w[g], G = GAITS[g];
       nod += w * G.nod * (G.nodF ? Math.cos((ph * G.nodF - (G.nodP || 0)) * Math.PI * 2) : Math.sin(A.t * .7 + A.seed * 6));
       neck += w * G.neck; head += w * G.head; tail += w * G.tail;
-      if (w > 1e-3) { yF += w * trackAt(TRACK[g].F, ph); yH += w * trackAt(TRACK[g].H, ph); }
+      if (w < 1e-3) continue;
+      if (!BAKE[g]) bake(g);
+      const r0 = BAKE[g][i0], r1 = BAKE[g][i1], L = (j) => (r0[j] + (r1[j] - r0[j]) * ft) * w;
+      by += L(0); pitch += L(1);
+      LEG_ORDER.forEach((leg, li) => { for (let q = 0; q < 4; q++) legOut[leg][q] += L(2 + li * 4 + q); });
     }
-    // spine flex in the gallop: the back gathers and stretches with the stride (sheet: frame 1 most compressed,
-    // 7 most stretched); the croup tucks as the hinds reach under and opens as they push off
     const gw = A.w.gallop + A.w.canter * .7, cph = Math.cos(ph * Math.PI * 2), tuck = Math.cos((ph - 1 / 12) * Math.PI * 2);
     const flexH = tuck * .09 * gw, flexF = -cph * .03 * gw, txH = cph * .045 * gw, txF = -cph * .025 * gw;
     bones[B.hind].rotation.z = flexH; bones[B.front].rotation.z = flexF;
     bones[B.hind].position.x = HB0.x + txH; bones[B.front].position.x = FB0.x + txF;
-    // place the body so the hips sit at the heights the tracks ask for (never letting a hoof sink)
-    const cF = Math.cos(flexF), sF = Math.sin(flexF), cH = Math.cos(flexH), sH = Math.sin(flexH);
-    const oFx = FB0.x + txF + cF * HIPF.x - sF * HIPF.y, oFy = FB0.y + sF * HIPF.x + cF * HIPF.y;
-    const oHx = HB0.x + txH + cH * HIPH.x - sH * HIPH.y, oHy = HB0.y + sH * HIPH.x + cH * HIPH.y;
-    const ddx = oFx - oHx, ddy = oFy - oHy, rr = Math.hypot(ddx, ddy);
-    // stance weight and planted spot for each leg this frame
-    const plant = {};
-    LEG_ORDER.forEach(leg => {
-      let sw = 0, sx = 0;
-      for (const g in A.w) {
-        const w = A.w[g]; if (w < 1e-3) continue;
-        const G = GAITS[g], p = ((ph - G.off[leg]) % 1 + 1) % 1, f = p * NTR, i = Math.floor(f) % NTR, j = (i + 1) % NTR, t = f - Math.floor(f), S = STANCE[g][leg];
-        const wi = S.W[i] + (S.W[j] - S.W[i]) * t; if (wi <= 0) continue;
-        const xi = S.W[i] > 0 && S.W[j] > 0 ? S.X[i] + (S.X[j] - S.X[i]) * t : (S.W[i] > 0 ? S.X[i] : S.X[j]);
-        sw += w * wi; sx += w * wi * xi;
-      }
-      plant[leg] = [Math.min(1, sw), sw > 1e-3 ? sx / sw : 0];
-    });
-    // place the body from the hip heights, plant or fold each leg; if a planted leg can't reach, drop that end and redo
-    const body = bones[B.body], legOut = {};
-    let pitch = 0;
-    for (let pass = 0; pass < 3; pass++) {
-      pitch = clamp(Math.asin(clamp((yF - yH) / rr, -.4, .4)) - Math.atan2(ddy, ddx), -.25, .25);
-      const cp = Math.cos(pitch), sp = Math.sin(pitch), by = yF - (oFx * sp + oFy * cp);
-      body.rotation.z = pitch; body.position.y = by;
-      const hip = { F: [oFx * cp - oFy * sp, oFx * sp + oFy * cp + by], H: [oHx * cp - oHy * sp, oHx * sp + oHy * cp + by] };
-      let rF = 0, rH = 0, uF = 0, uH = 0;
-      LEG_ORDER.forEach(leg => {
-        const front = leg[1] === 'F', hp = hip[leg[1]], [m, tx] = plant[leg];
-        let acc = absAcc[leg];
-        if (m > 0) {
-          const k2 = ik(acc, front, tx - hp[0], -hp[1], true), miss = hp[1] + fk(k2, front)[1];
-          acc = acc.map((v, i) => v + (k2[i] - v) * m);
-          if (m > .5) { if (front) { rF = Math.max(rF, miss * m); uF = Math.min(uF, miss * m); } else { rH = Math.max(rH, miss * m); uH = Math.min(uH, miss * m); } }
-        }
-        const e = fk(acc, front), hy = hp[1] + e[1], fl = m > 0 ? 0 : FLOOR;
-        if (hy < fl - 1e-3) acc = ik(acc, front, e[0], fl - hp[1], m > .5);
-        legOut[leg] = acc;
-      });
-      if (rF < .003 && rH < .003 && uF > -.003 && uH > -.003) break;
-      yF -= rF + uF; yH -= rH + uH;
-    }
+    const body = bones[B.body]; body.rotation.z = pitch; body.position.y = by;
     A.legs = legOut;
     // pose the leg bones; legs keep their angles to the ground, so the body's pitch and flex come back out at the hip and shoulder
     LEG_ORDER.forEach(leg => {
@@ -856,7 +932,11 @@ function CasHorses(THREE, deps) {
       for (let i = 0; i < 4; i++) { const d = acc[i] - REST[i]; bones[ids[i]].rotation.z = (d - prev) * DEG; prev = d; }
       bones[ids[0]].rotation.z -= pitch + (front ? flexF : flexH);
     });
-    bones[B.haunch].rotation.z = .8 * (bones[B.LHu].rotation.z + bones[B.RHu].rotation.z) / 2;
+    // the buttock follows the thighs back as they push off; as they reach forward it draws in toward the hip
+    // instead of swinging down (a full swing there hung a flap behind the thigh in frames 1-2)
+    const hu = (bones[B.LHu].rotation.z + bones[B.RHu].rotation.z) / 2, fwd = Math.max(0, hu);
+    bones[B.haunch].rotation.z = hu > 0 ? .25 * hu : .8 * hu;
+    bones[B.haunch].scale.x = 1 - .32 * Math.min(1, fwd / .8);
     // neck and head: nod, carriage; head keeps half the nod off so the eye stays steadier
     bones[B.neck1].rotation.z = (neck + nod * .6) * DEG;
     bones[B.neck2].rotation.z = (nod * .4) * DEG;
