@@ -23,7 +23,8 @@ html, body { margin: 0; height: 100%; background: #000; color: #f4f2ee; overflow
 #titleText { position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); width: min(1200px, calc(100vw - 40px)); text-align: center; }
 #titleText h1 { margin: 0; font-family: var(--fellsc); font-weight: 400; text-shadow: 0 3px 24px rgba(0,0,0,.9), 0 0 60px rgba(0,0,0,.6); }
 #titleText .l1 { display: block; font-size: clamp(38px, 7vw, 108px); line-height: 1.0; letter-spacing: .02em; }
-#titleText .l2 { display: block; font-size: clamp(24px, 3.8vw, 58px); line-height: 1.1; margin-top: .3em; letter-spacing: .03em; color: #e4e1db; }
+/* every letter in this line the same height: all small capitals, no larger C and P (user, 2026-11-23) */
+#titleText .l2 { display: block; text-transform: lowercase; font-size: clamp(28px, 4.4vw, 66px); line-height: 1.1; margin-top: .3em; letter-spacing: .03em; color: #e4e1db; }
 #bPlay { margin-top: clamp(26px, 5vh, 52px); font-family: var(--fellsc); font-size: clamp(18px, 1.8vw, 23px); letter-spacing: .08em; color: #f4f2ee; background: rgba(0,0,0,.25);
   border: 1.5px solid #f4f2ee; border-radius: 0; padding: 11px 30px 12px; cursor: pointer; transition: background .2s, color .2s; touch-action: manipulation; }
 #bPlay:hover, #bPlay:focus-visible { background: #f4f2ee; color: #000; outline: none; }
