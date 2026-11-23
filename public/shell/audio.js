@@ -1,6 +1,6 @@
 // Sound for the scenes: music, footsteps, horses, a faint crowd, and the people's voices (wordless blips).
 // Loaded by shell/client.js on the scene pages. It only reads what each scene already exposes
-// (window.__casasola in the village, window.G2 in the palace, the #dialog card in every scene),
+// (window.__casasola in the village, window.G2 in the palace, window.G3 in the battle, the #dialog card in every scene),
 // so the scenes' own builds stay as they are. Light on weak machines: one AudioContext, short mono loops
 // decoded once, the long music tracks streamed from <audio>, and a 10 Hz update instead of every frame.
 (function () {
@@ -8,12 +8,12 @@
   if (!AC || window.CasasolaAudio) return;
   var me = document.currentScript && document.currentScript.src;
   var BASE = me ? me.replace(/shell\/audio\.js.*$/, 'audio/') : 'audio/';
-  var page = /scene2/.test(location.pathname) ? 'palace' : /office/.test(location.pathname) ? 'office' : 'village';
+  var page = /scene3/.test(location.pathname) ? 'battle' : /scene2/.test(location.pathname) ? 'palace' : /office/.test(location.pathname) ? 'office' : 'village';
 
   // every loop file carries 0.15 s of wrap-around on both ends, so the loop window below is seamless
   // whatever the decoder does with the MP3 padding
   var LOOPS = { dirt: 9.35, marble: 9.2, stone: 8.58, gallop: 21.0, crowd: 30.5 }, PAD = .15;
-  var WANT = { village: ['dirt', 'gallop', 'crowd', 'neigh', 'paper-insert', 'fanfare'], palace: ['stone', 'marble', 'crowd', 'paper-insert', 'fanfare'], office: [] }[page];
+  var WANT = { village: ['dirt', 'gallop', 'crowd', 'neigh', 'paper-insert', 'fanfare'], palace: ['stone', 'marble', 'crowd', 'paper-insert', 'fanfare'], battle: ['stone', 'gallop', 'crowd', 'neigh', 'paper-insert', 'fanfare'], office: [] }[page];
   var MUSIC = { village: 'music1.mp3', palace: 'music2.mp3' }[page];
 
   var ctx = null, master, voiceBus, buf = {}, loops = {}, music = null, muted = false;
@@ -154,11 +154,60 @@
     setBed('crowd', st.seqCover ? 0 : !st.started ? .02 : z === 'zocalo' ? .06 : z === 'guard' ? .03 : z === 'patio' ? .02 : 0);
   }
 
+  // ---------- the battle (scene 3): gunfire and shells, made here from noise, no files ----------
+  // one second of white noise, shaped per shot; a rifle crack is a short band of it, a shell a long low roar with a thump under it
+  var noise = null;
+  function noiseBuf() { if (noise) return noise; noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate); var d = noise.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; return noise; }
+  function out(pan) { if (ctx.createStereoPanner && pan) { var p = ctx.createStereoPanner(); p.pan.value = Math.max(-1, Math.min(1, pan)); p.connect(master); return p; } return master; }
+  function shot(t, vol, pan, far) {
+    var s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain(); s.buffer = noiseBuf();
+    f.type = 'lowpass'; f.frequency.value = far ? 900 : 2600; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .003); g.gain.exponentialRampToValueAtTime(.001, t + (far ? .22 : .14));
+    s.connect(f); f.connect(g); g.connect(out(pan)); s.start(t, Math.random() * .7); s.stop(t + .3);
+  }
+  function boom(t, vol, pan, d) {
+    var s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain(); s.buffer = noiseBuf(); s.loop = true;
+    f.type = 'lowpass'; f.frequency.setValueAtTime(d < 30 ? 1400 : 700, t); f.frequency.exponentialRampToValueAtTime(110, t + 1.4);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .01); g.gain.exponentialRampToValueAtTime(.001, t + 2.2);
+    s.connect(f); f.connect(g); g.connect(out(pan)); s.start(t); s.stop(t + 2.3);
+    var o = ctx.createOscillator(), og = ctx.createGain(); o.frequency.setValueAtTime(70, t); o.frequency.exponentialRampToValueAtTime(32, t + .5);
+    og.gain.setValueAtTime(vol * .9, t); og.gain.exponentialRampToValueAtTime(.001, t + .7); o.connect(og); og.connect(out(pan)); o.start(t); o.stop(t + .75);
+  }
+  var B = { lx: null, lz: null, mv: 0, ev: 0, crowdT: 0, neighs: 0 };
+  function battle() {
+    var G = window.G3; if (!G || !G.player || !G.state) return;
+    var p = G.player, st = G.state, t = ctx.currentTime;
+    var moved = B.lx !== null && Math.hypot(p.x - B.lx, p.z - B.lz) > .02; B.lx = p.x; B.lz = p.z;
+    B.mv = moved ? 3 : Math.max(0, B.mv - 1);
+    var walking = B.mv > 0 && st.started && !st.busy, quiet = st.seqCover;
+    setMusic(0);
+    setBed('stone', walking && !quiet ? .38 : 0, { fast: true, fromTop: true, stopWhenSilent: true, rate: st.raised ? .8 : 1 });
+    // the crowd: loud while the column marches, a surge when the guns open, then it thins away
+    var fl = G.flags || {};
+    if (fl.volley) B.crowdT += .1;
+    var cl = !st.started ? .03 : !fl.volley ? .09 : Math.max(.015, .16 - B.crowdT * .02);
+    setBed('crowd', quiet ? 0 : p.zone === 'zocalo' ? cl : cl * .4);
+    // the generals' horses: trot or gallop by the nearest moving one
+    var near = 1e9, nx = 0, nz = 0, M = [G.diaz, G.mond, G.reyes];
+    for (var i = 0; i < M.length; i++) { var n = M[i]; if (!n || n.gone || !n.g3) continue; var sp = n === G.reyes ? (n.path ? 7 : 0) : n.speed || (fl.volley ? 0 : 1.25); if (sp < .5) continue; var d = Math.hypot(n.x - p.x, n.z - p.z); if (d < near) { near = d; nx = n.x; nz = n.z; } }
+    setBed('gallop', quiet || near > 1e8 ? 0 : Math.min(.9, 1 / (1 + Math.pow(near / 18, 2))), { pan: near < 1e8 ? panFrom(p, nx, nz) : 0 });
+    if (fl.volley && B.neighs === 0 && G.reyes) { once('neigh', 1.2, 1.05, panFrom(p, G.reyes.x, G.reyes.z)); B.neighs = 1; }
+    if (quiet) { B.ev = (G.events || []).length; return; }
+    // the machine guns on the palace roof and the guard's rifles: bursts while the volley lasts, quieter the further away
+    var mg = G.mg || 0;
+    if (mg > 0) { var dp = Math.hypot(40 - p.x, p.z), v = Math.min(.7, 14 / (dp + 6)) * mg, pn = panFrom(p, 40, 0);
+      for (var k = 0; k < 5; k++) if (Math.random() < .75) shot(t + k * .02 + Math.random() * .015, v * (.6 + Math.random() * .4), pn + (Math.random() - .5) * .4, dp > 45); }
+    // events the scene pushed: the volley's first crash, each shell (delayed by the distance, as sound travels)
+    var E = G.events || [];
+    for (; B.ev < E.length; B.ev++) { var e = E[B.ev];
+      if (e.type === 'volley') for (var j = 0; j < 14; j++) shot(t + Math.random() * .25, .6, panFrom(p, 40, (Math.random() - .5) * 30), false);
+      if (e.type === 'shell') { var dd = e.d || Math.hypot(e.x - p.x, e.z - p.z); boom(t + Math.min(.4, dd / 343), Math.min(1.1, 30 / (dd + 10)), panFrom(p, e.x, e.z), dd); } }
+  }
+
   function tick() {
     if (!ctx || ctx.state !== 'running') return;
     if (document.hidden) { master.gain.setTargetAtTime(0, ctx.currentTime, .1); return; }
     master.gain.setTargetAtTime(muted ? 0 : 1, ctx.currentTime, .1);
-    try { if (page === 'village') village(); else if (page === 'palace') palace(); } catch (e) {}
+    try { if (page === 'village') village(); else if (page === 'palace') palace(); else if (page === 'battle') battle(); } catch (e) {}
   }
 
   // ---------- voices: wordless 8-bit babble, now and then an "ah", "oh" or "hm" ----------
@@ -174,7 +223,7 @@
     return { f: 98 + r * 42, rate: 10.5, wave: r > .5 ? 'square' : 'triangle', old: old };
   }
   function speakerD(who, bubbleEl) {
-    var G = window.__casasola, G2 = window.G2, i;
+    var G = window.__casasola, G2 = window.G2 || window.G3, i;
     if (G2 && G2.npcs) { for (i = 0; i < G2.npcs.length; i++) if (G2.npcs[i].name === who && G2.npcs[i].P) return G2.npcs[i].P.D; return null; }
     if (!G) return null;
     if (bubbleEl && G.VOICES) { for (i = 0; i < G.VOICES.length; i++) if (G.VOICES[i].el === bubbleEl && G.VOICES[i].P) return G.VOICES[i].P.D; return null; }

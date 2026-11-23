@@ -8,7 +8,7 @@ Publishing: every push to `main` runs `.github/workflows/deploy.yml`, which buil
 
 Google Site: Insert, Embed, the "By URL" tab, paste the Pages address, then stretch the box to full width. Use "By URL", not "Embed code".
 
-Shell: `index.html` (source `src/shell/`) is the title screen, the loading screen and one frame that holds the scene being played. Scenes are their own pages (`scene1.html`, `office.html`, `scene2.html`, `credits.html`) and load `public/shell/client.js`, which gives them `CasasolaShell.ready()`, `onShown(cb)` and `next(href)`. Opened directly, a scene still runs on its own. `?start=office` on the shell jumps to a scene. The loader's spinning camera is a sprite sheet of scene 1's camera model, rendered by `node tools/render-camera-sprite.mjs`.
+Shell: `index.html` (source `src/shell/`) is the title screen, the loading screen and one frame that holds the scene being played. Scenes are their own pages (`scene1.html`, `office.html`, `scene2.html`, `scene3.html`, `credits.html`) and load `public/shell/client.js`, which gives them `CasasolaShell.ready()`, `onShown(cb)` and `next(href)`. Opened directly, a scene still runs on its own. `?start=office` on the shell jumps to a scene. The loader's spinning camera is a sprite sheet of scene 1's camera model, rendered by `node tools/render-camera-sprite.mjs`.
 
 Layout: `src/main.js` picks the scene (`?scene=scene1`), starts it, and runs the zone streamer. `src/engine/zones.js` loads and frees zones by the player's distance (preload 40 m, unload past 70 m). `src/scenes/index.js` lists the scenes, each loaded as its own chunk. `src/scenes/<scene>/zones.js` lists that scene's zones, each in `zones/<name>.js`. Textures live in `public/scenes/<scene>/` and are fetched as files.
 
