@@ -218,7 +218,7 @@ function CasHorses(THREE, deps) {
     grullo: { base: 0x7e746a, light: 0x9a9086, dark: 0x4e4640, belly: 0x8c8278, muzzle: 0x3a3430, points: 0x26201c, mane: 0x1e1a18, tail: 0x221e1a, hoof: 0x2e2620, dorsal: 1 },
     gray: { base: 0xb2aca2, light: 0xd8d2c6, dark: 0x6e6a66, belly: 0xc4beb2, muzzle: 0x4a4644, points: 0x5e5a56, mane: 0xd2cdc2, tail: 0xc8c2b6, hoof: 0x3a3634, dapple: 1 },
     roan: { base: 0x8a6a5a, light: 0xb0948a, dark: 0x5a3e30, belly: 0x9a7e70, muzzle: 0x3a2a22, points: 0x2a201c, mane: 0x2a201c, tail: 0x2e2420, hoof: 0x2e2620, roan: 1 },
-    pinto: { base: 0x6e3c20, light: 0x96583a, dark: 0x40220f, belly: 0x80482a, muzzle: 0x5a3a28, points: 0x6e3c20, mane: 0x2a1c14, tail: 0xd6d0c4, hoof: 0x8a7c6a, pinto: 1, blaze: .06, socks: [.35, .5, .45, .3] },
+    pinto: { base: 0x9c5a2c, light: 0xc07c48, dark: 0x6a3a1a, belly: 0xaa6a3a, muzzle: 0x7a5238, points: 0x9c5a2c, mane: 0x5a3a24, tail: 0xd6d0c4, hoof: 0x8a7c6a, pinto: 1, blaze: .06, socks: [.35, .5, .45, .3] },
     palomino: { base: 0xc8913f, light: 0xe2b062, dark: 0x926428, belly: 0xd4a25a, muzzle: 0x8a6a50, points: 0xc08a3e, mane: 0xeee0c0, tail: 0xe6d6b2, hoof: 0x6a5642, star: .05, socks: [0, 0, .14, .14] }
   };
   const WHITE = [.93, .91, .86];
