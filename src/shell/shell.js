@@ -112,7 +112,8 @@ window.__casasolaShell = {
   next() { const i = ORDER.indexOf(current); go(i >= 0 && i + 1 < ORDER.length ? ORDER[i + 1] : 'title'); }
 };
 
-$('bPlay').addEventListener('click', () => go(ORDER[0]));
+// Start Game clicks like the game's other important buttons (public/audio/click.mp3, quiet)
+$('bPlay').addEventListener('click', () => { try { const c = new Audio('audio/click.mp3'); c.volume = .35; c.play().catch(() => {}); } catch (e) {} go(ORDER[0]); });
 // ?start=office jumps straight in (testing)
 const jump = new URLSearchParams(SEARCH).get('start');
 
