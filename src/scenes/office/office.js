@@ -1,4 +1,5 @@
-// The publisher's office: a short talk between scene 1 (the railway town, 1911) and scene 2 (the palace, 1912).
+// The publisher's office: a short talk between scene 1 (the railway town, 1911) and scene 2 (the palace, 1912),
+// and a second visit (office2.html) between scene 2 and scene 3 (the Decena Trágica, February 1913), opened by a time card.
 // First person, seated across the desk. One warm bulb above you is the only light. The publisher is built on the
 // low-poly people kit with his own face painter (many expressions, spiral eyes when riled) and procedural body acting.
 import * as THREE from 'three';
@@ -8,11 +9,14 @@ import { setupEmbed } from '../../engine/embed.js';
 import './style.css';
 
 setupEmbed();
-const $ = id => document.getElementById(id);
-const asset = p => new URL(p, location.href).href;
-document.documentElement.style.setProperty('--paper', `url("${asset('scenes/scene1/assets/paper.jpg')}")`);
+// Scene 3's standalone page runs this room inside itself, in a shadow root: window.__OFFICE_EMBED = { root, host, asset(path), visit, done() }.
+const EMB = window.__OFFICE_EMBED || null;
+const ROOT = EMB ? EMB.root : document;
+const $ = id => ROOT.getElementById(id);
+const asset = p => EMB ? EMB.asset(p) : new URL(p, location.href).href;
+(EMB ? EMB.host : document.documentElement).style.setProperty('--paper', `url("${asset('scenes/scene1/assets/paper.jpg')}")`);
 const PARAMS = new URLSearchParams(location.search);
-const NEXT = 'scene2.html';
+const VISIT = EMB ? EMB.visit || 2 : +(document.body.dataset.visit || 1);
 
 // ---------- the user's script, word for word. Bold terms carry an English gloss on hover. ----------
 // Each beat is one card. `act` is the body acting, `face` the expression, `then` an event when the line is fully shown.
@@ -32,6 +36,14 @@ const BEATS = [
   { say: ['I’m sure you’ll find a way.'], face: 'wink', act: 'wink' },
   { say: ['Good luck, and hurry!'], face: 'frantic', act: 'shoo' }
 ];
+// The second visit, February 1913, after the time card: the user's lines go here, one card per beat, in the same form as above.
+// Until they are written the room is shown and the button out appears straight away.
+const BEATS2 = [];
+const VISITS = {
+  1: { beats: BEATS, next: 'scene2.html', go: 'Go to the National Palace', shots: ['pov', 'med', 'pov', 'close', 'med', 'wide', 'low', 'low', 'wide', 'close', 'low', 'close', 'pov'] },
+  2: { beats: BEATS2, next: 'scene3.html', go: 'Go to the Zócalo', shots: [] }
+};
+const V = VISITS[VISIT] || VISITS[1], LINES = V.beats, NEXT = V.next;
 
 // ---------- renderer and quality tier (same rule as scenes 1 and 2: Chromebooks and small machines get tier 2) ----------
 const Q = (() => {
@@ -457,11 +469,11 @@ const SHOTS = {
   close: { p: [.24, 1.34, .45], fov: 44, ty: -.04 },
   wide: { p: [1.15, 1.9, 1.25], fov: 58, ty: -.3 }
 };
-const SHOT_OF = ['pov', 'med', 'pov', 'close', 'med', 'wide', 'low', 'low', 'wide', 'close', 'low', 'close', 'pov'];
+const SHOT_OF = V.shots;
 const CAM = { p: new THREE.Vector3(...SHOTS.pov.p), look: new THREE.Vector3(0, 1.2, -1), fov: 56, shot: 'pov' };
 const EYE = { x: 0, y: 1.42, z: .66 }, view = { yaw: 0, pitch: 0, ty: 0, tp: 0 };
 const keys = {};
-addEventListener('keydown', e => { keys[e.code] = true; if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); advance(); } });
+addEventListener('keydown', e => { if (!alive) return; keys[e.code] = true; if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); advance(); } });
 addEventListener('keyup', e => { keys[e.code] = false; });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 const cvs = renderer.domElement; let drag = null;
@@ -482,21 +494,27 @@ function buildLine(b) {
   TALK.total = TALK.spans.length; TALK.shown = 0;
 }
 function say(i) {
-  const b = BEATS[i]; TALK.i = i; TALK.done = false; TALK.then = b.then || null; TALK.t0 = clock; actT0 = clock;
+  const b = LINES[i]; TALK.i = i; TALK.done = false; TALK.then = b.then || null; TALK.t0 = clock; actT0 = clock;
   FACE.cur = b.face; ACT = b.act; CAM.shot = SHOT_OF[i] || 'pov'; view.ty = view.tp = 0; buildLine(b); $('talk').hidden = false;
 }
 function revealAll() { TALK.spans.forEach(s => s.classList.remove('h')); $('talkText').querySelectorAll('.term').forEach(e => e.classList.remove('h')); TALK.shown = TALK.total; finishLine(); }
 function finishLine() { if (TALK.done) return; TALK.done = true; FACE.talk = 0; if (TALK.then === 'slam') { slamAt = clock + .05; } }
 function advance() {
-  if (TALK.ending) { const g = document.querySelector('.cas-go.on'); if (g) g.click(); return; }
+  if (TALK.ending) { const g = ROOT.querySelector('.cas-go.on'); if (g) g.click(); return; }
   if (TALK.i < 0) return;
   if (!TALK.done) { revealAll(); return; }
-  if (TALK.i + 1 < BEATS.length) { hideGloss(); say(TALK.i + 1); return; }
-  // the last line: he keeps shooing you out while the room fades, then on to the palace
-  // he keeps shooing; a big button takes you out, and the room fades before the palace loads
+  if (TALK.i + 1 < LINES.length) { hideGloss(); say(TALK.i + 1); return; }
+  endTalk();
+}
+// the last line: he keeps shooing; a big button takes you out, and the room fades before the next scene loads
+function endTalk() {
   TALK.ending = true; hideGloss(); $('talk').hidden = true;
-  const go = window.CasasolaShell.goButton('Go to the National Palace', NEXT, { fixed: true, before: on => { go.classList.remove('on'); $('fade').className = 'in'; setTimeout(on, 1100); } });
-  document.body.appendChild(go); requestAnimationFrame(() => { go.classList.add('on'); go.focus({ preventScroll: true }); });
+  const before = on => { go.classList.remove('on'); $('fade').className = 'in'; setTimeout(on, 1100); };
+  let go;
+  if (EMB) { go = document.createElement('button'); go.type = 'button'; go.className = 'cas-go fixed'; go.innerHTML = '<span></span><span class="arrow" aria-hidden="true">\u2192</span>'; go.firstChild.textContent = V.go;
+    go.onclick = () => { if (go.dataset.gone) return; go.dataset.gone = '1'; before(() => EMB.done()); }; }
+  else go = window.CasasolaShell.goButton(V.go, NEXT, { fixed: true, before });
+  (EMB ? ROOT : document.body).appendChild(go); requestAnimationFrame(() => { go.classList.add('on'); go.focus({ preventScroll: true }); });
 }
 $('bNext').addEventListener('click', e => { e.stopPropagation(); advance(); });
 $('talk').addEventListener('click', e => { if (e.target.closest('.term')) return; advance(); });
@@ -518,7 +536,9 @@ const CPS = 42;   // letters per second
 function resize() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
 addEventListener('resize', resize); resize();
 let last = performance.now();
+let alive = true;
 function frame_(now) {
+  if (!alive) return;
   const dt = Math.min(.1, (now - last) / 1000); last = now; clock += dt;
   // the typed line
   if (TALK.i >= 0 && !TALK.done) {
@@ -558,16 +578,33 @@ function frame_(now) {
   requestAnimationFrame(frame_);
 }
 requestAnimationFrame(frame_);
-// begin: the room fades up, then he speaks
-const startBeat = Math.max(0, Math.min(BEATS.length - 1, +(PARAMS.get('beat') || 0)));
+// begin: the room fades up, then he speaks (or, with no lines yet, the way out appears)
+const startBeat = Math.max(0, Math.min(LINES.length - 1, +(PARAMS.get('beat') || 0)));
+const speak = () => LINES.length ? say(startBeat) : endTalk();
+// the second visit opens on the time card: huge type, and under it the one button that lets you in
+const card = !EMB && $('timecard');
+if (card) { card.hidden = false; fitCard(card); addEventListener('resize', () => fitCard(card)); if (document.fonts) document.fonts.ready.then(() => fitCard(card)); }
+function enter(delay) { if (card) card.hidden = true; $('fade').className = 'out'; setTimeout(speak, delay); }
 // inside the game shell the room is drawn under the loading screen first, and the talk starts once it is seen
 const SHELL = window.CasasolaShell;
-if (SHELL && SHELL.inShell) {
+if (EMB) requestAnimationFrame(() => enter(1100));
+else if (card) {
+  $('bMeet').addEventListener('click', () => enter(1100), { once: true });
+  if (SHELL && SHELL.inShell) requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(() => SHELL.ready(), 300)));
+} else if (SHELL && SHELL.inShell) {
   $('fade').className = 'out';
   requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(() => SHELL.ready(), 300)));
-  SHELL.onShown(() => setTimeout(() => say(startBeat), 700));
+  SHELL.onShown(() => setTimeout(speak, 700));
 } else {
   requestAnimationFrame(() => { $('fade').className = 'out'; });
-  setTimeout(() => say(startBeat), PARAMS.has('shot') ? 0 : 1100);
+  setTimeout(speak, PARAMS.has('shot') ? 0 : 1100);
 }
-window.__office = { THREE, scene, camera, renderer, pub, J, BEATS, say, advance, revealAll, view, thump, EX, FACE, setFace: f => { FACE.cur = f; }, setAct: a => { ACT = a; actT0 = clock; }, POSE, Q };
+// the card's words are as big as the screen allows: each line scaled to the width, the whole to the height left above the button
+function fitCard(el) {
+  const big = el.querySelector('.tc-big'), lines = [...big.children]; big.style.fontSize = '100px';
+  const W = el.clientWidth * .94, Hh = (el.clientHeight - el.querySelector('.tc-go').offsetHeight - 40) * .96;
+  const wide = Math.max(...lines.map(l => l.scrollWidth || 1)), tall = big.scrollHeight || 1;
+  big.style.fontSize = Math.max(24, Math.floor(100 * Math.min(W / wide, Hh / tall))) + 'px';
+}
+window.__office = { THREE, scene, camera, renderer, pub, J, BEATS: LINES, say, advance, revealAll, view, thump, EX, FACE, setFace: f => { FACE.cur = f; }, setAct: a => { ACT = a; actT0 = clock; }, POSE, Q };
+window.__office.stop = () => { alive = false; renderer.dispose(); renderer.forceContextLoss(); };

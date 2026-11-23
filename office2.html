@@ -1,0 +1,29 @@
+<!doctype html>
+<!-- The publisher's office again, between scene 2 (the palace, 1912) and scene 3 (the Decena Trágica, February 1913), opened by the time card. Source: src/scenes/office/office.js -->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Art of the Mexican Revolution: Casasola's Photography</title>
+<script src="shell/client.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&display=swap">
+</head>
+<body data-visit="2">
+<div id="timecard">
+  <h1 class="tc-big" aria-label="5 months later"><span>5 MONTHS</span><span>LATER</span></h1>
+  <button class="cas-go on tc-go" id="bMeet" type="button"><span>Meet with publisher</span><span class="arrow" aria-hidden="true">&rarr;</span></button>
+</div>
+<div id="host"></div>
+<div class="vignette" aria-hidden="true"></div>
+<div id="talk" class="card" hidden>
+  <h3 id="talkName">Publisher</h3>
+  <p id="talkText" aria-live="polite"></p>
+  <button class="btn primary" id="bNext" type="button">Continue<kbd class="kbd-only">Enter</kbd></button>
+</div>
+<div id="gloss" role="tooltip" hidden></div>
+<div id="fade"></div>
+<script type="module" src="./src/scenes/office/office.js"></script>
+</body>
+</html>

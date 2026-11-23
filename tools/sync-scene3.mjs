@@ -17,5 +17,7 @@ function shellify(h) {
   return h.replace(/\s*$/, '\n<script src="shell/scene3-hook.js"></script>\n');
 }
 if (!/window\.G3 = G3/.test(html) || /__U_LIST__|__PEOPLE_KIT__/.test(html)) { console.error('sync-scene3: ' + SRC + ' is not a finished build (run build3.py)'); process.exit(1); }
-fs.writeFileSync(path.join(ROOT, 'public/scene3.html'), shellify(html));
-console.log('wrote public/scene3.html', html.length);
+// the standalone page opens on the time card and the publisher's room; in the game those are office2.html, so they come out here
+const game = html.replace(/<!-- standalone:[\s\S]*?<!-- \/standalone -->\n?/g, '');
+fs.writeFileSync(path.join(ROOT, 'public/scene3.html'), shellify(game));
+console.log('wrote public/scene3.html', game.length);

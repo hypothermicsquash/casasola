@@ -273,6 +273,15 @@ button.print:hover, button.print:focus-visible { outline: 3px solid var(--ochre)
 #dialog h3 { font-family: var(--fellsc); color: #8a2e1c; }
 #dialog .btn { background: #2b2724; background-image: none; color: #f2f0eb; box-shadow: none; filter: none; border-radius: 0; }
 #dialog .btn::before, #dialog .btn::after { display: none; }
+/* standalone page only: the time card (user, 2026-11-23) and the publisher's room run inside this page; in the game they are office2.html */
+#timecard { position: fixed; inset: 0; z-index: 40; background: #0d0907; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); box-sizing: border-box; }
+#timecard .tc-big { margin: 0; font: 400 100px/.84 var(--fellsc); color: #f2f0eb; text-align: center; letter-spacing: .01em; display: flex; flex-direction: column; align-items: center; }
+#timecard .tc-big span { display: block; white-space: nowrap; }
+#timecard .cas-go { margin: 0; min-width: 0; font-size: clamp(18px, 2.2vw, 24px); padding: 12px 30px 13px; flex: none; }
+#timecard .cas-go:disabled { opacity: .35; cursor: progress; }
+#office { position: fixed; inset: 0; z-index: 41; }
+.cas-go{display:block;box-sizing:border-box;min-width:min(520px,88vw);margin:6px auto 0;padding:20px 44px 21px;font-family:"IM Fell English SC","Old Standard TT",Georgia,serif;font-size:clamp(24px,3vw,34px);letter-spacing:.04em;line-height:1.1;color:#f2f0eb;background:#2b2724;border:2px solid #f2f0eb;border-radius:0;box-shadow:0 0 0 2px #2b2724,0 10px 28px rgba(0,0,0,.45);cursor:pointer;touch-action:manipulation;opacity:0;transform:translateY(10px);pointer-events:none;transition:opacity .5s,transform .5s,background .2s,color .2s}.cas-go.on{opacity:1;transform:none;pointer-events:auto}.cas-go:hover,.cas-go:focus-visible{background:#f2f0eb;color:#2b2724;outline:none}.cas-go:active{transform:translateY(2px)}.cas-go .arrow{display:inline-block;margin-left:.45em;transition:transform .2s}.cas-go:hover .arrow{transform:translateX(5px)}.cas-go.arrow-only{min-width:0;padding:12px 52px 18px;font-size:60px;line-height:1}.cas-go.arrow-only .arrow{margin:0}.cas-go.corner{position:fixed;right:calc(28px + env(safe-area-inset-right,0px));bottom:calc(28px + env(safe-area-inset-bottom,0px));margin:0;z-index:60}.cas-go.fixed{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom,0px));margin:0;z-index:60;transform:translate(-50%,10px)}.cas-go.fixed.on{transform:translate(-50%,0)}.cas-go.fixed:active{transform:translate(-50%,2px)}
 </style>
 
 <div id="game">
@@ -557,7 +566,7 @@ function CasHorses(THREE, deps) {
 
   // ---------- coats ----------
   // base, light (highlights on the muscle masses), dark (creases, topline), belly, muzzle, points (lower legs),
-  // mane, tail, hoof. Marks: blaze width, star, socks [LF, RF, LH, RH] heights, pinto, dapple, roan, dorsal.
+  // mane, tail, hoof. Marks: blaze width, star, socks [LF, RF, LH, RH] heights, pinto, dapple, roan, dorsal, spots (+ spot colour).
   const COATS = {
     madero: { base: 0x1f1813, light: 0x5b3824, dark: 0x0f0c0a, belly: 0x3c2618, muzzle: 0x7a4f30, points: 0x141010, mane: 0x110d0b, tail: 0x120e0c, hoof: 0x2a2420, blaze: .024, star: .045, socks: [0, 0, .07, 0], flank: .55 },
     bay: { base: 0x7a4223, light: 0xa5643a, dark: 0x4a2716, belly: 0x8c5532, muzzle: 0x3a2618, points: 0x1c1512, mane: 0x15100d, tail: 0x18120e, hoof: 0x2e2620 },
@@ -609,6 +618,11 @@ function CasHorses(THREE, deps) {
       c = mix(c, hex(K.dark), sstep(.35, .12, d) * .35 * sstep(1.4, .9, p.y));
     }
     if (K.roan && (part === 'body' || part === 'neck' || part === 'upper')) c = mix(c, [.78, .72, .7], .45 * (h3(p.x * 40, p.y * 40, p.z * 40) * .6 + .4));
+    // leopard spots (an appaloosa): dark ovals scattered over a white coat, smaller on the head and legs
+    if (K.spots && part !== 'mane' && part !== 'tail' && part !== 'hoof') {
+      const f = part === 'leg' || part === 'head' ? 15 : 10, d = vn3(p.x * f + 9.3, p.y * f * 1.25 + 1.7, p.z * f * 1.6 + 2.1);
+      c = mix(c, hex(K.spot), sstep(.55, .62, d) * (part === 'leg' ? sstep(.2, .45, p.y) : 1));
+    }
     if (K.pinto && part !== 'hoof' && part !== 'mane') {
       const q = fbm3(p.x * 1.7 + 4, p.y * 1.7, p.z * .9 + K._seed);
       const w = sstep(.5, .54, q + (1.1 - p.y) * .25 - (part === 'head' ? .4 : 0));
@@ -2288,35 +2302,34 @@ function resize() {
   dustScale(h * renderer.getPixelRatio(), camera.fov);
   if (postReady) sizePost();
 }
-// ---------- sky: Borella's pale blue with heaped cumulus, warm on top, violet underneath ----------
-const skyTex = canvasTex(4096, 1024, (g, W, H) => {
+// ---------- sky: smoke over the capital. Not Borella's blue: a dirty umber ceiling, black columns, a red glow low down where the city burns ----------
+const skyTex = canvasTex(2048, 512, (g, W, H) => {
   const gr = g.createLinearGradient(0, 0, 0, H);
-  gr.addColorStop(0, '#4f7fbf'); gr.addColorStop(.35, '#6f97cb'); gr.addColorStop(.7, '#9db6d8'); gr.addColorStop(.92, '#bccadc'); gr.addColorStop(1, '#c8cfda');
+  gr.addColorStop(0, '#231c19'); gr.addColorStop(.35, '#3c302a'); gr.addColorStop(.62, '#5e4234'); gr.addColorStop(.84, '#8e4e34'); gr.addColorStop(.95, '#a25a3c'); gr.addColorStop(1, '#7a5646');
   g.fillStyle = gr; g.fillRect(0, 0, W, H);
-  seed = 501;
-  const puffs = (cx, cy, w, h, fill) => { for (let i = 0; i < 26; i++) { const t = rnd(), x = cx + (t - .5) * w, top = Math.sin(t * Math.PI), r = (.12 + rnd() * .2) * h + top * h * .25, y = cy - top * h * (.35 + rnd() * .45); const rg = g.createRadialGradient(x, y, r * .2, x, y, r); rg.addColorStop(0, fill); rg.addColorStop(.75, fill); rg.addColorStop(1, fill.replace(/[\d.]+\)$/, '0)')); g.fillStyle = rg; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); } };
-  const cloud = (cx, cy, w, h) => {
-    for (const dx of [0, -W, W]) {
-      const x = cx + dx; if (x + w < 0 || x - w > W) continue;
-      puffs(x, cy, w, h, 'rgba(160,160,186,.95)');
-      puffs(x - w * .03, cy - h * .12, w * .92, h * .95, 'rgba(232,230,236,.95)');
-      puffs(x - w * .06, cy - h * .25, w * .75, h * .8, 'rgba(255,250,240,.95)');
-      g.fillStyle = 'rgba(150,150,178,.9)'; g.beginPath(); g.ellipse(x, cy, w * .52, h * .12, 0, 0, 7); g.fill();
-    }
-  };
-  for (let i = 0; i < 46; i++) {
-    const el = Math.pow(rnd(), 1.7), cy = H * (.93 - el * .5), sc = .35 + el * 1.4;
-    cloud(rnd() * W, cy, (110 + rnd() * 260) * sc, (34 + rnd() * 50) * sc * (.7 + el * .5));
-  }
-  // thin streaks of high cloud
-  g.globalAlpha = .18; g.strokeStyle = '#ffffff'; g.lineCap = 'round';
-  for (let i = 0; i < 70; i++) { const x = rnd() * W, y = H * (.08 + rnd() * .45); g.lineWidth = 2 + rnd() * 6; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + 80, y - 10, x + 160 + rnd() * 200, y + (rnd() - .5) * 20); g.stroke(); }
-  g.globalAlpha = 1;
+  seed = 913;
+  const blob = (x, y, r, c, a) => { for (const dx of [0, -W, W]) { const X = x + dx; if (X + r < 0 || X - r > W) continue; const rg = g.createRadialGradient(X, y, r * .1, X, y, r); rg.addColorStop(0, `rgba(${c},${a})`); rg.addColorStop(1, `rgba(${c},0)`); g.fillStyle = rg; g.beginPath(); g.arc(X, y, r, 0, 7); g.fill(); } };
+  // heavy banks of smoke, their bellies lit red from below
+  for (let i = 0; i < 70; i++) { const x = rnd() * W, y = H * (.15 + rnd() * .7), r = 40 + rnd() * 120;
+    blob(x, y + r * .35, r * 1.1, '170,70,36', .12 + .18 * (y / H)); blob(x, y, r, '24,19,17', .35 + rnd() * .3); }
+  // black columns climbing from the rooftops and leaning off in the wind
+  for (let i = 0; i < 9; i++) { let x = rnd() * W; const lean = 30 + rnd() * 60;
+    for (let k = 0; k < 26; k++) { const t = k / 25, y = H * (1 - t * (.75 + rnd() * .1)), r = 12 + t * t * 140; blob(x + lean * t * t * 3, y, r, k % 4 ? '18,15,14' : '60,46,40', .55 * (1 - t * .55)); } }
+  // broad diagonal strokes, as if dragged across with a loaded brush
+  g.lineCap = 'round';
+  for (let i = 0; i < 46; i++) { const x = rnd() * W, y = H * (.05 + rnd() * .8), len = 120 + rnd() * 380, dark = rnd() < .65;
+    g.strokeStyle = dark ? `rgba(20,16,14,${(.06 + rnd() * .12).toFixed(2)})` : `rgba(${150 + rnd() * 50 | 0},${50 + rnd() * 30 | 0},30,${(.1 + rnd() * .16).toFixed(2)})`;
+    g.lineWidth = 3 + rnd() * 14; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + len * .5, y - len * .22 + (rnd() - .5) * 40, x + len, y - len * .3); g.stroke(); }
+  // the glow along the horizon, strongest toward the Ciudadela where the guns are
+  const hz = g.createLinearGradient(0, H * .78, 0, H); hz.addColorStop(0, 'rgba(190,80,40,0)'); hz.addColorStop(.7, 'rgba(190,80,40,.35)'); hz.addColorStop(1, 'rgba(120,80,64,.6)'); g.fillStyle = hz; g.fillRect(0, H * .78, W, H * .22);
 });
 skyTex.repeat.set(1, 2); skyTex.offset.set(0, -1); skyTex.wrapT = THREE.ClampToEdgeWrapping; skyTex.wrapS = THREE.RepeatWrapping;
-const sky = new THREE.Mesh(new THREE.SphereGeometry(2400, 48, 24), new THREE.MeshBasicMaterial({ map: skyTex, side: THREE.BackSide, fog: false, depthWrite: false }));
+const sky = new THREE.Mesh(new THREE.SphereGeometry(2400, 32, 16), new THREE.MeshBasicMaterial({ map: skyTex, side: THREE.BackSide, fog: false, depthWrite: false }));
 sky.renderOrder = -1; sky.userData.noMerge = true; reg(sky); scene.add(sky);
-
+// the light that gets through: dim, red-brown, shadows sinking into maroon and soot instead of blue
+FOG_COL.setHex(0x6a5446); scene.fog.color.copy(FOG_COL);
+LIGHT.uLightCol.value.setRGB(.96, .74, .58); LIGHT.uShadowMul.value.setRGB(.5, .41, .38); LIGHT.uShadowBlue.value.setRGB(.44, .3, .28); LIGHT.uBlueAmt.value = .3;
+LIGHT.uDustCol.value.setRGB(.34, .29, .25); LIGHT.uCloud.value.z = .55; LIGHT.uFogMax.value = .93; LIGHT.uFogFall.value = 110;
 // ---------- scene 3: the Decena Trágica, Mexico City, 9 February 1913 ----------
 // Félix Díaz's rebels march on the palace, the guns open up, and the column falls back down one street to the Ciudadela.
 const Q = tier; // geometry detail follows the starting tier
@@ -2334,6 +2347,8 @@ const HIDE_MAT = new THREE.MeshBasicMaterial({ visible: false });
 const SKIN_BLACK = new THREE.MeshBasicMaterial({ color: 0, fog: false, skinning: true });
 const dust = { visible: true }; function dustScale() {}
 const G3 = { events: [] }; // what the scene is doing, for the sound (shell/audio.js) and the test hook
+// the player: where you stand (or ride), where you look
+const player = { x: -12, y: 0, z: 4.6, yaw: -Math.PI / 2 + .35, pitch: .03, zone: 'zocalo' };
 let pseed = 7; const rand = () => ((pseed = (pseed * 16807) % 2147483647) - 1) / 2147483646; // seeded, so the town is the same every load
 
 // ---------- palette: cool stone downstairs, warm only where power sits ----------
@@ -2579,7 +2594,12 @@ for (const tx of [-25, 9]) { bx('zocalo', tx - 5, tx + 5, 0, 44, -54, -44.5, 0xa
 bx('zocalo', -11, -5, 0, 7, -44.52, -44.48, 0x3a2a20); bx('zocalo', -12, -4, 7, 8, -44.6, -44.4, C.stone);
 ob(-46, 46, -90, -44.2);
 // rows of houses and shops on the south and west, each with balconies; the street out west is the gap at z -5..5
-const BCOL = [0xb59b7c, 0xc9b79a, 0x9c6f58, 0xd0c2a6, 0xa88466, 0xb8a07e];
+// wartime: the plaster is soot-stained and drab, nothing freshly painted
+const BCOL = [0x8a7d6c, 0x9a8c78, 0x7c5e4c, 0xa39583, 0x86705e, 0x958571];
+const SOOT = 0x2a2420, CHAR = 0x3e322a, TILE = 0x8a5a40, PAPER = 0xcfc6b0, STRAW = 0xb89a62;
+const FIRE_SPOTS = []; // fires for fx.js to keep burning: [x, y, z, size]
+// a randomly turned box: broken stone, a plank, a fallen tile
+function chunk(g, x, y, z, sx, sy, sz, c, flat) { const q = new THREE.BoxGeometry(sx, sy, sz); q.rotateY(rand() * 6.28); if (!flat) { q.rotateX((rand() - .5) * 1.2); q.rotateZ((rand() - .5) * 1.2); } q.translate(x, y, z); geoAdd(g, q, c); }
 // a street front: a block of plaster, ground-floor doors and shop windows, balconies with iron rails above.
 // along 'x' the front faces +z or -z (face), along 'z' it faces +x or -x.
 const BALC = []; // balcony floors, for the people who watch from them
@@ -2588,17 +2608,46 @@ function front(g, along, w, a, b, face, depth, h) {
   while (p < b - .5) {
     const q = Math.min(b, p + 7 + rand() * 5), hh = h || 9.5 + rand() * 4.5, c = BCOL[(rand() * BCOL.length) | 0], f0 = w, f1 = w - face * depth;
     const B = (u0, u1, y0, y1, d0, d1, col) => along === 'x' ? bx(g, u0, u1, y0, y1, Math.min(w + face * d0, w + face * d1), Math.max(w + face * d0, w + face * d1), col) : bx(g, Math.min(w + face * d0, w + face * d1), Math.max(w + face * d0, w + face * d1), y0, y1, u0, u1, col);
-    B(p, q, 0, hh, 0, -depth, c); B(p, q, hh, hh + .45, .3, -depth, C.stone); B(p, q, 0, .6, .12, 0, C.stoneD);
-    B(p, q, 4.1, 4.35, .22, 0, C.stone); // string course
+    const W = (u, d) => along === 'x' ? [u, w + face * d] : [w + face * d, u]; // world x, z of a point u along the front, d out from it
+    const ruin = rand(), fell = ruin < (g === 'avenue' ? .16 : .08) && q - p > 6, broken = !fell && ruin < .5;
+    // the roofline: whole, broken into jagged steps, or a house brought down to its first floor
+    const pieces = []; { const n = fell || broken ? 3 + (rand() * 3 | 0) : 1;
+      for (let k = 0; k < n; k++) pieces.push({ u0: p + (q - p) * k / n, u1: p + (q - p) * (k + 1) / n, h: fell ? 2.6 + rand() * 3.2 : broken && rand() < .7 ? hh - 1 - rand() * 4 : hh }); }
+    const topAt = u => { for (const pc of pieces) if (u >= pc.u0 - .01 && u <= pc.u1 + .01) return pc.h; return hh; };
+    for (const pc of pieces) { B(pc.u0, pc.u1, 0, pc.h, 0, -depth, c); if (pc.h >= hh) B(pc.u0, pc.u1, hh, hh + .45, .3, -depth, C.stone);
+      else for (let k = 0; k < 3; k++) { const a = pc.u0 + rand() * (pc.u1 - pc.u0), [x, z] = W(a, -.2 - rand() * 1.5); chunk(g, x, pc.h + .1, z, .5 + rand() * .8, .4 + rand() * .7, .4 + rand() * .6, k ? c : C.stoneD); } }
+    B(p, q, 0, .6, .12, 0, C.stoneD);
+    if (Math.min(...pieces.map(pc => pc.h)) > 4.4) B(p, q, 4.1, 4.35, .22, 0, C.stone); // string course
+    // shell holes punched in the plaster, with broken stone round the lip and soot above
+    for (let k = 0; k < (broken || fell ? 2 : rand() < .45 ? 1 : 0); k++) {
+      const hw = .9 + rand() * 1.3, hhh = .8 + rand() * 1.1, u = p + .6 + rand() * Math.max(.1, q - p - 1.2 - hw), top = topAt(u + hw / 2), y = 1.4 + rand() * Math.max(.2, top - hhh - 2);
+      if (y + hhh > top - .3) continue;
+      B(u, u + hw, y, y + hhh, .03, -.5, SOOT);
+      for (let j = 0; j < 6; j++) { const a = j / 6 * 6.28, [x, z] = W(u + hw / 2 + Math.cos(a) * hw * .55, .05); chunk(g, x, y + hhh / 2 + Math.sin(a) * hhh * .55, z, .25 + rand() * .3, .2 + rand() * .3, .12, C.stoneD, true); }
+      B(u + .1, u + hw - .1, y + hhh, Math.min(top - .1, y + hhh + 1 + rand()), .02, 0, CHAR); B(u + .3, u + hw - .3, y + hhh + .8, Math.min(top - .1, y + hhh + 2.2), .02, 0, CHAR);
+    }
+    if (fell) { // the house's front came down into the street: a heap of stone, beams and tiles over the pavement
+      const n = Q === 2 ? 22 : 34;
+      for (let k = 0; k < n; k++) { const a = p + .3 + rand() * (q - p - .6), d = 1.9 * Math.pow(rand(), .7), hgt = (1 - d / 1.9) * 1.1, [x, z] = W(a, d);
+        const r = rand(); chunk(g, x, hgt * rand() + .15, z, .35 + rand() * .8, .25 + rand() * .5, .35 + rand() * .7, r < .5 ? c : r < .75 ? C.stoneD : r < .9 ? TILE : C.wood); }
+      for (let k = 0; k < 3; k++) { const a = p + 1 + rand() * (q - p - 2), [x, z] = W(a, .4 + rand()); partR(g, .14, .14, 3.2, x, z, (along === 'x' ? 0 : Math.PI / 2) + (rand() - .5) * .8, 0, .5, 0, C.woodD, 0, (rand() - .5) * .7); }
+      const [x0, z0] = W(p + .2, 0), [x1, z1] = W(q - .2, 1.7); ob(Math.min(x0, x1), Math.max(x0, x1), Math.min(z0, z1), Math.max(z0, z1));
+      if (rand() < .6) { const [x, z] = W((p + q) / 2, .4); FIRE_SPOTS.push([x, .4, z, 1.1]); }
+    }
     for (let u = p + 1.1; u < q - 1.6; u += 2.6) {
+      if (topAt(u + .75) < 7.6) { // the upper floor is gone: only the ground floor openings, blackened
+        B(u, u + 1.5, 0, 2.6, .02, 0, SOOT); continue; }
+      const burnt = rand() < .22, noRail = rand() < .2;
       const shop = rand() < .45;
       B(u, u + 1.5, 0, shop ? 2.9 : 2.6, .02, 0, shop ? 0x2c2622 : 0x4a3426); B(u - .12, u + 1.62, shop ? 2.9 : 2.6, (shop ? 2.9 : 2.6) + .16, .1, 0, C.stone);
+      if (shop && rand() < .5) { const [x, z] = W(u + .75, .07); for (let j = 0; j < 3; j++) partR(g, .12 + rand() * .1, 1.5, .04, x + (rand() - .5) * .9 * (along === 'x'), z + (rand() - .5) * .9 * (along === 'z'), (along === 'x' ? 0 : Math.PI / 2), 0, .5 + rand() * 1.2, 0, C.wood, (rand() - .5) * 1.4); } // boards nailed over the shop
       // upper windows with a balcony: slab, rail, balusters
       B(u + .1, u + 1.4, 5, 7.4, .02, 0, 0x3a3230); B(u, u + 1.5, 7.4, 7.65, .14, 0, C.stone);
-      B(u - .25, u + 1.75, 4.75, 4.9, .75, 0, C.stone); B(u - .25, u + 1.75, 5.75, 5.82, .75, .69, C.iron);
-      for (let k = u - .2; k < u + 1.72; k += .24) B(k, k + .03, 4.9, 5.75, .74, .7, C.iron);
-      BALC.push({ along, w: w + face * .45, u: u + .75, face, y: 4.9, g });
-      if (hh > 11) { B(u + .15, u + 1.35, 8.6, 10.2, .02, 0, 0x3a3230); B(u, u + 1.5, 8.4, 8.6, .12, 0, C.stone); }
+      B(u - .25, u + 1.75, 4.75, 4.9, .75, 0, C.stone);
+      if (!noRail) { B(u - .25, u + 1.75, 5.75, 5.82, .75, .69, C.iron); for (let k = u - .2; k < u + 1.72; k += .24) B(k, k + .03, 4.9, 5.75, .74, .7, C.iron); BALC.push({ along, w: w + face * .45, u: u + .75, face, y: 4.9, g }); }
+      else { const [x, z] = W(u + .5, 1.2); partR(g, 1.6, .05, .05, x, z, along === 'x' ? 0 : Math.PI / 2, 0, .04, 0, C.iron); } // the rail blown off, lying below
+      if (burnt) { B(u + .2, u + 1.3, 7.4, 8.6, .03, 0, SOOT); B(u + .45, u + 1.05, 8.6, 9.6, .03, 0, CHAR); if (rand() < .3 && g === 'avenue') { const [x, z] = W(u + .75, .1); FIRE_SPOTS.push([x, 5.4, z, .7]); } }
+      if (hh > 11 && topAt(u + .75) > 10.4) { B(u + .15, u + 1.35, 8.6, 10.2, .02, 0, 0x3a3230); B(u, u + 1.5, 8.4, 8.6, .12, 0, C.stone); }
     }
     p = q;
   }
@@ -2608,11 +2657,11 @@ front('zocalo', 'z', -46, -44, -5, 1, 10, 0); front('zocalo', 'z', -46, 5, 44, 1
 ob(-46, 46, 43.8, 60); ob(-70, -45.8, -60, -5); ob(-70, -45.8, 5, 60);
 // the garden: four low beds with iron rails, clear of the column's line down the middle
 for (const [x0, x1, z0, z1] of [[-30, -16, -30, -12], [-30, -16, 12, 30], [0, 14, -30, -12], [0, 14, 12, 30]]) {
-  bx('zocalo', x0, x1, 0, .12, z0, z1, 0x6a6a3a); bx('zocalo', x0 + .4, x1 - .4, .12, .2, z0 + .4, z1 - .4, 0x4e5e30);
+  bx('zocalo', x0, x1, 0, .12, z0, z1, 0x5e5640); bx('zocalo', x0 + .4, x1 - .4, .12, .2, z0 + .4, z1 - .4, 0x4a4a32);
   for (const [a, b, c, d] of [[x0, x1, z0, z0 + .06], [x0, x1, z1 - .06, z1], [x0, x0 + .06, z0, z1], [x1 - .06, x1, z0, z1]]) bx('zocalo', a, b, .55, .6, c, d, C.iron);
   for (let x = x0; x <= x1; x += 1.2) { bx('zocalo', x - .03, x + .03, 0, .6, z0, z0 + .06, C.iron); bx('zocalo', x - .03, x + .03, 0, .6, z1 - .06, z1, C.iron); }
   ob(x0, x1, z0, z1);
-  for (let k = 0; k < (Q === 2 ? 1 : 2); k++) { const tx = x0 + 3 + rand() * (x1 - x0 - 6), tz = z0 + 3 + rand() * (z1 - z0 - 6); cyl('zocalo', .18, .25, 3.2, 6, tx, 0, tz, 0x5a4636); ball('zocalo', 2.2 + rand(), tx, 4.6, tz, rand() < .5 ? 0x4e6a3a : 0x5a7240, 1, .85, 1); }
+  for (let k = 0; k < (Q === 2 ? 1 : 2); k++) { const tx = x0 + 3 + rand() * (x1 - x0 - 6), tz = z0 + 3 + rand() * (z1 - z0 - 6); cyl('zocalo', .18, .25, 3.2, 6, tx, 0, tz, 0x5a4636); ball('zocalo', 2.2 + rand(), tx, 4.6, tz, rand() < .5 ? 0x46523a : 0x4a5636, 1, .85, 1); }
 }
 function lampPost(g, x, z) { cyl(g, .1, .14, 3.6, 6, x, 0, z, C.iron); bx(g, x - .25, x + .25, 3.6, 4.2, z - .25, z + .25, 'f2e8c8'); bx(g, x - .3, x + .3, 4.2, 4.3, z - .3, z + .3, C.iron); ob(x - .2, x + .2, z - .2, z + .2); }
 for (const x of [-36, -6, 24]) { lampPost('zocalo', x, -9); lampPost('zocalo', x, 9); }
@@ -2676,6 +2725,64 @@ for (const [x, z, ry] of GUNS) fieldGun('ciudadela', x, z, ry);
 // the sandbagged parapet behind the gate
 sandbags('ciudadela', -158.5, -154.5, -5.2, 3); sandbags('ciudadela', -158.5, -154.5, 5.2, 3); ob(-158.8, -154.2, -5.6, -4.8); ob(-158.8, -154.2, 4.8, 5.6);
 
+// ---------- the damage: the night's shelling and the morning's fighting ----------
+// craters where shells came down: a black scorch, the cobbles thrown up round it
+function crater(g, x, z, r, y = 0) {
+  cyl(g, r, r * .92, .035, 9, x, y, z, SOOT); cyl(g, r * .55, r * .5, .05, 7, x + (rand() - .5) * .3, y, z + (rand() - .5) * .3, CHAR);
+  for (let k = 0; k < 9; k++) { const a = rand() * 6.28, d = r * (.9 + rand() * .5); chunk(g, x + Math.cos(a) * d, y + .08, z + Math.sin(a) * d, .2 + rand() * .3, .12 + rand() * .15, .2 + rand() * .3, k % 3 ? C.stoneD : C.stone); }
+}
+// litter over a floor: broken stone, tiles, papers blown out of the houses, planks, a dropped hat
+function litter(g, x0, x1, z0, z1, n, y = 0, keep) {
+  for (let k = 0; k < n; k++) {
+    const x = x0 + rand() * (x1 - x0), z = z0 + rand() * (z1 - z0); if (keep && keep(x, z)) continue;
+    const r = rand();
+    if (r < .42) chunk(g, x, y + .07, z, .12 + rand() * .28, .08 + rand() * .14, .12 + rand() * .26, rand() < .6 ? C.stoneD : C.stone);
+    else if (r < .58) chunk(g, x, y + .03, z, .26, .03, .18, TILE, true);
+    else if (r < .78) chunk(g, x, y + .012, z, .3, .012, .4, PAPER, true);
+    else if (r < .92) chunk(g, x, y + .04, z, .1, .05, .9 + rand() * .8, C.wood, true);
+    else { cyl(g, .3, .3, .025, 8, x, y, z, STRAW); cyl(g, .12, .1, .13, 6, x + .05, y + .02, z, STRAW); }
+  }
+}
+// a cart turned over on its side, wheels in the air, its load spilled; some of them burning
+function wagon(g, x, z, ry, burning, col) {
+  const parts = [], P = (w, h, d, ox, oy, oz, c, geo) => { const q = geo || new THREE.BoxGeometry(w, h, d); q.translate(ox, oy, oz); parts.push([q, c]); };
+  const wc = col || 0x6a5038;
+  P(3.2, .12, 1.3, 0, .55, 0, wc); P(3.2, .55, .08, 0, .85, .62, wc); P(3.2, .55, .08, 0, .85, -.62, wc); P(.08, .55, 1.3, 1.56, .85, 0, wc); P(.08, .55, 1.3, -1.56, .85, 0, wc);
+  for (const [a, b] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) { const q = new THREE.CylinderGeometry(.55, .55, .08, 10); q.rotateX(Math.PI / 2); P(0, 0, 0, a * 1.05, .55, b * .72, 0x3e2e22, q); }
+  P(2.4, .08, .08, 2.6, .6, .35, C.woodD); P(2.4, .08, .08, 2.6, .6, -.35, C.woodD);
+  // tip it onto its left side about the long axis, set it down on the street
+  for (const [q, c] of parts) { q.translate(0, 0, .72); q.rotateX(-1.45); q.translate(0, .05, 0); q.rotateY(ry); q.translate(x, 0, z); geoAdd(g, q, c); }
+  obR(x, z, ry, -1.8, 1.8, -1.4, .5);
+  for (let k = 0; k < 6; k++) { const a = (rand() - .5) * 3, d = rand() * 1.4, lx = a, lz = .6 + d * .8; const wx = x + lx * Math.cos(ry) + lz * Math.sin(ry), wz = z - lx * Math.sin(ry) + lz * Math.cos(ry);
+    if (k < 4) ball(g, .28, wx, .2, wz, 0xa8956e, 1, .7, .8); else chunk(g, wx, .25, wz, .5, .45, .5, 0x7a5c3c); }
+  if (burning) FIRE_SPOTS.push([x, .9, z + .2, 1.3]);
+}
+// the Zócalo: craters, litter thick round the palace end, a market stall knocked flat, two carts over, papers everywhere
+const inBed = (x, z) => [[-30, -16, -30, -12], [-30, -16, 12, 30], [0, 14, -30, -12], [0, 14, 12, 30]].some(([a, b, c, d]) => x > a - .3 && x < b + .3 && z > c - .3 && z < d + .3);
+for (const [x, z, r] of [[20, -6, 1.6], [-8, 14, 1.3], [6, -36, 1.8], [-36, 22, 1.4], [28, 18, 1.2], [-22, -38, 1.5], [12, 34, 1.3], [-40, -10, 1.1]]) crater('zocalo', x, z, r);
+litter('zocalo', -45, 37, -43, 43, Q === 2 ? 480 : 700, 0, inBed);
+litter('zocalo', 14, 37, -12, 12, Q === 2 ? 110 : 160, 0, inBed); // thickest where the column met the guns
+wagon('zocalo', -20, 36, .4, true); wagon('zocalo', 26, -30, -2.2, false, 0x5a4636); wagon('zocalo', -38, -30, 1.3, false);
+{ const x = 30, z = 32; // a vendor's stall, poles snapped, the awning down over its crates
+  for (const [a, b, h, t] of [[-1.2, -.8, 2.2, 0], [1.2, -.8, .9, .6], [-1.2, .8, 2.2, 0], [1.2, .8, 1.1, -.5]]) partR('zocalo', .07, h, .07, x + a, z + b, 0, 0, h / 2, 0, C.wood, t);
+  partR('zocalo', 2.8, .03, 2, x, z, 0, 0, 1.4, 0, 0xb8a888, -.55); for (let k = 0; k < 5; k++) chunk('zocalo', x - 1 + rand() * 2.4, .2, z - 1 + rand() * 2, .5, .4, .4, 0x7a5c3c);
+  for (let k = 0; k < 14; k++) ball('zocalo', .07, x - 1.5 + rand() * 3.5, .07, z - 1.8 + rand() * 3.6, 0xb05a24); ob(x - 1.4, x + 1.4, z - 1, z + 1); }
+// the palace front, pocked by the rebels' rifles; two windows blown in
+for (let k = 0; k < 60; k++) { const z = -40 + rand() * 80, y = 1 + rand() * 11; if (Math.abs(z) < 4) continue; bx('palace', PAL_X - .04, PAL_X, y, y + .12 + rand() * .15, z, z + .12 + rand() * .15, SOOT); }
+bx('palace', PAL_X - .1, PAL_X, 6.4, 10.4, -16.3, -14.3, SOOT); bx('palace', PAL_X - .1, PAL_X, 10.4, 12.2, -16, -14.6, CHAR); bx('palace', PAL_X - .1, PAL_X, 6.4, 10.4, 21.7, 23.7, SOOT);
+// the street: craters in the setts, litter the length of it, more carts over, a telegraph pole down across it
+for (const [x, z, r] of [[-58, 1.4, 1.1], [-80, -1.8, 1.2], [-104, 2, 1], [-121, -1, 1.3], [-139, 1.6, 1]]) crater('avenue', x, z, r);
+litter('avenue', AV_X1 + 1, AV_X0, -3.5, 3.5, Q === 2 ? 320 : 460);
+litter('avenue', AV_X1 + 1, AV_X0, -4.9, -3.7, Q === 2 ? 40 : 60, .14); litter('avenue', AV_X1 + 1, AV_X0, 3.7, 4.9, Q === 2 ? 40 : 60, .14);
+litter('avenue', CROSS.a + .4, CROSS.b - .4, -28, 28, 50, 0, (x, z) => Math.abs(z) < 5);
+wagon('avenue', -63, -3.1, .15, true); wagon('avenue', -131, 2.9, Math.PI - .2, false, 0x5a4636);
+{ const x = -110, z = -4.3; partR('avenue', .2, .2, 9.4, x + 2.6, -.2, -.5, 0, .15, 0, 0x3a3230, 0, 0); partR('avenue', 1.8, .08, .08, x + 5.2, 2.2, -.5, 0, .2, 0, 0x3a3230);
+  for (let k = 0; k < 3; k++) partR('avenue', .02, .02, 12, x + 1.5, 0, .1 * k - .4, 0, .03, (k - 1) * .3, 0x1e1c1a); } // fallen pole and wires
+FIRE_SPOTS.push([-73.5, 1.4, -2.2, 1.2], [-70.8, 1.2, -2.6, .9]); // the tram on fire
+// the yard: the ground churned, shot and cartridge boxes broken open
+for (const [x, z, r] of [[-172, -6, 1.1], [-160, 10, 1.2]]) crater('ciudadela', x, z, r);
+litter('ciudadela', CIU_X1 + 1, AV_X1 - 4, -12, 15, Q === 2 ? 120 : 170, 0, (x, z) => Math.hypot(x + 173.6, z) < 4.5 || Math.hypot(x + 168.4, z + .4) < 2);
+
 mergeStatic();
 
 // ---------- walkable areas: the square, the street, the gate and the yard ----------
@@ -2726,10 +2833,12 @@ const DESIGNS = [
   mk('federal', Object.assign({}, GEN, { id: 'offr2', faceOf: 'grocer', name: 'Officer', h: 1.68, skin: SK.criollo, bigMustache: MEDM, legStripe: null })),
   // a ranchero stuck in the city, and the artillerymen
   mk('rebel', { id: 'ranchero', faceOf: 'campesino3', name: 'Ranchero', important: false, bandolier: null, hat: 'charro', hatC: 0x6e5a3e, brim: 1.9, shirt: 0xe8dfc8, pants: 0x4a3a2c, neckerchief: 0x8a2a2a }),
-  mk('federal', { id: 'gunner', faceOf: 'worker2', name: 'Artilleryman', h: 1.66, skin: SK.indig, shirt: 0x3a3f4a, pants: 0x3a3f4a, collar: 0x3a3f4a, cuff: 0x9a2a22, legStripe: 0x9a2a22, hatC: 0x3a3f4a, hatBand: 0x9a2a22 })
+  mk('federal', { id: 'gunner', faceOf: 'worker2', name: 'Artilleryman', h: 1.66, skin: SK.indig, shirt: 0x3a3f4a, pants: 0x3a3f4a, collar: 0x3a3f4a, cuff: 0x9a2a22, legStripe: 0x9a2a22, hatC: 0x3a3f4a, hatBand: 0x9a2a22 }),
+  // Casasola himself, in the saddle: only his legs are ever seen (the body above the hips is folded away), dark trousers and boots
+  mk('clerk', { id: 'casa_legs', faceOf: 'clerk', name: '', important: true, pants: 0x2b2622, shoes: 0x1a1412, pose: RIDE })
 ];
 // mounted versions share everything but the pose
-for (const id of ['felix', 'mond', 'reyes']) { const b = DESIGNS.find(d => d.id === id); DESIGNS.push(Object.assign({}, b, { id: id + '_ride', faceOf: b.faceOf, pose: Object.assign({}, b.pose, RIDE) })); }
+for (const id of ['felix', 'mond', 'reyes', 'rsold']) { const b = DESIGNS.find(d => d.id === id); DESIGNS.push(Object.assign({}, b, { id: id + '_ride', faceOf: b.faceOf, pose: Object.assign({}, b.pose, RIDE) })); }
 for (const id of ['miguel', 'toddlerboy', 'toddlergirl']) { const i = DR.findIndex(d => d.id === id); if (i >= 0) DR.splice(i, 1); }
 for (const D of DESIGNS) if (!byId(D.id)) DR.push(D);
 if (byId('madero')) byId('madero').hat = 'bowler';
@@ -2756,7 +2865,14 @@ const mond = mounted({ D: 'mond_ride', name: 'Manuel Mondragón', x: 3.0, z: 1.3
   for (let i = 0; i < n; i++) { const row = (i / 4) | 0, k = i % 4; colMember({ D: FILE[i], x: 8.5 - row * 1.5 - (row > 1 ? 6.5 : 0), z: -1.8 + k * 1.2, subject: 'rebels' }); }
   // two soldaderas walk with the column, carrying their bundles
   colMember({ D: 'soldadera', x: -9, z: 2.6, subject: 'rebels' }); colMember({ D: has('soldadera2') ? 'soldadera2' : 'soldadera', x: -10.2, z: 2.2, subject: 'rebels' }); }
+// two rebel horsemen at the rear
+mounted({ D: 'rsold_ride', name: 'Rebel horseman', x: -13.5, z: -1.4, coat: 'chestnut', tack: 'ranchero', subject: 'rebels' });
+mounted({ D: 'rsold_ride', name: 'Rebel horseman', x: -15, z: 1.5, coat: 'grullo', tack: 'plain', subject: 'rebels' });
 for (const n of COL) n.ry = Math.PI / 2;
+// rifles: every cadet and soldier carries one
+for (const n of COL) if (!n.mount && /^(cadet|rsold)/.test(n.D)) n.armed = true;
+// the player, mounted: a figure whose legs sit in the saddle (see the horse below)
+const meLegs = person({ D: 'casa_legs', x: player.x, z: player.z, g: 'zocalo', r: 0 }); meLegs.me = true;
 
 // ---------- the square: people lining the way, the wealthy cheering the rebels, the poor watching or getting out of it ----------
 // lists: who stands where. Every class is here: the rich and their wives, a Spanish shopkeeper, a priest, campesinos, Indigenous vendors,
@@ -2769,7 +2885,7 @@ const crowdSq = [];
   let i = 0; for (let x = -38; x < 30; x += step + rand() * .8) { const D = LINE_N[i++ % LINE_N.length]; if (!has(D)) continue; const n = person({ D, x, z: -6.8 - rand() * 1.6, g: 'zocalo', subject: GENTRY.has(D) ? 'gentry' : 'townsfolk' }); n.ry = 0; n.cheer = GENTRY.has(D) && rand() < .7; crowdSq.push(n); }
   i = 0; for (let x = -38; x < 30; x += step + rand() * .8) { const D = LINE_S[i++ % LINE_S.length]; if (!has(D)) continue; const n = person({ D, x, z: 6.8 + rand() * 1.6, g: 'zocalo', subject: 'townsfolk' }); n.ry = Math.PI; crowdSq.push(n); } }
 // the palace guard at the gate, rifles up when the column comes on
-const guards = []; for (const z of [-4.4, -3.2, 3.2, 4.4, -6, 6]) guards.push(person({ D: 'federal', x: PAL_X - 1.9, z, g: 'zocalo', ry: -Math.PI / 2, subject: 'federals', aim: true }));
+const guards = []; for (const z of [-4.4, -3.2, 3.2, 4.4, -6, 6]) guards.push(person({ D: 'federal', x: PAL_X - 1.9, z, g: 'zocalo', ry: -Math.PI / 2, subject: 'federals', aim: true, armed: true }));
 // a few at the edges who never come near: a water carrier, women at a stall, a lamplighter's boy
 person({ D: 'worker2', x: -40, z: 30, g: 'zocalo', ry: 1.8, subject: 'townsfolk' }); person({ D: 'marketwoman', x: -41, z: 28.6, g: 'zocalo', seat: .36, ry: 1.2, subject: 'townsfolk' });
 person({ D: 'vendor2', x: 20, z: 38, g: 'zocalo', ry: 3, subject: 'townsfolk' }); person({ D: 'campesino', x: 21.4, z: 38.4, g: 'zocalo', ry: -2.6, subject: 'townsfolk' });
@@ -2789,12 +2905,12 @@ const balcony = [];
   for (let i = 0; i < want && opts.length; i++) { const b = opts.splice(((i * 7919) % opts.length), 1)[0], D = WHO[i % WHO.length]; if (!has(D)) continue;
     balcony.push(person({ D, x: b.u, y: b.y, z: b.w, g: 'avenue', ry: b.face > 0 ? 0 : Math.PI, subject: 'gentry', cheer: true })); } }
 // a federal patrol at the far end of the cross street, behind its sandbags
-for (const x of [-97, -93]) person({ D: 'federal', x, z: -8.5, g: 'avenue', ry: 0, subject: 'federals' });
+for (const x of [-97, -93]) person({ D: 'federal', x, z: -8.5, g: 'avenue', ry: 0, subject: 'federals', armed: true });
 
 // ---------- the Ciudadela: gunners at the guns, rebels resting, the officers who will stand for the portrait ----------
 for (const [x, z, ry] of [[-160.6, -7.4, -1.6], [-163.4, -5.4, 1.4], [-160.6, 7.4, -1.5], [-163.6, 5.6, 1.7], [-174.4, 4.2, -1.4]]) person({ D: 'gunner', x, z, ry, g: 'ciudadela', subject: 'rebels' });
 for (const [D, x, z, ry, seat] of [['rsold2', -178, -10.6, .3, .5], ['rsold', -176.8, -11, -.2, .5], ['soldadera', -180.4, 9.4, 2.4, .36], ['cadet3', -167, -11.4, 0], ['rsold', -182.5, -2, 1.6]])
-  person({ D, x, z, ry, g: 'ciudadela', subject: 'rebels', seat });
+  person({ D, x, z, ry, g: 'ciudadela', subject: 'rebels', seat, armed: seat === undefined && D !== 'soldadera' });
 // the portrait: Díaz and Mondragón on foot (hidden until they dismount), officers and cadets around the third gun
 const PX = -173.6, PZ = 0, CAMSPOT = { x: -168.4, z: -.4, yaw: Math.PI / 2 + .04, pitch: -.04 };
 const SIT = [ // design, offset across (+ = the sitter's left, the camera's right), offset back
@@ -2823,6 +2939,60 @@ for (const n of MOUNTS) {
   n.ry = 0; setHeading(n, 0);
 }
 function setHeading(n, a) { n.head = a; n.g3.rotation.y = a; } // a = 0 rides east (+x), PI rides west
+
+// ---------- Casasola's own horse: a leopard-spotted appaloosa, a coat no other horse in the game has ----------
+const APPY = { base: 0xe2ddd2, light: 0xf2eee6, dark: 0xa8a198, belly: 0xebe6dc, muzzle: 0x6a5a54, points: 0xd6d0c4, mane: 0x3a2e28, tail: 0x4a3c32, hoof: 0x7a6c5c, spots: 1, spot: 0x2c211c, star: 0, blaze: 0, socks: [0, 0, 0, 0] };
+const ME = { g3: new THREE.Group(), hs: HORSES.make({ coat: 'bay', tack: 'plain', seed: 61, coatOverride: APPY }), head: player.yaw + Math.PI / 2, v: 0, on: true };
+ME.g3.add(ME.hs); scene.add(ME.g3); ME.g3.position.set(player.x, 0, player.z);
+ME.hs.traverse(o => { if (o.isMesh) { o.userData.idMat = SKIN_BLACK; o.castShadow = false; o.frustumCulled = false; reg(o); } });
+{ const P = meLegs.P; ME.hs.userData.seat.add(P.root); P.root.rotation.set(0, Math.PI / 2, 0); P.root.position.set(0, -.42 * P.D.h + .02, 0); P.J.spine.scale.setScalar(.001); P.hi.frustumCulled = false; }
+ME.g3.rotation.y = ME.head;
+
+// ---------- loose horses: harnessed cab horses on the north side that bolt when the guns open up ----------
+const LOOSE = [];
+for (const [x, z, coat, k] of [[-21, -37.5, 'sorrel', 0], [-18.6, -38.2, 'darkbay', 1]].slice(0, Q === 2 ? 1 : 2)) {
+  const g = new THREE.Group(), hs = HORSES.make({ coat, tack: 'plain', seed: 30 + k }); g.add(hs); g.position.set(x, 0, z); G.zocalo.add(g);
+  hs.traverse(o => { if (o.isMesh) { o.userData.idMat = SKIN_BLACK; o.castShadow = false; reg(o); } });
+  { const ms = []; hs.traverse(o => { if (o.isMesh) ms.push(o); }); kindTag(ms, 'horse'); }
+  const L = { g3: g, hs, x, z, head: -Math.PI / 2 + .3, path: null, sp: 0, k }; g.rotation.y = L.head; LOOSE.push(L);
+}
+
+// ---------- rifles: one instanced mesh for all of them, laid each frame in the right hand, at the shoulder when aiming ----------
+const ARMED = npcs.filter(n => n.armed);
+const RIFLE = (() => {
+  const parts = [], b = (w, h, d, x, y, z, rx) => { const q = new THREE.BoxGeometry(w, h, d); if (rx) q.rotateX(rx); q.translate(x, y, z); parts.push(q.toNonIndexed()); };
+  b(.05, .11, .34, 0, -.035, -.3, -.12); b(.042, .055, .62, 0, 0, .14); b(.024, .024, .34, 0, .018, .6); b(.03, .03, .06, 0, .045, .02);
+  const m = new THREE.InstancedMesh(mergeGeos(parts, null).geometry, mat(0x33251a), Math.max(1, ARMED.length));
+  m.frustumCulled = false; m.castShadow = false; m.receiveShadow = true; m.userData.idMat = HIDE_MAT; reg(m); scene.add(m);
+  return m;
+})();
+// where each rifleman's right hand is when he stands at rest, in his own frame (the middle-distance model never moves its arms)
+{ const v = new THREE.Vector3(); for (const n of ARMED) { const P = n.P; P.root.updateMatrixWorld(true); n.handY = -.16 * P.D.h; v.set(0, n.handY, 0); P.J.elR.localToWorld(v); n.restHand = P.root.worldToLocal(v.clone()); } }
+const _rv = new THREE.Vector3(), _rq = new THREE.Quaternion(), _re = new THREE.Euler(0, 0, 0, 'YXZ'), _rs = new THREE.Vector3(1, 1, 1), _rm = new THREE.Matrix4(), _rz = new THREE.Matrix4().makeTranslation(0, -999, 0);
+// a rifle's pose: grip point and heading; out = { x, y, z, yaw, pitch }
+function riflePose(n, out) {
+  const P = n.P, r = P.root, yaw = r.rotation.y, c = Math.cos(yaw), s = Math.sin(yaw);
+  if (n.lying) { out.x = n.x + c * .55; out.y = .04; out.z = n.z - s * .55; out.yaw = yaw + 1.3; out.pitch = 0; out.roll = Math.PI / 2; return out; }
+  out.roll = 0;
+  if (P.lvl === 0) {
+    r.updateMatrixWorld(true);
+    if (n.aiming) { _rv.set(0, 0, 0); P.J.shR.localToWorld(_rv); out.x = _rv.x + s * .26 + c * .07; out.y = _rv.y - .02; out.z = _rv.z + c * .26 - s * .07; out.yaw = yaw; out.pitch = .05; return out; }
+    _rv.set(0, n.handY, 0); P.J.elR.localToWorld(_rv); out.x = _rv.x - c * .045; out.y = _rv.y; out.z = _rv.z + s * .045; out.yaw = yaw; out.pitch = n.crouched ? .55 : -.3; return out;
+  }
+  const h = n.restHand; out.x = r.position.x + c * (h.x - .045) + s * h.z; out.y = r.position.y + h.y; out.z = r.position.z - s * (h.x - .045) + c * h.z; out.yaw = yaw; out.pitch = -.3; return out;
+}
+const _rp = {};
+function updateRifles() {
+  ARMED.forEach((n, i) => {
+    const P = n.P;
+    if (!P.root.visible || n.hidden || n.gone || P.lvl < 0 || (P.lvl === 2 && !n.lying)) { RIFLE.setMatrixAt(i, _rz); return; }
+    const o = riflePose(n, _rp);
+    _re.set(-o.pitch, o.yaw, o.roll); _rq.setFromEuler(_re); RIFLE.setMatrixAt(i, _rm.compose(_rv.set(o.x, o.y, o.z), _rq, _rs));
+  });
+  RIFLE.instanceMatrix.needsUpdate = true;
+}
+// the muzzle of a rifle, for the flash when he fires
+function muzzleOf(n) { const o = riflePose(n, _rp), c = Math.cos(o.pitch); return [o.x + Math.sin(o.yaw) * c * .8, o.y + Math.sin(o.pitch) * .8 + .02, o.z + Math.cos(o.yaw) * c * .8]; }
 
 function setPose(n, mode, amp) { // 'stand', 'sit', 'crouch' or a walk/run phase (amp 1 walking, ~1.7 running)
   const J = n.P.J, B = n.base, set = (k, v) => { if (J[k]) J[k].rotation.x = B[k] + v; };
@@ -2893,8 +3063,12 @@ const postMat = new THREE.ShaderMaterial({
       vec3 col = m0; float best = v0;
       if (v1 < best) { best = v1; col = m1; } if (v2 < best) { best = v2; col = m2; } if (v3 < best) { best = v3; col = m3; }
       float l = dot(col, vec3(.299, .587, .114));
-      col = mix(vec3(l), col, 1.12);
-      col = mix(col, col * vec3(.92, .95, 1.1), smoothstep(.45, .1, l) * .35);
+      float redK = smoothstep(.03, .18, col.r - max(col.g, col.b) * .95);
+      col = mix(vec3(l) * vec3(1.07, .96, .86), col, .34 + .6 * redK);
+      col = (col - .4) * 1.12 + .39;
+      col = mix(col, col * vec3(.84, .66, .6), smoothstep(.4, .04, l) * .4);
+      vec2 vq = vUv - .5; col *= 1.0 - dot(vq, vq) * .95;
+      col = max(col, vec3(0.0));
       vec2 fc = gl_FragCoord.xy;
       float weave = sin(fc.x * 1.9) * sin(fc.y * 1.9) * .5 + .5, tooth = vn(fc * .35);
       col *= .975 + .03 * weave + .03 * (tooth - .5);
@@ -3163,8 +3337,8 @@ const FP = (() => {
 })();
 
 // ---------- player ----------
-// you start among the crowd on the west side of the Zócalo, the palace ahead, the rebel column marching past
-const player = { x: -12, y: 0, z: 4.6, yaw: -Math.PI / 2 + .35, pitch: .03, zone: 'zocalo' };
+// you start on horseback among the crowd on the west side of the Zócalo, the palace ahead, the rebel column marching past
+// (the player object itself is made in pre.js: the horse needs it before the people are built)
 const keys = {};
 const state = { started: false, raised: false, plates: 3, photos: [], elapsed: 0, busy: false, knowsTime: true, posed: false, posing: false };
 // the watch: Sunday morning, a little before eight
@@ -3175,7 +3349,9 @@ const EYE = 1.62;
 const SHAKE = { a: 0 };
 function placeCamera() {
   const s = SHAKE.a, t = performance.now() * .001;
-  camera.position.set(player.x + s * .06 * Math.sin(t * 61), player.y + EYE + s * .05 * Math.sin(t * 73 + 1), player.z + s * .06 * Math.sin(t * 57 + 2));
+  // in the saddle the eye rides the horse's back (ME.eye, set by ride()); on foot it is EYE above the ground
+  const ex = ME.on ? ME.eye.x : player.x, ey = ME.on ? ME.eye.y : player.y + EYE, ez = ME.on ? ME.eye.z : player.z;
+  camera.position.set(ex + s * .06 * Math.sin(t * 61), ey + s * .05 * Math.sin(t * 73 + 1), ez + s * .06 * Math.sin(t * 57 + 2));
   camera.rotation.set(player.pitch + s * .012 * Math.sin(t * 67), player.yaw + s * .012 * Math.sin(t * 53), s * .01 * Math.sin(t * 47));
 }
 // ---------- input ----------
@@ -4276,7 +4452,7 @@ const FX = (() => {
     const mat = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending,
       uniforms: { map: { value: blobTex }, uK: { value: 600 }, uFog: { value: FOG_COL }, uFogR: { value: new THREE.Vector2(45, 760) } },
       vertexShader: `attribute float aSize; attribute float aAlpha; attribute vec3 aCol; uniform float uK; uniform vec2 uFogR; varying float vA; varying vec3 vC; varying float vF;
-        void main() { vec4 mv = modelViewMatrix * vec4(position, 1.); gl_Position = projectionMatrix * mv; gl_PointSize = aSize * uK / max(.5, -mv.z); vA = aAlpha; vC = aCol; vF = clamp((-mv.z - uFogR.x) / (uFogR.y - uFogR.x), 0., 1.); }`,
+        void main() { vec4 mv = modelViewMatrix * vec4(position, 1.); gl_Position = projectionMatrix * mv; gl_PointSize = min(aSize * uK / max(.5, -mv.z), uK * ${additive ? '.22' : '.5'}); vA = aAlpha; vC = aCol; vF = clamp((-mv.z - uFogR.x) / (uFogR.y - uFogR.x), 0., 1.); }`,
       fragmentShader: `uniform sampler2D map; uniform vec3 uFog; varying float vA; varying vec3 vC; varying float vF;
         void main() { vec4 t = texture2D(map, gl_PointCoord); float a = t.a * vA; if (a < .01) discard; gl_FragColor = vec4(mix(vC, uFog, vF${additive ? ' * 0.' : ''}), a${additive ? ' * (1. - vF)' : ''}); }` });
     const pts = new THREE.Points(geo, mat); pts.frustumCulled = false; pts.renderOrder = additive ? 4 : 3; scene.add(pts);
@@ -4296,7 +4472,7 @@ const FX = (() => {
     }
     return { add, update, pts };
   }
-  const smoke = cloud(Q === 2 ? 150 : 300, false), fire = cloud(Q === 2 ? 40 : 80, true);
+  const smoke = cloud(Q === 2 ? 230 : 420, false), fire = cloud(Q === 2 ? 70 : 130, true);
 
   // falling stone: one instanced box, pieces flung out and settling on the street
   const DN = Q === 2 ? 36 : 64, dgeo = new THREE.BoxGeometry(1, 1, 1), dmesh = new THREE.InstancedMesh(dgeo, mat(C.stone), DN), D = [], m4 = new THREE.Matrix4(), qt = new THREE.Quaternion(), eu = new THREE.Euler(), sv = new THREE.Vector3(), pv = new THREE.Vector3();
@@ -4313,7 +4489,7 @@ const FX = (() => {
       d.vy -= 9.8 * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.z += d.vz * dt; d.rx += d.wx * dt; d.rz += d.wz * dt;
       const fl = (Math.abs(d.z) > 3.6 && d.x < AV_X0 && d.x > AV_X1 ? .14 : 0) + d.s * .4;
       if (d.y < fl) { d.y = fl; if (Math.abs(d.vy) < 1.2) { d.rest = true; d.rx = Math.round(d.rx / 1.57) * 1.57; d.rz = Math.round(d.rz / 1.57) * 1.57; } d.vy *= -.25; d.vx *= .5; d.vz *= .5; d.wx *= .5; d.wz *= .5; }
-      d.z = Math.max(-4.9, Math.min(4.9, d.z));
+      if (d.x < AV_X0 && d.x > AV_X1) d.z = Math.max(-4.9, Math.min(4.9, d.z));
       qt.setFromEuler(eu.set(d.rx, d.ry, d.rz)); dmesh.setMatrixAt(i, m4.compose(pv.set(d.x, d.y, d.z), qt, sv.set(d.s * 1.4, d.s * .8, d.s))); }
     if (dirty) dmesh.instanceMatrix.needsUpdate = true;
   }
@@ -4323,7 +4499,7 @@ const FX = (() => {
   let flashT = 0;
 
   // ---- the effects themselves ----
-  const SMOKE = [.42, .4, .4], DUST = [.62, .55, .45], BLACK = [.18, .17, .17];
+  const SMOKE = [.36, .33, .32], DUST = [.5, .43, .35], BLACK = [.13, .12, .12];
   function shell(x, y, z, o = {}) {
     for (let i = 0; i < 6; i++) fire.add({ x: x + (rand() - .5), y: y + rand() * .8, z: z + (rand() - .5), vx: (rand() - .5) * 6, vy: 1 + rand() * 4, vz: (rand() - .5) * 6, max: .25 + rand() * .3, s0: 2.5, s1: 6, r: 1, g: .62 + rand() * .2, b: .25, drag: 3 });
     const ns = Q === 2 ? 14 : 26;
@@ -4338,15 +4514,29 @@ const FX = (() => {
     if (rand() < .5) smoke.add({ x, y, z, vx: -1 - rand(), vy: .3, vz: (rand() - .5) * .6, max: 1.6 + rand(), s0: .5, s1: 2.2, r: .78, g: .78, b: .76, a: .5, rise: .2 }); }
   function impact(x, z) { for (let i = 0; i < 3; i++) smoke.add({ x, y: .1, z, vx: (rand() - .5) * 2, vy: 1.5 + rand() * 2, vz: (rand() - .5) * 2, max: .9 + rand() * .6, s0: .4, s1: 1.4, r: DUST[0], g: DUST[1], b: DUST[2], a: .8, drag: 2 }); }
   // far-off fighting: smoke rising from the rooftops beyond the street, a slow, steady column
-  const plumes = [{ x: -120, y: 14, z: -22, t: 0 }, { x: -82, y: 13, z: 24, t: .5 }, { x: -170, y: 16, z: 30, t: 1 }, { x: 10, y: 20, z: -80, t: 1.4 }];
+  // black columns over the roofs on every side: houses burning since the night
+  const plumes = [{ x: -120, y: 14, z: -22 }, { x: -82, y: 13, z: 24 }, { x: -170, y: 16, z: 30 }, { x: 10, y: 20, z: -80 }, { x: -60, y: 15, z: -30 }, { x: 25, y: 16, z: 60 },
+    { x: -140, y: 14, z: 26 }, { x: -30, y: 18, z: 70 }, { x: 70, y: 18, z: -20 }, { x: -200, y: 15, z: -20 }];
+  plumes.forEach((p, i) => { p.t = i * .13; });
+  // fires on the ground: x, y, z, size; they burn only while the player is near enough to see them
+  const fires = [];
+  function addFire(x, y, z, s) { fires.push({ x, y, z, s: s || 1, t: rand() }); }
+  for (const f of FIRE_SPOTS) addFire(...f);
   function update(dt) {
-    for (const p of plumes) { if ((p.t -= dt) > 0) continue; p.t = Q === 2 ? .55 : .3;
-      smoke.add({ x: p.x + (rand() - .5) * 2, y: p.y, z: p.z + (rand() - .5) * 2, vx: .8 + rand() * .5, vy: 1.2 + rand() * .6, vz: (rand() - .5) * .4, max: 9 + rand() * 3, s0: 3, s1: 12, r: .3, g: .29, b: .3, a: .55, rise: 0, drag: .1 }); }
+    for (const p of plumes) { if ((p.t -= dt) > 0) continue; p.t = Q === 2 ? .7 : .4;
+      const k = .6 + rand() * .4;
+      smoke.add({ x: p.x + (rand() - .5) * 2, y: p.y, z: p.z + (rand() - .5) * 2, vx: .8 + rand() * .5, vy: 1.4 + rand() * .7, vz: (rand() - .5) * .4, max: 10 + rand() * 4, s0: 3, s1: 14, r: .16 * k, g: .14 * k, b: .13 * k, a: .7, rise: 0, drag: .1 }); }
+    for (const f of fires) {
+      if (Math.abs(f.x - player.x) > 70 || Math.abs(f.z - player.z) > 70) continue;
+      if ((f.t -= dt) > 0) continue; f.t = (Q === 2 ? .16 : .09) / f.s;
+      fire.add({ x: f.x + (rand() - .5) * .8 * f.s, y: f.y + rand() * .3, z: f.z + (rand() - .5) * .8 * f.s, vx: (rand() - .5) * .3, vy: 1.4 + rand() * 1.2, vz: (rand() - .5) * .3, max: .45 + rand() * .35, s0: 1.3 * f.s, s1: .5 * f.s, r: 1, g: .42 + rand() * .3, b: .12, drag: .8 });
+      if (rand() < .35) smoke.add({ x: f.x + (rand() - .5) * f.s, y: f.y + 1.2 * f.s, z: f.z + (rand() - .5) * f.s, vx: .3 + rand() * .3, vy: 1.6 + rand(), vz: (rand() - .5) * .3, max: 5 + rand() * 3, s0: 1.2 * f.s, s1: 6 * f.s, r: .14, g: .12, b: .11, a: .6, rise: .2, drag: .3 });
+    }
     smoke.update(dt); fire.update(dt); updDebris(dt);
     if (flashT > 0) { flashT = Math.max(0, flashT - dt); if (flashLight) flashLight.intensity = flashT * 5; }
     SHAKE.a = Math.max(0, SHAKE.a - dt * 1.6);
   }
-  return { shell, muzzle, impact, update, plumes };
+  return { shell, muzzle, impact, update, plumes, addFire, fires };
 })();
 // ---------- what each photograph is of, for the headlines ----------
 function kind3(n) {
@@ -4356,7 +4546,7 @@ function kind3(n) {
   if (D === 'federal') return 'guard'; if (D === 'ranchero') return 'ranchero';
   return baseKind(D);
 }
-npcs.forEach(n => { if (n.P) kindTag([n.P.hi, n.P.mid], kind3(n)); });
+npcs.forEach(n => { if (n.P && !n.me) kindTag([n.P.hi, n.P.mid], kind3(n)); });
 for (const n of MOUNTS) { const ms = []; n.hs.traverse(o => { if (o.isMesh) ms.push(o); }); kindTag(ms, 'horse'); }
 const CAST = { crowd };
 
@@ -4460,7 +4650,13 @@ function posePeople() {
   for (const s of sitters) { s.hidden = false; s.x = s.pose[0]; s.z = s.pose[1]; const r = s.P.root; r.position.set(s.x, 0, s.z); faceTo(s, CAMSPOT.x, CAMSPOT.z); r.rotation.y = s.ry; setPose(s, 'stand'); s.P.nextLook = 1e9; s.P.lx = 0; }
   // the yard's others step out of the picture
   for (const n of npcs) if (n.g === 'ciudadela' && !sitters.includes(n) && Math.hypot(n.x - PX, n.z - PZ) < 4.5) { n.path = null; n.z += n.z < 0 ? -3 : 3; n.P.root.position.set(n.x, n.P.root.position.y, n.z); }
-  for (const n of COL) if (!n.mount && !n.gone && Math.hypot(n.x - PX, n.z - PZ) < 5) { n.path = null; n.x = PX + 6; n.z = n.z < 0 ? -10 : 11; n.P.root.position.set(n.x, 0, n.z); }
+  // anyone still on the way in is at his place in the yard by now, standing, turned to the gate
+  for (const n of COL) { if (n.mount || n.gone || n.lying || !n.ai) continue; const A = n.ai; if (A.st === 'yard' && !A.target) continue;
+    const Y = YARD[COL.indexOf(n) % YARD.length]; n.x = Y[0]; n.z = Y[1]; n.y = 0; n.aiming = false; if (n.crouched) crouch(n, false); A.st = 'yard'; A.target = null; n.speed = 0; n.ry = Math.PI / 2; const r = n.P.root; r.position.set(n.x, 0, n.z); r.rotation.y = n.ry; setPose(n, 'stand'); }
+  for (const n of MOUNTS) { const M = MOUNT_PLAN.get(n); if (!M || n === diaz || n === mond || !M.end) continue; M.path = []; n.x = M.end[0]; n.z = M.end[1]; n.speed = 0; placeMember(n); }
+  for (const n of COL) if (!n.mount && !n.gone && !n.lying && Math.hypot(n.x - PX, n.z - PZ) < 5) { n.path = null; n.x = PX + 6; n.z = n.z < 0 ? -10 : 11; n.P.root.position.set(n.x, 0, n.z); }
+  // Casasola gets down: his horse is tied by the wall with the generals', and the portrait is taken on foot
+  ME.on = false; ME.v = 0; ME.g3.position.set(-180.6, 0, -8.6); ME.g3.rotation.y = -Math.PI / 2 + .1; HORSES.update(ME.hs, .016, { speed: 0, gait: 'stand', camera });
   Object.assign(player, { x: CAMSPOT.x, y: 0, z: CAMSPOT.z, yaw: CAMSPOT.yaw, pitch: CAMSPOT.pitch }); setZone('ciudadela', true);
   shadowDirty = 2;
 }
@@ -4541,11 +4737,12 @@ function pickHeadline(score, paper) {
   return { story: HEAD[angle][paper], angle };
 }
 // ---------- moving about: the player stands only where a walkable area allows ----------
-const FOGS = { zocalo: [40, 420], avenue: [16, 120], ciudadela: [26, 220] };
+// the smoke closes in: fog starts a few metres off and swallows the far end of the street (near, far for the smoke sprites, falloff)
+const FOGS = { zocalo: [6, 200, 68], avenue: [4, 160, 56], ciudadela: [5, 180, 66] };
 function setZone(z, quiet) {
   player.zone = z; cull(z); if (!quiet) announce(z);
   SHADOW_FOCUS.k = 0; shadowDirty = 2;
-  const f = FOGS[z]; scene.fog.near = f[0]; scene.fog.far = f[1];
+  const f = FOGS[z]; scene.fog.near = f[0]; scene.fog.far = f[1]; LIGHT.uFogFall.value = f[2];
 }
 const SPEED = 3.2;
 const _wp = new THREE.Vector3();
@@ -4561,38 +4758,123 @@ function move(dt) {
   if (fl) { player.y = fl.h; if (fl.zone !== player.zone) setZone(fl.zone); }
   return true;
 }
-// people on their paths: walkers at 1.35 m/s, runners faster with longer strides and arms pumping
+// ---------- riding: Casasola's horse gallops while a key is held and stops when it is let go; there is no walk ----------
+// WASD is relative to where you look, as on foot; the horse turns to run that way, the camera stays yours to aim.
+const GALLOP = 7.2, _se = new THREE.Vector3();
+ME.eye = new THREE.Vector3(player.x, 2.2, player.z); ME.restY = null;
+function horseClear(x, z, h) { // the body, the nose and the rump all clear of walls, carts, people and other horses
+  const hx = Math.cos(h), hz = -Math.sin(h);
+  for (const [px, pz] of [[x, z], [x + hx * 1.15, z + hz * 1.15], [x - hx * .95, z - hz * .95]]) if (blocked(px, pz, player.y, .3) || !floorAt(px, pz, player.y)) return false;
+  for (const n of npcs) { if (!n.r || n.gone || n.hidden || n.lying || n.me || Math.abs(n.y - player.y) > 1.5) continue; if (!n.col && !G[n.g].visible) continue;
+    const rr = n.mount ? 1.9 : n.r + .55, nx = x + hx * .45, nz = z + hz * .45; if (Math.hypot(nx - n.x, nz - n.z) < rr) return false; }
+  for (const L of LOOSE) if (L.g3.visible && Math.hypot(x - L.x, z - L.z) < 1.9) return false;
+  return true;
+}
+function ride(dt) {
+  if (keys.arrowleft) player.yaw += 1.8 * dt; if (keys.arrowright) player.yaw -= 1.8 * dt;
+  let f = (keys.w || keys.arrowup ? 1 : 0) - (keys.s || keys.arrowdown ? 1 : 0), r = (keys.d ? 1 : 0) - (keys.a ? 1 : 0);
+  const go = !!(f || r);
+  if (go) {
+    const l = Math.hypot(f, r); f /= l; r /= l;
+    const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw), rx = -fz, rz = fx, dx = fx * f + rx * r, dz = fz * f + rz * r;
+    let d = Math.atan2(-dz, dx) - ME.head; d = Math.atan2(Math.sin(d), Math.cos(d));
+    ME.head += Math.sign(d) * Math.min(Math.abs(d), dt * (Math.abs(d) > 1.5 ? 5.5 : 3.8));
+    ME.turn = Math.abs(d);
+  }
+  // straight into a gallop, and down to a stand the moment the keys are let go
+  const want = go ? GALLOP * (ME.turn > 1.5 ? .45 : 1) : 0;
+  ME.v += (want - ME.v) * Math.min(1, dt * (go ? 3.5 : 7)); if (!go && ME.v < .25) ME.v = 0;
+  if (ME.v > 0) {
+    const st = ME.v * dt, hx = Math.cos(ME.head), hz = -Math.sin(ME.head);
+    if (horseClear(player.x + hx * st, player.z + hz * st, ME.head)) { player.x += hx * st; player.z += hz * st; }
+    else if (horseClear(player.x + hx * st, player.z, ME.head)) player.x += hx * st;
+    else if (horseClear(player.x, player.z + hz * st, ME.head)) player.z += hz * st;
+    else ME.v *= .5;
+    const fl = floorAt(player.x, player.z, player.y); if (fl) { player.y = fl.h; if (fl.zone !== player.zone) setZone(fl.zone); }
+  }
+  placeMe(dt);
+  return ME.v > .4;
+}
+function placeMe(dt) {
+  ME.g3.position.set(player.x, player.y, player.z); ME.g3.rotation.y = ME.head;
+  HORSES.update(ME.hs, dt, { speed: ME.v, gait: ME.v > .4 ? 'gallop' : 'stand', camera });
+  ME.g3.updateMatrixWorld(true); ME.hs.userData.seat.getWorldPosition(_se);
+  if (ME.restY === null) ME.restY = _se.y - player.y;
+  // the eye rides the saddle; raising the camera steadies it, as a rider rises in the stirrups to take the jolt
+  const ty = _se.y + .85, steady = player.y + ME.restY + .85;
+  ME.eye.x = _se.x; ME.eye.z = _se.z; ME.eye.y += (ty + (steady - ty) * raise.t * .75 - ME.eye.y) * Math.min(1, dt * 14);
+}
+// people on their paths: walkers at 1.35 m/s, runners faster with longer strides and arms pumping; they slide round anything in the way
 function people(dt) {
   for (const n of npcs) {
-    if (n.col || n.gone) continue;
+    if (n.col || n.gone || n.lying || n.me) continue;
     const root = n.P.root;
     if (n.path) {
       const [tx, tz] = n.path[0], dx = tx - n.x, dz = tz - n.z, d = Math.hypot(dx, dz), sp = n.sp || 1.35;
-      if (d < .06) { n.path.shift(); if (!n.path.length) { n.path = null; setPose(n, 'stand'); const f = n.done; n.done = null; if (f) f(); } }
-      else { const st = Math.min(d, sp * dt); n.x += dx / d * st; n.z += dz / d * st; n.ry = Math.atan2(dx, dz); n.ph += dt * (sp > 2.5 ? 10 : 7); setPose(n, n.ph, sp > 2.5 ? 1.7 : 1); }
+      if (d < .12) { n.path.shift(); if (!n.path.length) { n.path = null; setPose(n, 'stand'); const f = n.done; n.done = null; if (f) f(); } }
+      else { const st = Math.min(d, sp * dt); stepTo(n, dx / d * st, dz / d * st, dt); n.ry = Math.atan2(dx, dz); n.ph += dt * (sp > 2.5 ? 10 : 7); setPose(n, n.ph, sp > 2.5 ? 1.7 : 1); }
       root.position.x = n.x; root.position.z = n.z;
     }
     let dr = n.ry - root.rotation.y; dr = Math.atan2(Math.sin(dr), Math.cos(dr)); root.rotation.y += dr * Math.min(1, dt * 8);
   }
 }
+// one step for a person on foot, sliding along walls, beds and carts instead of passing through them; long stuck, the leg is given up
+function stepTo(n, dx, dz, dt) {
+  const ok = (x, z) => !blocked(x, z, n.y, .15) && floorAt(x, z, n.y);
+  if (ok(n.x + dx, n.z + dz)) { n.x += dx; n.z += dz; n.stuck = 0; return true; }
+  const a = Math.atan2(dz, dx), l = Math.hypot(dx, dz);
+  for (const k of [.9, -.9, 1.5, -1.5]) { const ex = Math.cos(a + k) * l, ez = Math.sin(a + k) * l; if (ok(n.x + ex, n.z + ez)) { n.x += ex; n.z += ez; return true; } }
+  n.stuck = (n.stuck || 0) + dt; if (n.stuck > .7 && n.path) { n.stuck = 0; n.path.shift(); if (!n.path.length) { n.path = null; const f = n.done; n.done = null; if (f) f(); } }
+  return false;
+}
 // waving: both arms up and swinging, for the rich who want Madero gone
 function wave(n, t) { const J = n.P.J, B = n.base, w = Math.sin(t * 7 + n.ph * 3); if (!J.shR) return; J.shR.rotation.x = B.shR - 2.6 + .3 * w; J.elR.rotation.x = B.elR - .3; J.shL.rotation.x = B.shL - (n.ph > 3 ? 2.4 - .3 * w : .1); J.elL.rotation.x = B.elL - (n.ph > 3 ? .3 : .1); }
-function aim(n) { const J = n.P.J, B = n.base; if (!J.shR) return; J.shR.rotation.x = B.shR - 1.45; J.elR.rotation.x = B.elR - .25; J.shL.rotation.x = B.shL - 1.3; J.elL.rotation.x = B.elL - .7; }
+function aim(n) { const J = n.P.J, B = n.base; if (!J.shR) return; J.shR.rotation.x = B.shR - 1.45; J.elR.rotation.x = B.elR - .25; J.shL.rotation.x = B.shL - 1.3; J.elL.rotation.x = B.elL - .7; n.aiming = true; }
+// a rifleman runs with the rifle in his right hand: that arm swings little and stays bent, clear of the leg
+function carry(n) { if (!n.armed) return; const J = n.P.J, B = n.base; if (!J.shR) return; J.shR.rotation.x = B.shR + Math.sin(n.ph) * .16; J.elR.rotation.x = B.elR - .35; }
+// shot: he drops where he is and lies still (the newspaper counts the dead in the square; the game does not linger on them)
+function fall(n, faceDown) {
+  n.path = null; n.ai = null; n.aiming = false; n.cheer = false; if (n.seated) standUp(n); n.crouched = false;
+  if (n.mount) { scene.add(n.P.root); n.fx = n.x - 1.3; n.fz = n.z + .9; } else { n.fx = n.x; n.fz = n.z; }
+  setPose(n, 'stand'); const J = n.P.J;
+  for (const k of ['hipR', 'hipL']) if (J[k]) J[k].rotation.x = -.08; for (const k of ['knR', 'knL']) if (J[k]) J[k].rotation.x = .18;
+  if (J.shR) { J.shR.rotation.z = -.7; J.shL.rotation.z = .5; J.elR.rotation.x = -.3; J.elL.rotation.x = -.5; }
+  n.lying = true; n.hidden = false;
+  const r = n.P.root, ry = n.mount ? n.head + Math.PI / 2 : n.ry; r.rotation.order = 'YXZ'; r.rotation.set(faceDown ? Math.PI / 2 : -Math.PI / 2, ry, 0); r.position.set(n.fx, (n.mount ? 0 : n.y) + .1, n.fz); r.scale.setScalar(1);
+  n.subject = 'wounded'; for (const m of [n.P.hi, n.P.mid]) m.userData.sid = subjects.wounded.id;
+}
 
-// ---------- the column: march, volley, retreat, the yard ----------
-// the column's members and Díaz's horse move outside the zone groups, so they are drawn wherever the player is
+// ---------- the column: march, volley, the scattering, the yard ----------
+// the column's members and the generals' horses move outside the zone groups, so they are drawn wherever the player is
 for (const n of COL) { if (n.mount) scene.add(n.g3); else scene.add(n.P.root); }
-const COLX = 30, COL_END = AV_X1 - 4; // the retreat path runs west along z = 0 from x = 30, then into the yard
-const YARD = [[-166.5, 1.4], [-166.5, -2.2], [-178, 8.2], [-179, 6.6], [-180.2, 8.6], [-178.6, -7.4], [-180, -9], [-176.6, -8.8], [-181.4, -6.6], [-170.6, -9.6], [-169, -10.6], [-171.6, 9.8], [-168.2, 9.6], [-183, 1.2], [-183.2, 3.2], [-183, -1], [-176, 10.6], [-174.4, -10.6], [-182.6, -3.4]];
-const COLRUN = { S: 0, v: 0, started: false, vt: 0, lead: 0 };
-const VOLLEY = { t: 0, reyesDown: false, crowdGone: false };
+const YARD = [[-166.5, 1.4], [-166.5, -2.2], [-178, 8.2], [-179, 6.6], [-180.2, 8.6], [-178.6, -7.4], [-180, -9], [-176.6, -8.8], [-181.4, -6.6], [-170.6, -9.6], [-169, -10.6], [-171.6, 9.8], [-168.2, 9.6], [-183, 1.2], [-183.2, 3.2], [-183, -1], [-176, 10.6], [-174.4, -10.6], [-182.6, -3.4], [-162, 12.4], [-164, -12]];
+const COLRUN = { started: false };
+const VOLLEY = { t: 0, reyesDown: false };
 const OBJ = ['Follow Félix Díaz and his rebels to the palace.', 'Follow Félix Díaz to the Ciudadela.', 'Talk to Félix Díaz in the yard of the Ciudadela.', 'Photograph Félix Díaz and his officers.'];
-function colPose(n, dt, sp) { if (sp > .05) { n.ph += dt * (sp > 2.2 ? 11 : 7.5); setPose(n, n.ph, sp > 2.2 ? 1.6 : 1); } else if (!n.crouched) setPose(n, 'stand'); }
+function colPose(n, dt, sp) { if (sp > .05) { n.ph += dt * (sp > 2.2 ? 11 : 7.5); setPose(n, n.ph, sp > 2.2 ? 1.6 : 1); carry(n); } else if (!n.crouched && !n.aiming) setPose(n, 'stand'); }
 function placeMember(n) { if (n.mount) { n.g3.position.set(n.x, 0, n.z); } else { n.P.root.position.x = n.x; n.P.root.position.z = n.z; } }
 function turnTo(n, a, dt) { if (n.mount) { let d = a - n.head; d = Math.atan2(Math.sin(d), Math.cos(d)); setHeading(n, n.head + d * Math.min(1, dt * 4)); return; } n.ry = a; const r = n.P.root; let d = a - r.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); r.rotation.y += d * Math.min(1, dt * 7); }
 function horseStep(n, dt, sp) { HORSES.update(n.hs, dt, { speed: sp, gait: sp < .05 ? 'stand' : sp < 2 ? 'walk' : sp < 4 ? 'trot' : 'gallop', camera }); }
+// the free lane down the street at x: clear of the burnt tram and the carts
+function lane(x) { if (x < -66 && x > -81) return [.4, 2.8]; if (x < -59 && x > -68) return [-1.2, 2.6]; if (x < -113 && x > -136) return x > -121 || x < -127 ? [-2.8, .4] : [-2.6, 2.6]; return [-2.7, 2.7]; }
+const lanePt = x => { const [a, b] = lane(x); return [x, a + rand() * (b - a)]; };
+// a runner's road to the yard: out of the square by the street's mouth, then down the street weaving from side to side, through the gate
+function routeWest(x0) {
+  const R = [[-44.8, -2.6 + rand() * 5.2]];
+  for (let x = -50 - rand() * 6; x > AV_X1 + 6; x -= 9 + rand() * 7) R.push(lanePt(x));
+  R.push([AV_X1 + 1.5, -1.6 + rand() * 3.2], [AV_X1 - 2, -1.8 + rand() * 3.6]);
+  return R;
+}
+// somewhere to run in the square when the guns open: away from the palace, any way but straight
+function scatterPoint(n) {
+  for (let k = 0; k < 8; k++) {
+    const a = Math.PI + (rand() - .5) * 3.4, d = 6 + rand() * 16, x = Math.max(-43, Math.min(30, n.x + Math.cos(a) * d)), z = Math.max(-40, Math.min(40, n.z + Math.sin(a) * d));
+    if (!blocked(x, z, 0, .4) && !inBed(x, z)) return [x, z];
+  }
+  return [n.x - 8, n.z];
+}
+const MOUNT_PLAN = new Map(); // the generals and the horsemen break off in different directions, then make for the street
 function column(dt) {
-  const t = state.elapsed;
   if (!flags.volley) {
     // the march east: steady, in step, toward the gate
     const sp = state.started ? 1.25 : 0;
@@ -4601,86 +4883,177 @@ function column(dt) {
     return;
   }
   VOLLEY.t += dt; const vt = VOLLEY.t;
-  // Reyes falls at the gate: a puff of smoke where he was, and his horse comes back down the square without him
-  if (vt > .55 && !VOLLEY.reyesDown) { VOLLEY.reyesDown = true; reyes.P.root.visible = false; reyes.hidden = true; FX.impact(reyes.x, reyes.z); FX.impact(reyes.x + .5, reyes.z + .4); reyes.path = [[14, 6.5], [-30, 6.5], [-48, 1.5], [-75, 1.5]]; }
+  // Reyes is shot from the saddle at the gate and lies where he fell; his horse bolts back down the square without him
+  if (vt > .55 && !VOLLEY.reyesDown) { VOLLEY.reyesDown = true; FX.impact(reyes.x, reyes.z); FX.impact(reyes.x + .5, reyes.z + .4); fall(reyes); reyes.path = [[14, 6.5], [-30, 8.5], [-46, 1.5], [-100, 2], [-147, 0], [-183, 11]]; }
   if (reyes.path) { const [tx, tz] = reyes.path[0], dx = tx - reyes.x, dz = tz - reyes.z, d = Math.hypot(dx, dz), sp = 7.5;
-    if (d < .5) { reyes.path.shift(); if (!reyes.path.length) { reyes.path = null; reyes.gone = true; reyes.g3.visible = false; } }
+    if (d < .6) { reyes.path.shift(); if (!reyes.path.length) { reyes.path = null; horseStep(reyes, dt, 0); } }
     else { reyes.x += dx / d * sp * dt; reyes.z += dz / d * sp * dt; turnTo(reyes, Math.atan2(-dz, dx), dt); placeMember(reyes); horseStep(reyes, dt, sp); } }
-  if (vt < 2.6) { // the first moments: the column checks and drops, the horses stamp
-    for (const n of COL) { if (n === reyes || n.gone) continue; if (n.mount) horseStep(n, dt, 0); else if (!n.crouched && vt > .3 + (n.ph % 1) * .5) crouch(n, true); }
-    return;
+  else if (VOLLEY.reyesDown) horseStep(reyes, dt, 0);
+  if (!COLRUN.started && vt > .2) {
+    COLRUN.started = true;
+    // the first two at the head of the column go down; the rest drop, then break, each his own way
+    const foot = COL.filter(n => !n.mount && !n.gone).sort((a, b) => b.x - a.x);
+    foot.slice(0, 2).forEach((n, i) => setTimeout(() => { if (!n.lying) fall(n, i === 1); }, (.45 + i * .5) * 1000));
+    for (const n of foot.slice(2)) n.ai = { st: 'flinch', t: .15 + rand() * .9, sp: (n.D === 'soldadera' || n.D === 'soldadera2' ? 3 : 3.3) + rand() * 1.1, route: null };
+    for (const n of MOUNTS) if (n !== reyes) MOUNT_PLAN.set(n, { t: .6 + rand() * .9, path: null });
   }
-  if (!COLRUN.started) { COLRUN.started = true; flags.fled = true; for (const n of COL) { n.s0 = COLX - n.x; if (n.crouched) crouch(n, false); } showObjective(OBJ[1]); }
-  // the retreat: everyone keeps their place in the files along one path; the head waits when the player falls behind
-  let lead = 1e9; for (const n of COL) if (!n.gone && n !== reyes && !n.yard) lead = Math.min(lead, n.x);
-  COLRUN.lead = lead;
-  const want = lead < 1e9 && player.x - lead > 22 ? 0 : 3.1;
-  COLRUN.v += (want - COLRUN.v) * Math.min(1, dt * (want ? 1.5 : 3)); COLRUN.S += COLRUN.v * dt;
-  for (const n of COL) {
-    if (n === reyes || n.gone) continue;
-    if (n.yard) { // in the yard: walk to a resting place, then stand, turned toward the gate
-      if (n.ypath) { const [tx, tz] = n.ypath, dx = tx - n.x, dz = tz - n.z, d = Math.hypot(dx, dz), sp = n.mount ? 1.4 : 1.8;
-        if (d < .08) { n.ypath = null; n.speed = 0; if (n.mount) { turnTo(n, 0, 1); horseStep(n, dt, 0); } else { n.ry = Math.PI / 2; n.P.root.rotation.y = n.ry; setPose(n, 'stand'); } if (n === diaz) arrive(); }
-        else { const st = Math.min(d, sp * dt); n.x += dx / d * st; n.z += dz / d * st; n.speed = sp; turnTo(n, n.mount ? Math.atan2(-dz, dx) : Math.atan2(dx, dz), dt); placeMember(n); if (n.mount) horseStep(n, dt, sp); else colPose(n, dt, sp); } }
-      else if (n.mount) horseStep(n, dt, 0);
-      continue;
+  if (vt > 2.2 && !flags.fled) { flags.fled = true; showObjective(OBJ[1]); }
+  for (const n of COL) { if (n === reyes || n.gone || n.lying) continue; if (n.mount) rideOff(n, dt); else if (n.ai) runner(n, dt); }
+}
+// a soldier on foot after the volley: flinch, scatter, return fire or take cover, then run for the Ciudadela
+function runner(n, dt) {
+  const A = n.ai; A.t -= dt;
+  const toYard = () => { A.st = 'yard'; A.target = YARD[COL.indexOf(n) % YARD.length].slice(); };
+  if (A.st === 'flinch') { if (!n.crouched) crouch(n, true); if (A.t < 0) { crouch(n, false); A.st = 'scatter'; A.target = scatterPoint(n); A.t = 6; } }
+  else if (A.st === 'fire' || A.st === 'cover' || A.st === 'turnfire') {
+    if (A.st !== 'cover') { const tx = A.st === 'fire' ? PAL_X : n.x + 30; turnTo(n, Math.atan2(tx - n.x, (A.st === 'fire' ? 0 : n.z) - n.z), dt); if (!n.aiming) { setPose(n, 'stand'); aim(n); }
+      if ((A.shot = (A.shot || 0) - dt) < 0) { A.shot = .5 + rand() * .7; const m = muzzleOf(n); FX.muzzle(m[0], m[1], m[2]); G3.events.push({ type: 'shot', x: m[0], z: m[2] }); } }
+    else if (!n.crouched) crouch(n, true);
+    if (A.t < 0) { n.aiming = false; if (n.crouched) crouch(n, false); setPose(n, 'stand'); A.st = 'go'; if (!A.route) A.route = routeWest(n.x); A.shot = 0; }
+  }
+  else if (A.st === 'yard' && !A.target) { /* resting, turned to the gate */ }
+  else {
+    const T = A.st === 'go' ? A.route[0] : A.target;
+    const dx = T[0] - n.x, dz = T[1] - n.z, d = Math.hypot(dx, dz), sp = A.st === 'yard' ? 1.8 : A.sp;
+    if (d < .5 || A.t < (A.st === 'scatter' ? 0 : -12)) {
+      if (A.st === 'scatter') { A.st = rand() < .5 && n.armed ? 'fire' : 'cover'; A.t = 1 + rand() * 1.4; A.route = routeWest(n.x); n.speed = 0; }
+      else if (A.st === 'go') { A.route.shift(); A.t = 0; if (!A.route.length) toYard(); else if (n.armed && n.x < -50 && n.x > AV_X1 + 8 && rand() < .16) { A.st = 'turnfire'; A.t = .9 + rand() * .6; n.speed = 0; } }
+      else if (A.st === 'yard') { A.target = null; n.ry = Math.PI / 2; setPose(n, 'stand'); n.speed = 0; }
+      return;
     }
-    const s = n.s0 + COLRUN.S, x = COLX - s;
-    if (x < COL_END) { n.yard = true; n.ypath = YARD[COL.indexOf(n) % YARD.length].slice(); if (n === diaz) n.ypath = [-166.5, 1.4]; if (n === mond) n.ypath = [-166.6, -2.4]; continue; }
-    // squeeze the files into the street, then out again through the gate
-    const zk = x < -44.5 ? (x < AV_X1 + 2 ? .6 : .72) : 1, z = (n.zc === undefined ? (n.zc = n.z) : n.zc) * zk;
-    const dx = x - n.x, dz = z - n.z, sp = COLRUN.v; n.x = x; n.z += dz * Math.min(1, dt * 3);
-    if (sp > .05) turnTo(n, n.mount ? Math.PI : -Math.PI / 2, dt);
-    placeMember(n); n.speed = sp;
-    if (n.mount) horseStep(n, dt, sp); else colPose(n, dt, sp);
+    const st = Math.min(d, sp * dt); stepTo(n, dx / d * st, dz / d * st, dt); n.speed = sp;
+    const fl = floorAt(n.x, n.z, n.y); if (fl) n.y = fl.h; n.P.root.position.y = n.y;
+    turnTo(n, Math.atan2(dx, dz), dt); placeMember(n); colPose(n, dt, sp);
   }
 }
+// a horse and rider after the volley: rear and wheel, gallop off across the square one way or another, then down the street
+const RIDE_OUT = [[[-8, -17], [-34, -8]], [[-4, 15], [-30, 9]], [[-26, -28], [-40, -6]], [[-22, 26], [-42, 4]]];
+function rideOff(n, dt) {
+  const M = MOUNT_PLAN.get(n); if (!M) return; M.t -= dt;
+  if (!M.path) { horseStep(n, dt, 0); if (M.t < 0) { const k = MOUNTS.indexOf(n) % RIDE_OUT.length; M.path = RIDE_OUT[k].map(p => [p[0] + (rand() - .5) * 4, p[1] + (rand() - .5) * 4]).concat(routeWest(n.x).map(p => [p[0], p[1] * .7])); M.end = n === diaz ? [-166.5, 1.4] : n === mond ? [-166.6, -2.4] : [[-161, -10.5], [-161, 11.5]][MOUNTS.indexOf(n) % 2]; } return; }
+  if (!M.path.length) { // in the yard: walk the last steps to his place, then stand
+    const dx = M.end[0] - n.x, dz = M.end[1] - n.z, d = Math.hypot(dx, dz);
+    if (d < .15) { n.speed = 0; turnTo(n, 0, dt); horseStep(n, dt, 0); if (n === diaz) arrive(); return; }
+    const st = Math.min(d, 1.4 * dt); n.x += dx / d * st; n.z += dz / d * st; n.speed = 1.4; turnTo(n, Math.atan2(-dz, dx), dt); placeMember(n); horseStep(n, dt, 1.4); return;
+  }
+  const [tx, tz] = M.path[0], dx = tx - n.x, dz = tz - n.z, d = Math.hypot(dx, dz);
+  if (d < 1.2) { M.path.shift(); return; }
+  // Díaz and Mondragón rein in while the player is far behind, so there is someone to follow; the horsemen don't wait
+  const lead = n === diaz || n === mond, far = lead && n.x - player.x < -28 && player.zone !== 'ciudadela';
+  const want = far ? 0 : n === diaz ? 6.4 : n === mond ? 6 : 7.8;
+  n.speed = (n.speed || 0) + (want - (n.speed || 0)) * Math.min(1, dt * 3);
+  const st = n.speed * dt; n.x += dx / d * st; n.z += dz / d * st;
+  if (n.speed > .3) turnTo(n, Math.atan2(-dz, dx), dt);
+  placeMember(n); horseStep(n, dt, n.speed);
+}
 function arrive() { if (flags.arrived) return; flags.arrived = true; showObjective(OBJ[2]); }
+// the cab horses on the north side bolt at the first shots, each its own way round the square, and stand blowing where they stop
+const LOOSE_PATHS = [[[-6, -26], [16, -16], [30, -36]], [[-34, -24], [-40, 2], [-30, 30], [-8, 38]]];
+function looseHorses(dt) {
+  for (const L of LOOSE) {
+    if (!L.path && flags.volley && VOLLEY.t > .7 + L.k * .5 && !L.done) L.path = LOOSE_PATHS[L.k].map(p => p.slice());
+    if (!L.path) { if (G.zocalo.visible) HORSES.update(L.hs, dt, { speed: 0, gait: 'stand', camera }); continue; }
+    const [tx, tz] = L.path[0], dx = tx - L.x, dz = tz - L.z, d = Math.hypot(dx, dz);
+    if (d < 1) { L.path.shift(); if (!L.path.length) { L.path = null; L.done = true; } continue; }
+    const sp = 8.4, st = sp * dt; L.x += dx / d * st; L.z += dz / d * st;
+    let a = Math.atan2(-dz, dx) - L.head; a = Math.atan2(Math.sin(a), Math.cos(a)); L.head += a * Math.min(1, dt * 4);
+    L.g3.position.set(L.x, 0, L.z); L.g3.rotation.y = L.head; HORSES.update(L.hs, dt, { speed: sp, gait: 'gallop', camera });
+  }
+}
 // the volley from the palace: the guard and the machine guns on the roof, bullets kicking up the cobbles round the column's head
 function startVolley() {
   flags.volley = true; VOLLEY.t = 0; G3.events.push({ type: 'volley' });
   for (const g of guards) aim(g);
-  // the crowd breaks: most run for the nearest doorway, some of the rich stay crouched where they are, still hoping
+  // the crowd breaks: two near the gate are hit; the rest run every way they can, for doorways, the street, the cathedral;
+  // some of the rich stay crouched where they are, still hoping
+  const near = crowdSq.filter(n => n.x > 8).sort((a, b) => b.x - a.x).slice(0, 2);
+  near.forEach((n, i) => setTimeout(() => fall(n, i === 0), (.5 + i * .8) * 1000));
   for (const n of crowdSq) {
+    if (near.includes(n)) continue;
     const delay = .15 + rand() * 1.2;
     setTimeout(() => {
-      if (GENTRY.has(n.D) && rand() < .45) { crouch(n, true); n.cheer = false; return; }
-      n.cheer = false; const tz = n.z < 0 ? -42.5 : 42.4, tx = Math.max(-44, Math.min(36, n.x + (rand() - .5) * 14));
-      const toWest = n.x < -28 && rand() < .6;
-      walkTo(n, toWest ? [[-44.6, n.z + (n.z < 0 ? -10 - rand() * 20 : 10 + rand() * 20)]] : [[tx, tz]], () => { n.gone = true; n.P.root.visible = false; }, 3.4 + rand() * .8);
+      if (GENTRY.has(n.D) && rand() < .4) { crouch(n, true); n.cheer = false; return; }
+      n.cheer = false; const tz = n.z < 0 ? -42.5 : 42.4, tx = Math.max(-44, Math.min(36, n.x + (rand() - .5) * 18));
+      const r = rand(), mid = [Math.max(-43, Math.min(34, n.x + (rand() - .5) * 16)), n.z * (1.6 + rand() * 1.5)];
+      const path = r < .3 && n.x < -20 ? [mid, [-44.6, (rand() - .5) * 6], [-60, (rand() - .5) * 5]] : r < .45 ? [[n.x - 6 - rand() * 10, -n.z * .5], [n.x - 20, n.z < 0 ? 42.4 : -42.5]] : [mid, [tx, tz]];
+      walkTo(n, path, () => { n.gone = true; n.P.root.visible = false; }, 3.3 + rand() * 1.1);
     }, delay * 1000);
   }
 }
 let mgT = 0;
 function gunfire(dt) {
   if (!flags.volley) return;
-  const vt = VOLLEY.t; if (vt > 14) return;
-  mgT -= dt; const rate = vt < 7 ? .035 : .11;
+  const vt = VOLLEY.t, inSq = player.zone === 'zocalo';
+  if (vt > 40 || (!inSq && vt > 14)) { G3.mg = 0; return; }
+  mgT -= dt; const rate = vt < 7 ? .035 : vt < 16 ? .09 : .2;
   while (mgT < 0) { mgT += rate * (.6 + rand() * .8);
     // muzzles: the guards at the gate, and machine guns along the parapet
-    if (rand() < .45) { const g = guards[(rand() * guards.length) | 0]; FX.muzzle(g.x - .9, 1.45, g.z); }
+    if (rand() < .45) { const g = guards[(rand() * guards.length) | 0]; const m = muzzleOf(g); FX.muzzle(m[0], m[1], m[2]); }
     else { const z = [-20, -12, 12, 20][(rand() * 4) | 0] + (rand() - .5) * .6; FX.muzzle(PAL_X - .9, 14.3, z); }
-    if (vt < 9 && rand() < .7) FX.impact(14 + rand() * 18, (rand() - .5) * 9);
+    // bullets kick up the cobbles round whoever is still in the square
+    if (rand() < .7) { const t = COL[(rand() * COL.length) | 0]; if (t && !t.gone && t.x > -46) FX.impact(t.x + (rand() - .5) * 5, t.z + (rand() - .5) * 5); else FX.impact(-10 + rand() * 40, (rand() - .5) * 20); }
   }
-  G3.mg = vt < 9 ? 1 : vt < 14 ? .4 : 0;
+  G3.mg = vt < 9 ? 1 : vt < 16 ? .6 : .3;
 }
-// the shells in the street: each set off as the player reaches a mark, always a little ahead, never on top of them
+// the federal post at the cross street fires down the avenue while the rebels go past
+let patrolT = 0; const patrol = npcs.filter(n => n.D === 'federal' && n.g === 'avenue');
+function patrolFire(dt) {
+  if (!flags.fled || Math.abs(player.x + 95) > 32) { for (const n of patrol) if (n.aiming) { n.aiming = false; setPose(n, 'stand'); } return; }
+  for (const n of patrol) if (!n.aiming) { aim(n); n.ry = 0; n.P.root.rotation.y = 0; }
+  if ((patrolT -= dt) < 0) { patrolT = .35 + rand() * .6; const n = patrol[(rand() * patrol.length) | 0], m = muzzleOf(n); FX.muzzle(m[0], m[1], m[2]); G3.events.push({ type: 'shot', x: m[0], z: m[2] }); FX.impact(-95 + (rand() - .5) * 8, (rand() - .5) * 6); }
+}
+// shells: in the square after the volley, then in the street, each set off as the player reaches a mark, always a little away from them
+const SQ_SHELLS = [{ t: 2.4, x: 24, z: 10 }, { t: 4.4, x: -2, z: -15 }, { t: 6.4, x: 8, z: 20 }, { t: 8.8, x: -26, z: -6 }, { t: 11.5, x: -14, z: 24 }, { t: 14.5, x: 18, z: -22 }, { t: 18, x: -36, z: 14 }, { t: 22, x: -6, z: 34 }];
 const BURSTS = [
-  { at: -50, x: -63, y: 9.6, z: -5.2, out: [0, 1], wall: true }, { at: -66, x: -76, y: .2, z: 3.4 },
-  { at: -78, x: -88, y: 7.5, z: 5.2, out: [0, -1], wall: true }, { at: -96, x: -106, y: 10.5, z: -5.2, out: [0, 1], wall: true },
-  { at: -112, x: -122, y: .2, z: -2.2 }, { at: -126, x: -136, y: 8.8, z: 5.2, out: [0, -1], wall: true }, { at: -140, x: -150.5, y: 7, z: 4.6, out: [1, 0], wall: true }
+  { at: -48, x: -58, y: 9.6, z: -5.2, out: [0, 1], wall: true }, { at: -58, x: -69, y: .2, z: 2.4 }, { at: -64, x: -76, y: 9.4, z: 5.2, out: [0, -1], wall: true },
+  { at: -76, x: -88, y: 7.5, z: 5.2, out: [0, -1], wall: true }, { at: -86, x: -97, y: .2, z: -1.4 }, { at: -96, x: -106, y: 10.5, z: -5.2, out: [0, 1], wall: true },
+  { at: -106, x: -117, y: 9, z: -5.2, out: [0, 1], wall: true }, { at: -112, x: -122, y: .2, z: -2.2 }, { at: -126, x: -136, y: 8.8, z: 5.2, out: [0, -1], wall: true },
+  { at: -134, x: -143, y: .2, z: 1.4 }, { at: -140, x: -150.5, y: 7, z: 4.6, out: [1, 0], wall: true }
 ];
-let farT = 4;
+let farT = 4, nearT = 5;
 function shelling(dt) {
+  if (!flags.volley) return;
+  const vt = VOLLEY.t;
+  for (const b of SQ_SHELLS) if (!b.done && vt > b.t) { b.done = true; let { x, z } = b; const d = Math.hypot(x - player.x, z - player.z); if (d < 10) { const k = (10 - d) / Math.max(.1, d); x += (x - player.x) * k; z += (z - player.z) * k; } FX.shell(x, .2, z, {}); }
   if (!flags.fled) return;
   for (const b of BURSTS) if (!b.done && player.x < b.at) { b.done = true; FX.shell(b.x, b.y, b.z, b); }
-  // distant guns: a far burst over the rooftops every few seconds while the column is on the move
-  if (!flags.arrived && (farT -= dt) < 0) { farT = 4 + rand() * 4; const x = Math.min(player.x, -40) - 30 - rand() * 50, z = (rand() < .5 ? -1 : 1) * (14 + rand() * 12); FX.shell(x, 10 + rand() * 4, z, {}); }
+  // more in whatever part of the city the player is in: on the roofs of the street ahead, in the square around them
+  if (!flags.arrived && (nearT -= dt) < 0) { nearT = 3 + rand() * 3;
+    if (player.zone === 'avenue') { const x = Math.max(AV_X1 + 3, player.x - 14 - rand() * 18), s = rand() < .5 ? -1 : 1; FX.shell(x, 8 + rand() * 4, s * 5.2, { wall: true, out: [0, -s] }); }
+    else if (player.zone === 'zocalo') { const a = rand() * 6.28, d = 13 + rand() * 16, x = Math.max(-44, Math.min(34, player.x + Math.cos(a) * d)), z = Math.max(-42, Math.min(42, player.z + Math.sin(a) * d)); FX.shell(x, .2, z, {}); } }
+  // distant guns: a far burst over the rooftops every few seconds
+  if ((farT -= dt) < 0) { farT = 2.5 + rand() * 3; const x = Math.min(player.x, -40) - 20 - rand() * 60, z = (rand() < .5 ? -1 : 1) * (12 + rand() * 16); FX.shell(x, 10 + rand() * 4, z, {}); }
 }
 function streetPeople(t) {
-  if (flags.fled) for (const n of runners) if (!n.started && player.x < n.trig) { n.started = true; n.z = n.z < 0 ? -4.1 : 4.1; n.y = .14; n.P.root.position.set(n.x, .14, n.z); walkTo(n, [[-40, n.z]], () => { n.gone = true; n.P.root.visible = false; }, 3.6 + rand() * .6); }
+  if (flags.fled) for (const n of runners) if (!n.started && player.x < n.trig + 10) { n.started = true; n.z = n.z < 0 ? -4.1 : 4.1; n.y = .14; n.P.root.position.set(n.x, .14, n.z); walkTo(n, [[-40, n.z]], () => { n.gone = true; n.P.root.visible = false; }, 3.6 + rand() * .6); }
   for (const n of balcony) if (n.cheer && G.avenue.visible && Math.abs(n.x - player.x) < 40) wave(n, t);
   if (!flags.volley) for (const n of crowdSq) if (n.cheer) wave(n, t);
+}
+// nobody passes through anybody: people moving this frame are pushed apart from each other, from people standing still,
+// from the fallen and from the horses; a push that would put someone in a wall is not made
+const _pushOK = (n, x, z) => !blocked(x, z, n.y, .1) && floorAt(x, z, n.y);
+function separate() {
+  const near = [], still = [], horses = [];
+  for (const n of npcs) {
+    if (n.gone || n.hidden || n.me || (!n.col && !G[n.g].visible)) continue;
+    if (Math.abs(n.x - player.x) > 45 || Math.abs(n.z - player.z) > 45) continue;
+    if (n.mount) { horses.push([n.x, n.z, n.head]); continue; }
+    if (n.lying) { still.push([n.fx, n.fz, .55, n.fx - Math.sin(n.P.root.rotation.y) * .8, n.fz - Math.cos(n.P.root.rotation.y) * .8]); continue; }
+    if (n.seated || n.y > 1) continue;
+    if (n.path || (n.ai && n.speed > 0 && n.ai.st !== 'yard') || (n.ai && n.ai.target)) near.push(n); else still.push([n.x, n.z, n.r || .3]);
+  }
+  for (const L of LOOSE) horses.push([L.x, L.z, L.head]);
+  if (ME.on) horses.push([player.x, player.z, ME.head]);
+  const R = .32;
+  for (let i = 0; i < near.length; i++) {
+    const a = near[i];
+    for (let j = i + 1; j < near.length; j++) { const b = near[j], dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz);
+      if (d < R * 2 && d > 1e-4) { const k = (R * 2 - d) / d * .5; if (_pushOK(a, a.x - dx * k, a.z - dz * k)) { a.x -= dx * k; a.z -= dz * k; } if (_pushOK(b, b.x + dx * k, b.z + dz * k)) { b.x += dx * k; b.z += dz * k; } } }
+    const push = (x, z, r) => { const dx = a.x - x, dz = a.z - z, d = Math.hypot(dx, dz); if (d < r + R && d > 1e-4) { const k = (r + R - d) / d; if (_pushOK(a, a.x + dx * k, a.z + dz * k)) { a.x += dx * k; a.z += dz * k; } } };
+    for (const s of still) { push(s[0], s[1], s[2]); if (s.length > 3) push(s[3], s[4], .4); }
+    for (const [x, z, h] of horses) { push(x, z, .95); push(x + Math.cos(h) * 1.05, z - Math.sin(h) * 1.05, .55); push(x - Math.cos(h) * .9, z + Math.sin(h) * .9, .5); }
+    a.P.root.position.x = a.x; a.P.root.position.z = a.z;
+  }
 }
 
 // ---------- loop ----------
@@ -4700,21 +5073,29 @@ let fAcc = 0, fN = 0;
 function frame(now) {
   const rawDt = (now - last) / 1000, dt = Math.min(.05, rawDt); last = now;
   if (state.seqCover) { requestAnimationFrame(frame); return; }
+  // behind the time card and the publisher's room the battle draws a few frames (so its shaders are ready), then waits
+  if (HOLD.on && HOLD.warm-- <= 0) { requestAnimationFrame(frame); return; }
   let moving = false;
   if (state.started && !state.busy) {
     state.elapsed += dt;
     if (perf.wait > 0) perf.wait -= dt; else if (AUTO_Q && tier < 2) { perf.acc += rawDt; perf.n++; if (perf.n >= 90) { if (perf.acc / perf.n > 1 / 32) { stepQuality(); perf.wait = 2; } perf.acc = 0; perf.n = 0; } }
-    moving = move(dt);
-  }
+    moving = ME.on ? ride(dt) : move(dt);
+  } else if (ME.on) placeMe(dt);
   const t = now / 1000;
-  if (!state.busy || state.posing) { if (state.started) { column(dt); gunfire(dt); shelling(dt); } people(dt); streetPeople(t); }
+  if (!state.busy || state.posing) { if (state.started) { column(dt); gunfire(dt); shelling(dt); patrolFire(dt); } people(dt); looseHorses(dt); separate(); streetPeople(t); }
   if (toastT > 0 && (toastT -= dt) <= 0) $('toast').classList.remove('on');
   if (placeT > 0 && (placeT -= dt) <= 0) $('place').classList.remove('on');
   focus = state.started && !state.busy && !state.raised && raise.t === 0 ? findFocus() : null;
   { const pr = $('prompt'); let html = '';
     if (focus) html = '<kbd>E</kbd>' + focus.name; else if (!state.busy && !state.raised && raise.t === 0 && state.plates > 0 && state.started) html = '<kbd>R</kbd>Raise the camera';
     if (html) { if (pr.dataset.t !== html) { pr.dataset.t = html; pr.innerHTML = html; } pr.classList.add('show'); } else pr.classList.remove('show'); }
-  for (const n of npcs) { if (n.mount) { n.g3.visible = !n.gone; n.P.root.visible = !n.hidden; continue; } n.P.root.visible = !n.hidden && !n.gone && (n.col || G[n.g].visible); }
+  for (const n of npcs) {
+    if (n.me) { n.P.root.visible = ME.on; continue; }
+    if (n.mount) { n.g3.visible = !n.gone; n.P.root.visible = !n.hidden; if (!n.lying) continue; }
+    else n.P.root.visible = !n.hidden && !n.gone && (n.col || G[n.g].visible);
+    // the fallen are only drawn close to: far off, the flat cut-out would stand them up again
+    if (n.lying) n.P.root.visible = n.P.root.visible && Math.hypot(n.fx - player.x, n.fz - player.z) < (Q === 2 ? 32 : 46);
+  }
   updateLights(dt, t);
   FX.update(dt);
   LIGHT.uCloud.value.x += dt * 2.6; LIGHT.uCloud.value.y += dt * 1.1;
@@ -4725,7 +5106,8 @@ function frame(now) {
   updateTalkLook(dt); updateMarks(t); { const o = $('objective'); if (!o.hidden) o.classList.toggle('away', state.raised || state.posing || !$('dialog').hidden); }
   placeCamera();
   crowd.update(camera, dt);
-  for (const n of npcs) if ((n.seated || n.forceNear || n.crouched || n.cheer) && n.P.lvl > 0 && n.P.lvl < 2) { n.P.hi.visible = n.P.root.visible; n.P.mid.visible = false; } // posed bodies only exist on the near model
+  for (const n of npcs) if ((n.seated || n.forceNear || n.crouched || n.cheer || n.aiming || n.lying || n.me) && n.P.lvl > 0 && (n.P.lvl < 2 || n.me)) { n.P.hi.visible = n.P.root.visible; n.P.mid.visible = false; } // posed bodies only exist on the near model
+  updateRifles();
   renderView();
   if (SHOWFPS) { fAcc += rawDt; fN++; if (fAcc > .5) { $('fps').textContent = (fN / fAcc).toFixed(0) + ' fps · tier ' + tier + ' · ' + renderer.info.render.calls + ' calls · ' + Math.round(renderer.info.render.triangles / 1000) + 'k tris'; fAcc = 0; fN = 0; } }
   requestAnimationFrame(frame);
@@ -4738,11 +5120,30 @@ $('prompt').addEventListener('click', () => { if (!focus && !state.raised) toggl
 window.addEventListener('resize', () => { resize(); paintPlates(); paintBulb(); watchFace = null; });
 resize(); updatePlates(); paintBulb(); setZone('zocalo', true);
 $('bStart').disabled = false;
+// ---------- the standalone page opens on the time card, then the publisher's room (in the game these are office2.html) ----------
+const HOLD = { on: !!$('timecard'), warm: 6 };
+if (HOLD.on) {
+  $('start').hidden = true; state.busy = true;
+  const b = $('bMeet'); b.disabled = false; b.focus({ preventScroll: true });
+  b.onclick = () => {
+    const host = $('office'); host.hidden = false; const root = host.attachShadow({ mode: 'open' });
+    root.innerHTML = '<style>' + OFFICE_CSS + '</style>' + OFFICE_HTML;
+    window.__OFFICE_EMBED = { root, host, visit: 2, asset: p => OFFICE_ASSETS[p] || p, done: leaveOffice };
+    runOffice(); $('timecard').remove();
+  };
+}
+// out of the room and straight into the square: the battle starts at once
+function leaveOffice() {
+  const o = window.__office; if (o && o.stop) o.stop();
+  $('office').remove(); HOLD.on = false; state.busy = false; last = performance.now();
+  $('bStart').onclick();
+}
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { watchFace = null; paintPlates(); });
 requestAnimationFrame(frame);
 // test hook for screenshots, and what the sound reads
-Object.assign(G3, { marks, MARKS, player, flags, state, npcs, COL, COLRUN, VOLLEY, diaz, mond, reyes, sitters, floorAt, blocked, shoot, toggleRaise, posePeople, diazTalk, setZone, FX, renderer, scene, camera, THREE, CAMSPOT, BURSTS,
-  tp(x, y, z, yaw, pitch) { Object.assign(player, { x, y, z, yaw, pitch: pitch || 0 }); const f = floorAt(x, z, y); if (f) setZone(f.zone, true); } });
+Object.assign(G3, { marks, MARKS, player, flags, state, npcs, COL, COLRUN, VOLLEY, diaz, mond, reyes, sitters, floorAt, blocked, shoot, toggleRaise, posePeople, diazTalk, setZone, FX, renderer, scene, camera, THREE, CAMSPOT, BURSTS, ME, LOOSE, ARMED, MOUNTS, keys,
+  sim(sec, ride_) { for (let t = 0; t < sec; t += .05) { state.elapsed += .05; if (ride_) ride(.05); column(.05); gunfire(.05); shelling(.05); patrolFire(.05); people(.05); looseHorses(.05); separate(); FX.update(.05); } return [player.x.toFixed(1), player.z.toFixed(1), ME.v.toFixed(2)]; },
+  tp(x, y, z, yaw, pitch) { Object.assign(player, { x, y, z, yaw, pitch: pitch || 0 }); const f = floorAt(x, z, y); if (f) setZone(f.zone, true); if (ME.on) { ME.head = player.yaw + Math.PI / 2; placeMe(0); } } });
 window.G3 = G3;
 })();
 </script>

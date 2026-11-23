@@ -178,7 +178,7 @@
     var p = G.player, st = G.state, t = ctx.currentTime;
     var moved = B.lx !== null && Math.hypot(p.x - B.lx, p.z - B.lz) > .02; B.lx = p.x; B.lz = p.z;
     B.mv = moved ? 3 : Math.max(0, B.mv - 1);
-    var walking = B.mv > 0 && st.started && !st.busy, quiet = st.seqCover;
+    var riding = G.ME && G.ME.on, walking = B.mv > 0 && st.started && !st.busy && !riding, quiet = st.seqCover;
     setMusic(0);
     setBed('stone', walking && !quiet ? .38 : 0, { fast: true, fromTop: true, stopWhenSilent: true, rate: st.raised ? .8 : 1 });
     // the crowd: loud while the column marches, a surge when the guns open, then it thins away
@@ -187,7 +187,9 @@
     var cl = !st.started ? .03 : !fl.volley ? .09 : Math.max(.015, .16 - B.crowdT * .02);
     setBed('crowd', quiet ? 0 : p.zone === 'zocalo' ? cl : cl * .4);
     // the generals' horses: trot or gallop by the nearest moving one
-    var near = 1e9, nx = 0, nz = 0, M = [G.diaz, G.mond, G.reyes];
+    var near = 1e9, nx = 0, nz = 0, M = (G.MOUNTS || [G.diaz, G.mond, G.reyes]).slice();
+    if (riding && G.ME.v > .5) { near = 0; nx = p.x; nz = p.z; } // your own horse, right under you
+    if (G.LOOSE) for (var q = 0; q < G.LOOSE.length; q++) if (G.LOOSE[q].path) M.push({ x: G.LOOSE[q].x, z: G.LOOSE[q].z, g3: 1, speed: 8 });
     for (var i = 0; i < M.length; i++) { var n = M[i]; if (!n || n.gone || !n.g3) continue; var sp = n === G.reyes ? (n.path ? 7 : 0) : n.speed || (fl.volley ? 0 : 1.25); if (sp < .5) continue; var d = Math.hypot(n.x - p.x, n.z - p.z); if (d < near) { near = d; nx = n.x; nz = n.z; } }
     setBed('gallop', quiet || near > 1e8 ? 0 : Math.min(.9, 1 / (1 + Math.pow(near / 18, 2))), { pan: near < 1e8 ? panFrom(p, nx, nz) : 0 });
     if (fl.volley && B.neighs === 0 && G.reyes) { once('neigh', 1.2, 1.05, panFrom(p, G.reyes.x, G.reyes.z)); B.neighs = 1; }
@@ -200,6 +202,7 @@
     var E = G.events || [];
     for (; B.ev < E.length; B.ev++) { var e = E[B.ev];
       if (e.type === 'volley') for (var j = 0; j < 14; j++) shot(t + Math.random() * .25, .6, panFrom(p, 40, (Math.random() - .5) * 30), false);
+      if (e.type === 'shot') { var ds = Math.hypot(e.x - p.x, e.z - p.z); shot(t + Math.min(.2, ds / 343), Math.min(.5, 8 / (ds + 6)), panFrom(p, e.x, e.z), ds > 45); }
       if (e.type === 'shell') { var dd = e.d || Math.hypot(e.x - p.x, e.z - p.z); boom(t + Math.min(.4, dd / 343), Math.min(1.1, 30 / (dd + 10)), panFrom(p, e.x, e.z), dd); } }
   }
 

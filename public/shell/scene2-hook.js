@@ -8,7 +8,7 @@
     var again = $('bAgain');
     if (again && !$('bOn') && S) {
       // the scene holds on its newspaper for a while, then a lone arrow, centred under the photographs, leads on (user, 2026-11-22); scene 3 now follows the palace
-      var b = S.goButton('', 'scene3.html', { aria: 'On to the next scene' }); b.id = 'bOn';
+      var b = S.goButton('', 'office2.html', { aria: 'On to the next scene' }); b.id = 'bOn';
       again.before(b);
       var timer = 0;
       new MutationObserver(function () {
