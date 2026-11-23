@@ -22,7 +22,10 @@
   function start() {
     if (ctx) { if (ctx.state === 'suspended') ctx.resume(); if (music && music.a.paused) { var pp = music.a.play(); if (pp && pp.catch) pp.catch(function () {}); } return; }
     try { ctx = new AC({ latencyHint: 'playback' }); } catch (e) { ctx = new AC(); }
-    master = ctx.createGain(); master.gain.value = muted ? 0 : 1; master.connect(ctx.destination);
+    master = ctx.createGain(); master.gain.value = muted ? 0 : 1;
+    // a gentle limiter so the column and the neighs never clip
+    var lim = ctx.createDynamicsCompressor(); lim.threshold.value = -6; lim.knee.value = 6; lim.ratio.value = 8; lim.attack.value = .005; lim.release.value = .2;
+    master.connect(lim); lim.connect(ctx.destination);
     voiceBus = ctx.createGain(); voiceBus.gain.value = .55; voiceBus.connect(master);
     WANT.forEach(load);
     if (MUSIC) startMusic();
@@ -106,18 +109,23 @@
     var moved = V.lx !== null && Math.hypot(p.x - V.lx, p.z - V.lz) > .02; V.lx = p.x; V.lz = p.z;
     V.mv = moved ? 3 : Math.max(0, V.mv - 1); // a few ticks of grace so a stutter in the frame rate doesn't chop the steps
     var walking = V.mv > 0 && !st.busy;
-    setMusic(st.seqCover ? .5 : dlgOpen() ? .3 : .42);
-    setBed('dirt', outside && walking ? .32 : 0, { fast: true, fromTop: true, stopWhenSilent: true, rate: st.raised ? .8 : 1 });
-    setBed('crowd', outside ? .045 : st.started ? .015 : 0);
-    // the column: gallop by distance to the nearest horse, panned; two neighs as it goes by
+    // the column: gallop by distance to the nearest horse, panned; two neighs as it goes by.
+    // The player's z is kept along the straight path; the world (and the riders) are bent, so bend the player too.
+    var me = { x: p.x, z: G.warpP ? G.warpP(p.x, p.z) : p.z, yaw: p.yaw };
     var col = G.column, near = 1e9, nx = 0, nz = 0;
-    if (st.columnStarted && !st.columnDone && col) for (var i = 0; i < col.length; i++) { if (!col[i].userData.horse || !col[i].visible) continue; var g = col[i].position, d = Math.hypot(g.x - p.x, g.z - p.z); if (d < near) { near = d; nx = g.x; nz = g.z; } }
-    var lv = near > 1e8 ? 0 : Math.min(1, 1 / (1 + Math.pow(near / 18, 2))) * .95;
-    setBed('gallop', st.seqCover ? 0 : lv, { pan: near < 1e8 ? panFrom(p, nx, nz) : 0 });
+    if (st.columnStarted && !st.columnDone && col) for (var i = 0; i < col.length; i++) { if (!col[i].userData.horse || !col[i].visible) continue; var g = col[i].position, d = Math.hypot(g.x - me.x, g.z - me.z); if (d < near) { near = d; nx = g.x; nz = g.z; } }
+    var lv = near > 1e8 ? 0 : Math.min(1, 1 / (1 + Math.pow(near / 30, 2))) * 1.5; V.near = Math.round(near);
+    // music (user, 2026-11-23): quieter overall, quietest in Miguel's front room, and it steps aside for the column
+    var tutorial = st.room || (G.ROOM && !G.ROOM.left), duck = Math.max(0, 1 - lv / .9);
+    var mv = st.seqCover ? .3 : tutorial ? .1 : dlgOpen() ? .15 : .22;
+    setMusic(Math.max(.05, mv * (.35 + .65 * duck)));
+    setBed('dirt', outside && walking ? .5 : 0, { fast: true, fromTop: true, stopWhenSilent: true, rate: st.raised ? .8 : 1 });
+    setBed('crowd', outside ? .045 : st.started ? .015 : 0);
+    setBed('gallop', st.seqCover ? 0 : lv, { pan: near < 1e8 ? panFrom(me, nx, nz) : 0 });
     if (lv > 0) {
       V.neighT -= .1;
-      if (V.neighs === 0 && near < 34) { once('neigh', .55, .97, panFrom(p, nx, nz)); V.neighs = 1; V.neighT = 3.2; }
-      else if (V.neighs === 1 && V.neighT <= 0 && near < 30) { once('neigh', .5, 1.08, panFrom(p, nx, nz)); V.neighs = 2; }
+      if (V.neighs === 0 && near < 40) { once('neigh', 1.3, .97, panFrom(me, nx, nz)); V.neighs = 1; V.neighT = 3.5; }
+      else if (V.neighs === 1 && V.neighT <= 0 && near < 30) { once('neigh', 1.2, 1.08, panFrom(me, nx, nz)); V.neighs = 2; }
     }
   }
 
@@ -242,6 +250,6 @@
     get muted() { return muted; },
     get ctx() { return ctx; },
     // for tests: what each bed and the music are set to
-    levels: function () { var o = {}; for (var k in loops) o[k] = +loops[k].level.toFixed(3); if (music) o.music = +music.g.gain.value.toFixed(3); o.loaded = Object.keys(buf); o.neighs = V.neighs; o.spoken = spoken; return o; }
+    levels: function () { var o = {}; for (var k in loops) o[k] = +loops[k].level.toFixed(3); if (music) o.music = +music.g.gain.value.toFixed(3); o.loaded = Object.keys(buf); o.neighs = V.neighs; o.near = V.near; o.spoken = spoken; return o; }
   };
 })();
