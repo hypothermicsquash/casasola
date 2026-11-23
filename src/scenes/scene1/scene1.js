@@ -3286,6 +3286,7 @@ async function choose(p, el) {
   el._send = { x: tx, y: ty, r: -2, s: s1 };
   tween(800, e => place(el, lerp(f.x, tx, e), lerp(f.y, ty, e), lerp(f.r, -2, e), lerp(s0, s1, e)), EZ.io);
   await sleep(250);
+  sndCue('letter');
   await tween(650, e => { env.style.transform = `translateX(${(1 - e) * W * .75}px) rotate(${(1 - e) * 6}deg)`; }, EZ.out);
   env.style.transform = 'none';
   // precompute the press while the player reads the button
@@ -3318,8 +3319,11 @@ function dragToEnvelope(el) {
   el.onpointerup = drop; el.onpointercancel = drop;
 }
 $('bSend').onclick = () => sendPrint();
+// sound cues for the game's sound (shell/audio.js); a no-op when it isn't loaded
+function sndCue(k) { try { if (window.CasasolaAudio) window.CasasolaAudio.cue(k); } catch (e) {} }
 async function sendPrint() {
   const b = $('bSend'); if (!b.classList.contains('show')) return; b.classList.remove('show');
+  sndCue('insert');
   const S = SEND, el = S.el, card = S.card;
   el.onpointerdown = el.onpointermove = el.onpointerup = el.onpointercancel = null; el.classList.remove('drag'); el.disabled = true;
   // the print goes into the pocket: over the opening, then down behind the front
@@ -3398,6 +3402,7 @@ async function runPress() {
   pr.remove();
   await sleep(380);
   // pull back until the headline and the photo fill the screen, the page's side edges in view
+  sndCue('fanfare');
   await tween(1700, e => {
     const k = lerp(P.K, P.K2, e), r = -.8 * e;
     P.page.style.transform = `translate(${lerp(P.tx, 0, e)}px, ${lerp(P.ty, P.ty2, e)}px) scale(${k}) rotate(${r}deg)`;
