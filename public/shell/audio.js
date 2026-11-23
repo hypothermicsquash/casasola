@@ -13,7 +13,7 @@
   // every loop file carries 0.15 s of wrap-around on both ends, so the loop window below is seamless
   // whatever the decoder does with the MP3 padding
   var LOOPS = { dirt: 9.35, marble: 9.2, stone: 8.58, gallop: 21.0, crowd: 30.5 }, PAD = .15;
-  var WANT = { village: ['dirt', 'gallop', 'crowd', 'neigh'], palace: ['stone', 'marble', 'crowd'], office: [] }[page];
+  var WANT = { village: ['dirt', 'gallop', 'crowd', 'neigh', 'paper-letter', 'paper-insert', 'fanfare'], palace: ['stone', 'marble', 'crowd', 'paper-letter', 'paper-insert', 'fanfare'], office: [] }[page];
   var MUSIC = { village: 'music1.mp3', palace: 'music2.mp3' }[page];
 
   var ctx = null, master, voiceBus, buf = {}, loops = {}, music = null, muted = false;
@@ -26,7 +26,7 @@
     // a gentle limiter so the column and the neighs never clip
     var lim = ctx.createDynamicsCompressor(); lim.threshold.value = -6; lim.knee.value = 6; lim.ratio.value = 8; lim.attack.value = .005; lim.release.value = .2;
     master.connect(lim); lim.connect(ctx.destination);
-    voiceBus = ctx.createGain(); voiceBus.gain.value = .55; voiceBus.connect(master);
+    voiceBus = ctx.createGain(); voiceBus.gain.value = .8; voiceBus.connect(master);
     WANT.forEach(load);
     if (MUSIC) startMusic();
     setInterval(tick, 100);
@@ -117,8 +117,8 @@
     var lv = near > 1e8 ? 0 : Math.min(1, 1 / (1 + Math.pow(near / 30, 2))) * 1.5; V.near = Math.round(near);
     // music (user, 2026-11-23): quieter overall, quietest in Miguel's front room, and it steps aside for the column
     var tutorial = st.room || (G.ROOM && !G.ROOM.left), duck = Math.max(0, 1 - lv / .9);
-    var mv = st.seqCover ? .3 : tutorial ? .1 : dlgOpen() ? .15 : .22;
-    setMusic(Math.max(.05, mv * (.35 + .65 * duck)));
+    var mv = st.seqCover ? .012 : tutorial ? .1 : dlgOpen() ? .15 : .22;
+    setMusic(st.seqCover ? .012 : Math.max(.05, mv * (.35 + .65 * duck)));
     setBed('dirt', outside && walking ? .5 : 0, { fast: true, fromTop: true, stopWhenSilent: true, rate: st.raised ? .8 : 1 });
     setBed('crowd', outside ? .045 : st.started ? .015 : 0);
     setBed('gallop', st.seqCover ? 0 : lv, { pan: near < 1e8 ? panFrom(me, nx, nz) : 0 });
@@ -147,10 +147,11 @@
     if (INSIDE[z] && walking) lv *= .7; // the marble steps quiet the music a little
     if (dlgOpen()) lv *= .8;
     if (!st.started) lv *= .4;
+    if (st.seqCover) lv = .012; // developing, choosing, the newspaper: the music all but stops (user, 2026-11-23)
     setMusic(Math.min(.9, lv), q[1]);
     setBed('stone', walking && !INSIDE[z] ? .45 : 0, { fast: true, fromTop: true, stopWhenSilent: true, rate: st.raised ? .8 : 1 });
     setBed('marble', walking && INSIDE[z] ? .38 : 0, { fast: true, fromTop: true, stopWhenSilent: true, rate: st.raised ? .8 : 1 });
-    setBed('crowd', !st.started ? .02 : z === 'zocalo' ? .06 : z === 'guard' ? .03 : z === 'patio' ? .02 : 0);
+    setBed('crowd', st.seqCover ? 0 : !st.started ? .02 : z === 'zocalo' ? .06 : z === 'guard' ? .03 : z === 'patio' ? .02 : 0);
   }
 
   function tick() {
@@ -168,9 +169,9 @@
     var child = D ? D.h < 1.25 : /girl|boy|child|niñ|little/.test(n);
     var woman = D ? !!D.skirt : /woman|lady|wife|señora|senora|abuela|grand|soldadera|daughter|mother|madre|doña/.test(n);
     var old = /old|abuela|abuelo|grand|priest/.test(n + ' ' + (D ? (D.id + ' ' + (D.name || '')).toLowerCase() : ''));
-    if (child) return { f: 300 + r * 90, rate: 13, wave: 'square' };
-    if (woman) return { f: 205 + r * 55, rate: 11.5, wave: 'square', old: old };
-    return { f: 92 + r * 48, rate: 10.5, wave: r > .5 ? 'square' : 'triangle', old: old };
+    if (child) return { f: 260 + r * 70, rate: 13, wave: 'square' };
+    if (woman) return { f: 185 + r * 50, rate: 11.5, wave: 'square', old: old };
+    return { f: 98 + r * 42, rate: 10.5, wave: r > .5 ? 'square' : 'triangle', old: old };
   }
   function speakerD(who, bubbleEl) {
     var G = window.__casasola, G2 = window.G2, i;
@@ -182,11 +183,21 @@
     for (i = 0; i < ps.length; i++) if (ps[i].talking && bub.indexOf(ps[i]) < 0) return ps[i].D;
     return null;
   }
+  // one "wah": a muted-trombone syllable (user, 2026-11-23: rounder, like the muffled trombone teacher).
+  // A brassy sawtooth and a round sine under it, through a lowpass that opens and closes (the plunger mute),
+  // the pitch sliding into the note and sagging at the end, with a little vibrato.
   function blip(t, f, wave, vol, len) {
-    var o = ctx.createOscillator(), g = ctx.createGain();
-    o.type = wave; o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * (.9 + Math.random() * .25), t + len);
-    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .008); g.gain.exponentialRampToValueAtTime(.001, t + len);
-    o.connect(g); g.connect(voiceBus); o.start(t); o.stop(t + len + .02);
+    var o = ctx.createOscillator(), s = ctx.createOscillator(), lp = ctx.createBiquadFilter(), g = ctx.createGain(), sg = ctx.createGain();
+    var lfo = ctx.createOscillator(), lg = ctx.createGain();
+    o.type = 'sawtooth'; s.type = 'sine';
+    [o, s].forEach(function (x) { x.frequency.setValueAtTime(f * .9, t); x.frequency.exponentialRampToValueAtTime(f, t + len * .25); x.frequency.exponentialRampToValueAtTime(f * .86, t + len); });
+    lfo.frequency.value = 5.5; lg.gain.value = f * .018; lfo.connect(lg); lg.connect(o.frequency); lg.connect(s.frequency);
+    lp.type = 'lowpass'; lp.Q.value = 5;
+    lp.frequency.setValueAtTime(f * 1.6, t); lp.frequency.exponentialRampToValueAtTime(f * 6, t + len * .35); lp.frequency.exponentialRampToValueAtTime(f * 1.8, t + len);
+    sg.gain.value = .55;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .04); g.gain.setValueAtTime(vol, t + len * .55); g.gain.exponentialRampToValueAtTime(.001, t + len);
+    o.connect(lp); s.connect(sg); sg.connect(lp); lp.connect(g); g.connect(voiceBus);
+    [o, s, lfo].forEach(function (x) { x.start(t); x.stop(t + len + .03); });
   }
   // a vowel: a buzzy source through two formant filters, with a little pitch glide
   var VOWELS = { ah: [750, 1150], oh: [520, 860], ooh: [330, 900], eh: [560, 1750], hm: [250, 1200] };
@@ -202,18 +213,19 @@
     if (!ctx || ctx.state !== 'running' || muted) return;
     var now = ctx.currentTime; if (now - lastSpeak < .12) return; lastSpeak = now; spoken++;
     var V = voiceOf(name, D), t = now + .03, words = (text || '').trim().split(/\s+/).filter(Boolean).length;
-    var syl = Math.max(3, Math.min(soft ? 6 : 16, Math.round(words * 1.3))), step = 1 / (V.rate * (V.old ? .8 : 1)), vol = soft ? .07 : .11;
+    var syl = Math.max(2, Math.min(soft ? 4 : 10, Math.round(words * .7))), step = 1.9 / (V.rate * (V.old ? .8 : 1)), vol = soft ? .2 : .32;
     var r = Math.random(), q = /\?\s*$/.test(text || ''), ex = /!\s*$/.test(text || '');
     // now and then a line opens with a little sound of its own
-    if (!soft && r < .3) { var v = ['ah', 'oh', 'hm', 'eh'][(Math.random() * 4) | 0]; vowel(t, v, V.f * 1.05, v === 'hm' ? .95 : .85, .32, .16); t += .36; }
-    var notes = [1, 1.12, 1.25, 1.33, 1.5];
+    if (!soft && r < .3) { var v = ['ah', 'oh', 'hm', 'eh'][(Math.random() * 4) | 0]; vowel(t, v, V.f * 1.05, v === 'hm' ? .95 : .85, .32, .3); t += .36; }
+    var notes = [1, 1.06, 1.12, 1.19, .94];
     for (var i = 0; i < syl; i++) {
       var k = notes[(hash(name + i + (text || '').length) * notes.length) | 0], end = i >= syl - 2;
       var f = V.f * k * (end && q ? 1.3 : end && !ex ? .88 : 1);
-      blip(t, f, V.wave, vol * (ex ? 1.2 : 1), step * .8);
-      t += step * (.8 + Math.random() * .45) + (Math.random() < .12 ? step * 1.2 : 0); // short pauses between "words"
+      var len = step * (.85 + Math.random() * .6) * (end ? 1.5 : 1);
+      blip(t, f, V.wave, vol * (ex ? 1.15 : 1), len);
+      t += len * .92 + (Math.random() < .15 ? step * .8 : 0); // wah-wah, now and then a breath
     }
-    if (!soft && r > .82) vowel(t + .05, Math.random() < .5 ? 'ooh' : 'ah', V.f * 1.15, q ? 1.25 : .8, .4, .14);
+    if (!soft && r > .82) vowel(t + .05, Math.random() < .5 ? 'ooh' : 'ah', V.f * 1.15, q ? 1.25 : .8, .4, .26);
   }
   // listen to the dialogue card (every scene uses #dialog, #dlgName, #dlgText) and the village's speech bubbles
   function hookDialog() {
@@ -244,8 +256,12 @@
   }
   (function wait() { if (!hookDialog()) setTimeout(wait, 300); })();
 
+  // one-off sounds the scenes call for (sndCue in the scene code): the letter, the print going in, the newspaper
+  var CUES = { letter: ['paper-letter', .9], insert: ['paper-insert', 1], fanfare: ['fanfare', .85] };
+  function cue(k) { var c = CUES[k]; if (!c || !ctx || ctx.state !== 'running') return; once(c[0], c[1], 1, 0); }
+
   window.CasasolaAudio = {
-    speak: speak,
+    speak: speak, cue: cue,
     mute: function (on) { muted = on === undefined ? !muted : !!on; try { localStorage.setItem('casasola-mute', muted ? '1' : '0'); } catch (e) {} if (ctx) master.gain.setTargetAtTime(muted ? 0 : 1, ctx.currentTime, .05); return muted; },
     get muted() { return muted; },
     get ctx() { return ctx; },

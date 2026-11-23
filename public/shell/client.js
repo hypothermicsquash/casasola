@@ -22,12 +22,14 @@
   css.textContent += '.cas-hint.btn,.cas-hint{all:unset;display:block;box-sizing:border-box;width:100%;margin:8px 0 -4px;text-align:right;cursor:pointer;'
     + 'font-family:"IM Fell English","Old Standard TT",Georgia,serif;font-style:italic;font-size:14px;letter-spacing:.02em;color:#8f8a82;transition:color .2s}'
     + '.cas-hint:hover,.cas-hint:focus-visible{color:#2b2724}.cas-hint[hidden]{display:none!important}'
-    + '#talk .cas-hint{float:none}';
+    + '#talk .cas-hint{float:none}'
+    // OBJECTIVE: and CONTINUE in capitals (user, 2026-11-23)
+    + '#objective .ol,#bIntro{text-transform:uppercase}';
   function hints() {
     ['dlgClose', 'bNext'].forEach(function (id) {
       var b = document.getElementById(id);
       if (!b || b.classList.contains('cas-go') || !b.closest('#dialog, #talk')) return;
-      b.className = 'cas-hint'; b.textContent = 'Click or press Enter to continue';
+      b.className = 'cas-hint'; b.textContent = 'Click or press Enter to CONTINUE';
     });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hints); else hints();
