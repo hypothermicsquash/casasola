@@ -89,6 +89,7 @@ const CREDITS = [
   'Dialogue and script: Kylena',
   'Game logo and HUD: Kelly Su',
   'Sound design: Madeleine Diep',
+  'Music: “Relaxing Mexico” (Chillout Mexican Music) and “Mexican Hacienda 1950s” (Traditional Mexican Mariachi Music and Ambience)',
   'Photographs: Agustín Víctor Casasola, Miguel Casasola and the Casasola Archive, Fototeca Nacional del INAH',
   'Snoopy, from Peanuts, by Charles M. Schulz, © Peanuts Worldwide LLC',
   'Paintings: Frederic Remington, Ernesto Icaza, and portraits of Juárez, Iturbide and Díaz',

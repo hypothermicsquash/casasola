@@ -2899,7 +2899,10 @@ const DESIGNS = [
   mk('federal', { id: 'genA', faceOf: 'general', name: 'General', h: 1.66, skin: SK.rosy, shirt: 0x1c1f2c, pants: 0x1c1f2c, collar: 0x1c1f2c, cuff: 0xd9b85a, legStripe: null, belt: 0xeeeae0, bandolier: 0xeeeae0, glove: 0xf2efe6, buttons: 0xd6b25a, hat: null, hair: 0x2a2420, hairCss: '#2a2420', bigMustache: LARGE, belly: 1.66 * .03, important: true, pose: DOWN }),
   mk('federal', { id: 'genB', faceOf: 'officer', name: 'General', h: 1.68, skin: SK.criollo, shirt: 0x1c1f2c, pants: 0x1c1f2c, collar: 0x1c1f2c, cuff: 0xd9b85a, legStripe: null, belt: 0xeeeae0, bandolier: 0xeeeae0, glove: 0xf2efe6, buttons: 0xd6b25a, hat: null, hair: 0x1a1410, hairCss: '#1a1410', bigMustache: MEDM, important: true, pose: DOWN }),
   mk('federal', { id: 'genC', faceOf: 'federal', name: 'General', h: 1.7, skin: SK.mestizo, shirt: 0x1c1f2c, pants: 0x1c1f2c, collar: 0x1c1f2c, cuff: 0xd9b85a, legStripe: null, belt: 0xeeeae0, bandolier: 0xeeeae0, glove: 0xf2efe6, buttons: 0xd6b25a, hat: null, hair: 0x15100d, hairCss: '#15100d', bigMustache: MEDM, important: true, pose: DOWN }),
-  mk('clerk', { id: 'secretary', faceOf: 'clerk', name: 'Secretary', hat: null, skin: SK.criollo, coat: 0x2c2a2e, pants: 0x2c2a2e })
+  mk('clerk', { id: 'secretary', faceOf: 'clerk', name: 'Secretary', hat: null, skin: SK.criollo, coat: 0x2c2a2e, pants: 0x2c2a2e }),
+  // two street musicians outside the side door (user, 2026-11-23): guitarrón in a white charro jacket, trumpet in black; faces shared, no atlas slots
+  mk('campesino', { id: 'guitarronero', faceOf: 'campesino', name: 'Guitarrón player', h: 1.64, skin: SK.indig, shirt: 0xf1ede4, sleeve: 0xf1ede4, coat: 0xf1ede4, pants: 0x1d1b1e, sash: 0x9e2228, serape: null, neckerchief: null, shoes: 0x161414, hat: 'sombrero', brim: 2.3, hatC: 0xeee6d2, hatC2: 0xdcd2bc, hatBand: 0x1d1b1e, hatEdge: 0x2a2626, belly: 1.64 * .03 }),
+  mk('campesino2', { id: 'trompetista', faceOf: 'campesino2', name: 'Trumpet player', h: 1.66, skin: SK.mestizo, shirt: 0xeeeae2, sleeve: 0x1e1c20, coat: 0x1e1c20, pants: 0x1e1c20, sash: 0x2a2a30, serape: null, neckerchief: null, shoes: 0x161414, hat: 'sombrero', brim: 2.2, hatC: 0x3a3634, hatC2: 0x2e2a28, hatBand: 0xb9b4a8, hatEdge: 0x8a857c })
 ];
 for (const id of ['miguel', 'toddlerboy', 'toddlergirl', 'rebel']) { const i = DR.findIndex(d => d.id === id); if (i >= 0) DR.splice(i, 1); }
 for (const D of DESIGNS) if (!byId(D.id)) DR.push(D);
@@ -2937,6 +2940,9 @@ person({ name: 'Sentry, central door', D: 'federal', x: -1.4, z: -6.9, g: 'zocal
 person({ D: 'federal', x: -1.4, z: -1.1, g: 'zocalo', ry: -Math.PI / 2 });
 const walkers = [person({ D: 'federal', x: -20, z: 30, g: 'zocalo', route: [[-20, 30], [-20, -30]] }), person({ name: 'Newspaper boy', subject: 'townsfolk', D: 'newsboy', x: -10, z: 20, g: 'zocalo', route: [[-10, 20], [-24, 8], [-10, -6]], r: .3, talk: line(0, [T('¡Extra! ¡Extra!', 'Extra! Extra! (a special edition)'), ' Madero takes the oath! Buy a paper, ', T('patrón', 'boss; sir'), '! Two ', T('centavos', 'cents'), ' to read how the dictator ran away to Paris!']) })];
 if (Q < 2) walkers.push(person({ D: 'priest', x: -30, z: -38, g: 'zocalo', route: [[-30, -38], [-50, -38]] }));
+
+// the musicians, right outside the side door into the palace, playing toward the plaza (the music comes from them: shell/audio.js reads G2.musicians)
+const musicians = [person({ D: 'guitarronero', x: -2.2, z: -20.05, g: 'zocalo', ry: -1.9, r: .5, subject: 'townsfolk', music: 'guitarron' }), person({ D: 'trompetista', x: -2.5, z: -18.75, g: 'zocalo', ry: -1.3, r: .45, subject: 'townsfolk', music: 'trumpet' })];
 
 // guardroom
 const guard = person({ name: 'Guard', D: 'federal', x: 8.4, z: -16, g: 'guard', ry: -Math.PI / 2, r: .9, subject: 'soldiers', talk: n => { if (!flags.searched) { flags.searched = true; say(n.name, ['Clear... You better not be hiding anything in that ', T('cámara', 'camera'), '.'], 'Bag searched. You may pass.'); walkTo(n, [[6.6, -14.4]], () => { n.ry = -Math.PI / 2; }); n.r = .4; } else say(n.name, ['These rebels are total amateurs... ', T('Los federales', 'the Federal Army'), ' will crush them eventually, ', T('es inevitable', 'it’s inevitable'), '.']); } });
@@ -2999,6 +3005,94 @@ crowd.blobs.material.color.set(0x2a2a48); crowd.blobs.material.opacity = .3;
 crowd.people.forEach((P, i) => { const n = npcs[i]; n.P = P; n.H = P.D.h; G[n.g].add(P.root); P.root.rotation.y = n.ry;
   n.base = {}; for (const k of ['hipR', 'hipL', 'knR', 'knL', 'shR', 'shL', 'elR', 'elL']) if (P.J[k]) n.base[k] = P.J[k].rotation.x;
   n.ph = rand() * 6; if (n.seat !== undefined) sitDown(n, n.y + n.seat); });
+
+// ---------- the musicians' instruments, and arms posed onto them ----------
+// Low-poly, merged into one mesh per material and parented to a bone, so they move with the player who holds them.
+// Arms reach their marks with a small solver run once at load (shoulder pitch/roll and elbow), so nothing pokes through.
+const INSTR = (() => {
+  // a little of their own colour glows back so wood and brass keep their hue in the facade's blue shadow
+  const imat = c => { const m = mat(c); if (!m.userData.instr) { m.userData.instr = true; m.emissive = new THREE.Color(c).multiplyScalar(.32); } return m; };
+  const add = (g, geo, c, x, y, z, rx, ry, rz) => { const m = new THREE.Mesh(geo, imat(c)); m.position.set(x, y, z); m.rotation.set(rx || 0, ry || 0, rz || 0); g.add(m); return m; };
+  const cyl = (r0, r1, h, n) => new THREE.CylinderGeometry(r0, r1, h, n || 7);
+  // trumpet: built along +z, mouthpiece at the origin
+  function trumpet() {
+    const g = new THREE.Group(), B = 0xd6a42a, S = 0xd4d6d8, X = Math.PI / 2;
+    add(g, cyl(.006, .012, .05), S, 0, 0, .025, X);              // mouthpiece
+    add(g, cyl(.0075, .0075, .2), B, 0, 0, .15, X);              // lead pipe
+    add(g, cyl(.0075, .0075, .21), B, 0, -.062, .155, X);        // lower pipe back to the bend
+    add(g, new THREE.TorusGeometry(.031, .0075, 5, 8, Math.PI), B, 0, -.031, .25, 0, -X, 0); // front bend
+    add(g, new THREE.TorusGeometry(.031, .0075, 5, 8, Math.PI), B, 0, -.031, .05, 0, X, 0);  // back bend
+    for (let i = 0; i < 3; i++) { add(g, cyl(.011, .011, .085), B, 0, -.03, .125 + i * .026); add(g, cyl(.006, .006, .03), S, 0, .025, .125 + i * .026); add(g, cyl(.009, .009, .006), S, 0, .042, .125 + i * .026); }
+    add(g, cyl(.011, .04, .13, 9), B, 0, 0, .315, X);            // bell flare
+    add(g, cyl(.04, .06, .03, 9), B, 0, 0, .39, X);              // bell rim
+    return mergeGroup(g);
+  }
+  // guitarrón: neck along +y, soundboard facing +z, back bowed out behind
+  function guitarron() {
+    const g = new THREE.Group(), TOP = 0xe2b062, SIDE = 0x9a4c1e, BACK = 0x7a3c18, DARK = 0x2a1a12, NECK = 0x5e3a1e;
+    const W = [[-.31, 0], [-.3, .12], [-.26, .2], [-.18, .255], [-.07, .25], [.03, .2], [.1, .2], [.18, .18], [.24, .12], [.265, .05], [.27, 0]];
+    const sh = new THREE.Shape(); sh.moveTo(0, W[0][0]); W.forEach(([y, w]) => sh.lineTo(w, y)); for (let i = W.length - 2; i > 0; i--) sh.lineTo(-W[i][1], W[i][0]); sh.closePath();
+    const ex = (shape, d) => new THREE.ExtrudeGeometry(shape, { depth: d, bevelEnabled: false, curveSegments: 4 });
+    add(g, ex(sh, .012), TOP, 0, 0, 0);                            // soundboard
+    add(g, ex(sh, .1), SIDE, 0, 0, -.1);                           // sides
+    const back = add(g, ex(sh, .05), BACK, 0, 0, -.13); back.scale.set(.78, .86, 1);   // the bowed back, stepped in
+    const keel = add(g, ex(sh, .04), BACK, 0, 0, -.16); keel.scale.set(.42, .7, 1);
+    add(g, new THREE.CircleGeometry(.058, 9), DARK, 0, .06, .0135);   // sound hole
+    add(g, new THREE.RingGeometry(.058, .075, 9), 0x3a2414, 0, .06, .0136);
+    add(g, new THREE.BoxGeometry(.17, .028, .016), 0x4a2c18, 0, -.17, .02);   // bridge
+    add(g, new THREE.BoxGeometry(.05, .045, .05), NECK, 0, .29, -.01);        // heel
+    add(g, new THREE.BoxGeometry(.055, .3, .03), NECK, 0, .42, -.004);        // neck
+    add(g, new THREE.BoxGeometry(.05, .3, .006), DARK, 0, .41, .014);         // fingerboard
+    add(g, new THREE.BoxGeometry(.075, .13, .022), NECK, 0, .62, -.02, -.28); // headstock, tipped back
+    for (let i = 0; i < 6; i++) add(g, new THREE.BoxGeometry(.0025, .46, .002), 0xe8e2d4, -.02 + i * .008, .2 + (i % 2) * .002, .02); // strings
+    return mergeGroup(g);
+  }
+  return { trumpet, guitarron };
+})();
+// the hand's centre in an elbow's frame (people-kit: forearm .13 h, hand ball .03 h below it)
+const handOf = n => new THREE.Vector3(0, -.16 * n.H, 0);
+function reachArm(n, side, target) { // target in world space; solve shoulder x/z and elbow x by coordinate descent
+  const J = n.P.J, sh = J['sh' + side], el = J['el' + side], hand = handOf(n), w = new THREE.Vector3();
+  const err = () => { n.P.root.updateMatrixWorld(true); el.localToWorld(w.copy(hand)); return w.distanceToSquared(target); };
+  const knobs = [[sh.rotation, 'x', -3, .6], [sh.rotation, 'z', -1.6, 1.6], [el.rotation, 'x', -2.5, 0], [sh.rotation, 'y', -1, 1]];
+  let e = err(), step = .3;
+  for (let it = 0; it < 60 && step > .002; it++) {
+    let better = false;
+    for (const [o, k, lo, hi] of knobs) for (const d of [step, -step]) { const v = o[k]; o[k] = Math.max(lo, Math.min(hi, v + d)); const e2 = err(); if (e2 < e - 1e-7) { e = e2; better = true; } else o[k] = v; }
+    if (!better) step *= .5;
+  }
+  return Math.sqrt(e);
+}
+for (const n of musicians) {
+  const P = n.P, J = P.J; n.forceNear = true; P.nextLook = 1e9; P.turn = 0; // they keep their eyes on the playing
+  P.root.updateMatrixWorld(true);
+  const kind = n.music, inst = INSTR[kind === 'trumpet' ? 'trumpet' : 'guitarron']();
+  inst.traverse(m => { if (m.isMesh) { m.castShadow = true; m.userData.sid = subjects[n.subject].id; reg(m); } });
+  if (kind === 'trumpet') {
+    // at the lips, pointing out over the plaza a touch below level
+    J.head.add(inst); inst.position.set(0, .058 * n.H, .122 * n.H); inst.rotation.x = .1; inst.scale.setScalar(1.7);
+    inst.updateMatrixWorld(true);
+    reachArm(n, 'R', inst.localToWorld(new THREE.Vector3(-.01, .02, .15)));
+    reachArm(n, 'L', inst.localToWorld(new THREE.Vector3(.025, -.07, .14)));
+  } else {
+    // across the belly, neck rising to the player's left
+    J.spine.add(inst); inst.position.set(-.06 * n.H, .17 * n.H, .17 * n.H); inst.rotation.set(-.12, .2, -1.08); inst.scale.setScalar(n.H / 1.64 * 1.3);
+    inst.updateMatrixWorld(true);
+    reachArm(n, 'L', inst.localToWorld(new THREE.Vector3(-.01, .4, .05)));
+    reachArm(n, 'R', inst.localToWorld(new THREE.Vector3(.04, .02, .07)));
+  }
+  n.rest = {}; for (const k of ['shR', 'shL', 'elR', 'elL', 'spine', 'head']) if (J[k]) n.rest[k] = J[k].rotation.clone();
+  for (const k of ['shR', 'shL', 'elR', 'elL']) n.base[k] = J[k].rotation.x;
+}
+// they play: a sway in time, the guitarrón's right hand plucking, the trumpet lifting on the long notes
+function playMusicians(t) {
+  for (const n of musicians) {
+    const J = n.P.J, R = n.rest, b = t * 2.1 + (n.music === 'trumpet' ? 1.3 : 0);
+    J.spine.rotation.z = R.spine.z + Math.sin(b) * .035; J.spine.rotation.x = R.spine.x + Math.sin(b * 2) * .015;
+    if (n.music === 'trumpet') { const lift = Math.max(0, Math.sin(t * .7)) * .1; J.spine.rotation.x -= lift * .5; J.head.rotation.x = R.head.x - lift * .6; }
+    else { J.elR.rotation.x = R.elR.x + Math.sin(t * 13) * .06; J.shR.rotation.y = R.shR.y + Math.sin(t * 13) * .05; }
+  }
+}
 function setPose(n, mode) { // 'stand', 'sit' or a walk phase
   const J = n.P.J, B = n.base, set = (k, v) => { if (J[k]) J[k].rotation.x = B[k] + v; };
   if (mode === 'sit') { set('hipR', -1.45); set('hipL', -1.45); set('knR', 1.42); set('knL', 1.42); set('shR', -.3); set('shL', -.3); set('elR', -.5); set('elL', -.5); }
@@ -4858,9 +4952,10 @@ function frame(now) {
   updateRaise(dt);
   FP.pose(raise.t, dt, moving, t);
   updateTalkLook(dt); updateMarks(t); updateMoods(dt, t);
+  if (G.zocalo.visible && Math.hypot(player.x + 2.4, player.z + 19.4) < 40) playMusicians(t);
   placeCamera();
   crowd.update(camera, dt);
-  for (const n of npcs) if (n.seated && n.P.lvl > 0) { n.P.hi.visible = true; n.P.mid.visible = false; } // a seated pose only exists on the near model
+  for (const n of npcs) if ((n.seated || n.forceNear) && n.P.lvl > 0) { n.P.hi.visible = n.P.root.visible; n.P.mid.visible = false; } // a seated pose (or an instrument) only exists on the near model
   renderView();
   if (SHOWFPS) { fAcc += rawDt; fN++; if (fAcc > .5) { $('fps').textContent = (fN / fAcc).toFixed(0) + ' fps · tier ' + tier + ' · ' + renderer.info.render.calls + ' calls · ' + Math.round(renderer.info.render.triangles / 1000) + 'k tris'; fAcc = 0; fN = 0; } }
   requestAnimationFrame(frame);
@@ -4875,7 +4970,7 @@ $('bStart').disabled = false;
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { watchFace = null; paintPlates(); });
 requestAnimationFrame(frame);
 // test hook for screenshots
-window.G2 = { marks, MARKS, player, flags, state, npcs, sitters, floorAt, blocked, shoot, toggleRaise, interact, posePeople, maderoTalk, conscriptTalk, setZone, POOL, renderer, scene, camera, THREE,
+window.G2 = { marks, MARKS, player, flags, state, npcs, sitters, musicians, floorAt, blocked, shoot, toggleRaise, interact, posePeople, maderoTalk, conscriptTalk, setZone, POOL, renderer, scene, camera, THREE,
   tp(x, y, z, yaw, pitch) { Object.assign(player, { x, y, z, yaw, pitch: pitch || 0 }); const f = floorAt(x, z, y); if (f) setZone(f.zone, true); } };
 })();
 </script>
