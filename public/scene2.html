@@ -4786,7 +4786,7 @@ const DOORS = [
   { name: 'Central door', x: -.6, y: 0, z: -4, act: () => toast('Shut. Officials only.') },
   { name: 'Stair gate', x: 21, y: 0, z: 9.8, act: () => toast('Locked. The conscript keeps it.'), show: () => !flags.gateOpen },
   { name: 'Treasury door', x: 21, y: 0, z: -21.4, act: () => toast('Shut.') },
-  { name: 'Door', x: 26.6, y: 0, z: 12.55, act: () => toast('Locked.') },
+  // (the door under the stair landing at x 26.6 has no prompt: nothing marks it out, user 2026-11-24)
   ...[34.75, 42.75, 50.75].map(x => ({ name: 'Door', x, y: RY, z: 16.6, act: () => toast('Locked.') })),
   { name: 'Office door', x: 59.6, y: RY, z: 14, act: () => aide.talk(aide), show: () => !flags.officeOpen }
 ];
