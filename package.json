@@ -6,7 +6,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "sync2": "node tools/sync-scene2.mjs"
+    "sync2": "node tools/sync-scene2.mjs",
+    "sync3": "node tools/sync-scene3.mjs"
   },
   "dependencies": {
     "three": "0.128.0"

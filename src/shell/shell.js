@@ -6,7 +6,7 @@ import './shell.css';
 
 const $ = id => document.getElementById(id);
 const SEARCH = location.search;                       // ?q=low and friends pass through to every scene
-const ORDER = ['scene1.html', 'office.html', 'scene2.html', 'credits.html'];
+const ORDER = ['scene1.html', 'office.html', 'scene2.html', 'office2.html', 'scene3.html', 'credits.html'];
 const MIN_SHOW = 1400;                                // the loader stays at least this long, so it never just flickers
 const READY_TIMEOUT = 45000;                          // a scene that never reports in is shown anyway
 const FADE_IN = 600, FADE_OUT = 900;

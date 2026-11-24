@@ -50,3 +50,10 @@ body { background: #0d0907; color: var(--ink); font-family: var(--fell); overflo
   background: #f2f0eb; box-shadow: 0 0 0 1.5px #2b2724, 0 6px 16px rgba(0,0,0,.45); }
 #gloss b { font-family: var(--fellsc); font-weight: 400; color: #7d2f18; margin-right: 6px; }
 @media (max-width: 480px) { #talk { padding: 14px 16px 16px; } #talk h3 { font-size: 20px; } }
+
+/* the time card before the second visit: the words as big as the screen allows, the button under them (user, 2026-11-23) */
+#timecard { position: fixed; inset: 0; z-index: 30; background: #0d0907; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); box-sizing: border-box; }
+#timecard .tc-big { margin: 0; font: 400 100px/.84 var(--fellsc); color: #f2f0eb; text-align: center; letter-spacing: .01em; display: flex; flex-direction: column; align-items: center; }
+#timecard .tc-big span { display: block; white-space: nowrap; }
+#timecard .cas-go { margin: 0; min-width: 0; font-size: clamp(18px, 2.2vw, 24px); padding: 12px 30px 13px; flex: none; }
