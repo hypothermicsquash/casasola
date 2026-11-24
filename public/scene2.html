@@ -2980,8 +2980,9 @@ person({ D: 'federal', x: -1.4, z: -1.1, g: 'zocalo', ry: -Math.PI / 2 });
 const walkers = [person({ D: 'federal', x: -20, z: 30, g: 'zocalo', route: [[-20, 30], [-20, -30]] }), person({ name: 'Newspaper boy', subject: 'townsfolk', D: 'newsboy', x: -10, z: 20, g: 'zocalo', route: [[-10, 20], [-24, 8], [-10, -6]], r: .3, talk: line(0, [T('¡Extra! ¡Extra!', 'Extra! Extra! (a special edition)'), ' Madero takes the oath! Buy a paper, ', T('patrón', 'boss; sir'), '! Two ', T('centavos', 'cents'), ' to read how the dictator ran away to Paris!']) })];
 if (Q < 2) walkers.push(person({ D: 'priest', x: -30, z: -38, g: 'zocalo', route: [[-30, -38], [-50, -38]] }));
 
-// the musicians, right outside the side door into the palace, playing toward the plaza (the music comes from them: shell/audio.js reads G2.musicians)
-const musicians = [person({ D: 'guitarronero', x: -2.2, z: -20.05, g: 'zocalo', ry: -1.9, r: .5, subject: 'townsfolk', music: 'guitarron' }), person({ D: 'trompetista', x: -2.5, z: -18.75, g: 'zocalo', ry: -1.3, r: .45, subject: 'townsfolk', music: 'trumpet' })];
+// the musicians, by the patio fountain on its south side, playing out toward the path in from the guardroom (user, 2026-11-24)
+// (the music comes from them: shell/audio.js reads G2.musicians). The basin's chain posts are 1.4 m behind them (z -8.9), its obstacle edge 1.2 m.
+const musicians = [person({ D: 'guitarronero', x: 19.9, z: -10.3, g: 'patio', ry: -2.84, r: .5, subject: 'townsfolk', music: 'guitarron' }), person({ D: 'trompetista', x: 22.1, z: -10.3, g: 'patio', ry: 2.84, r: .45, subject: 'townsfolk', music: 'trumpet' })];
 
 // a sad photographer by the side door, turned away by the guard (user, 2026-11-23): hunched, standing clear of the lamp at z -12
 const sadPhotographer = person({ name: 'Photographer', subject: 'press', D: 'clerk', x: -2.4, z: -10.1, g: 'zocalo', ry: -2.0, hunch: true, tears: true,
