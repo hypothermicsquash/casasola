@@ -132,18 +132,20 @@
   // ---------- the palace (scene 2) ----------
   var P = { lx: null, lz: null, mv: 0 };
   var INSIDE = { patio: 1, pantry: 1, stair: 1, hall: 1, office: 1 };
-  var ROOMQ = { zocalo: [1, 18000], guard: [.5, 3500], patio: [.45, 2600], pantry: [.3, 1500], stair: [.32, 1800], hall: [.25, 1400], office: [.18, 1100] };
+  // [loudness, lowpass] by the room the player is in: the musicians play in the patio, so the patio is full and bright,
+  // the guardroom and the Zócalo hear them muffled through the side door (faint from outside), the inner rooms through walls
+  var ROOMQ = { patio: [1, 18000], guard: [.55, 3500], zocalo: [.3, 1800], pantry: [.4, 1800], stair: [.38, 2200], hall: [.22, 1400], office: [.15, 1100] };
   function palace() {
     var G = window.G2; if (!G || !G.player || !G.state) return;
     var p = G.player, st = G.state, z = p.zone || 'zocalo';
     var moved = P.lx !== null && Math.hypot(p.x - P.lx, p.z - P.lz) > .02; P.lx = p.x; P.lz = p.z;
     P.mv = moved ? 3 : Math.max(0, P.mv - 1);
     var walking = P.mv > 0 && st.started && !st.busy;
-    // the trumpet and guitarrón outside the side door: louder the closer you are, faint through the guardroom
-    var M = G.musicians || [], mx = -2.6, mz = -19.4;
+    // the trumpet and guitarrón by the patio fountain: louder the closer you are, enough to fill the patio, faint from outside
+    var M = G.musicians || [], mx = 21, mz = -10.3;
     if (M.length) { mx = 0; mz = 0; for (var i = 0; i < M.length; i++) { mx += M[i].x; mz += M[i].z; } mx /= M.length; mz /= M.length; }
     var d = Math.hypot(p.x - mx, p.z - mz), q = ROOMQ[z] || ROOMQ.hall;
-    var lv = (.035 + .95 / (1 + Math.pow(d / 4.5, 2))) * q[0];
+    var lv = (.035 + .95 / (1 + Math.pow(d / 8, 2))) * q[0];
     if (INSIDE[z] && walking) lv *= .7; // the marble steps quiet the music a little
     if (dlgOpen()) lv *= .8;
     if (!st.started) lv *= .4;
