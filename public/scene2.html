@@ -4975,7 +4975,8 @@ function move(dt) {
   const sp = (keys.shift ? 5 : SPEED) * (state.raised ? .45 : 1) * dt, l = Math.hypot(f, r); f /= l; r /= l;
   const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw), rx = -fz, rz = fx;
   const dx = (fx * f + rx * r) * sp, dz = (fz * f + rz * r) * sp;
-  const tryAt = (x, z) => { for (const n of npcs) { if (!n.r || Math.abs(n.y - player.y) > 1.5 || !G[n.g].visible) continue; if (Math.hypot(x - n.x, z - n.z) < n.r + .25) return null; } if (blocked(x, z, player.y)) return null; return floorAt(x, z, player.y); };
+  // someone who walks into you (the guard stepping aside after the search) must never pin you: a step that takes you further from them is always allowed
+  const tryAt = (x, z) => { for (const n of npcs) { if (!n.r || Math.abs(n.y - player.y) > 1.5 || !G[n.g].visible) continue; const d = Math.hypot(x - n.x, z - n.z); if (d < n.r + .25 && d <= Math.hypot(player.x - n.x, player.z - n.z)) return null; } if (blocked(x, z, player.y)) return null; return floorAt(x, z, player.y); };
   let fl = tryAt(player.x + dx, player.z + dz);
   if (fl) { player.x += dx; player.z += dz; } else if ((fl = tryAt(player.x + dx, player.z))) player.x += dx; else if ((fl = tryAt(player.x, player.z + dz))) player.z += dz;
   if (fl) { player.y = fl.h; if (fl.zone !== player.zone) setZone(fl.zone); }

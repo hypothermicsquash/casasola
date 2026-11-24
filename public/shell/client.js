@@ -33,6 +33,31 @@
     });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hints); else hints();
+  // HUD sized to the window (user, 2026-11-24): the game is often played in a small Google Sites frame, where the
+  // plates, objective, watch and dialogue took over the view. Two factors, set on <html> and kept up to date on resize:
+  // --hud for the drawn pieces (plates, watch, bulb), which shrink freely; --hudt for anything with words, which
+  // shrinks less so it stays readable. 1 at 1280 x 760 and up. The canvases redraw at their new size on resize.
+  function hudScale() {
+    var k = Math.min(innerWidth / 1280, innerHeight / 760), r = document.documentElement.style;
+    r.setProperty('--hud', Math.max(.45, Math.min(1, k)).toFixed(3));
+    r.setProperty('--hudt', Math.max(.72, Math.min(1, .55 + .45 * k)).toFixed(3));
+  }
+  hudScale(); addEventListener('resize', hudScale);
+  document.documentElement.classList.add('cas-hud');
+  css.textContent += 'html.cas-hud #plates{width:calc(252px*var(--hud));height:calc(96px*var(--hud))}'
+    + 'html.cas-hud #watch{width:calc(160px*var(--hud));height:calc(200px*var(--hud))}'
+    + 'html.cas-hud #bulb{width:calc(96px*var(--hud));height:calc(170px*var(--hud))}'
+    + 'html.cas-hud #controls{padding-right:calc(10px + 108px*var(--hud))}'
+    + 'html.cas-hud #controls .grp,html.cas-hud #objective,html.cas-hud #item,html.cas-hud #prompt,html.cas-hud #toast,html.cas-hud #dialog,html.cas-hud #talk,'
+    + 'html.cas-hud #doneBar,html.cas-hud #bulbTip,html.cas-hud .cas-go{zoom:var(--hudt)}'
+    // zoomed boxes measure their offsets in zoomed pixels: undo it where they line up with the drawn pieces or the window
+    + 'html.cas-hud #objective:not(.fresh),html.cas-hud #item{top:calc((16px + 96px*var(--hud))/var(--hudt))}'
+    + 'html.cas-hud #dialog,html.cas-hud #talk{width:min(1000px,calc((100vw - 32px)/var(--hudt)))}'
+    + '@media (min-width:641px){html.cas-hud #bulbTip{right:calc((14px + 108px*var(--hud))/var(--hudt))}}'
+    + '@media (max-width:640px){html.cas-hud #bulbTip{bottom:calc((20px + 170px*var(--hud))/var(--hudt))}}'
+    + 'html.cas-hud .bubble{max-width:min(calc(340px*var(--hudt)),72vw);padding:calc(10px*var(--hudt)) calc(14px*var(--hudt))}'
+    + 'html.cas-hud .bubble p{font-size:calc(16px*var(--hudt))}'
+    + 'html.cas-hud #gloss{font-size:calc(16px*var(--hudt))}';
   document.head.appendChild(css);
   if (host) {
     document.documentElement.classList.add('in-shell');
