@@ -2672,7 +2672,7 @@ function updateMarks(t) {
     m.scale.set(star ? h * Math.abs(Math.cos(t * .6 + ph)) + .04 : h, h, 1);
     m.position.set(_mv.x, _mv.y + P.markTop + .22 + h / 2 + Math.sin(t * 2.2 + ph) * .06, _mv.z); m.visible = true; });
 }
-// ---------- Madero's arrival: a few seconds riding with his men, then a star over his head for the rest of the scene ----------
+// ---------- Madero's arrival: a few seconds riding with his men, with a star over his head from then on ----------
 // The column is put back where it was when the cutscene began, so the cutscene costs the player none of the photo window.
 const MAD = COLUMN_SPOTS.find(c => c.key === 'madero');
 const CUT = { on: false, done: false, t: 0, dur: 5, snap: null };
@@ -2685,24 +2685,26 @@ async function arrivalCut() {
   $('prompt').classList.remove('show');
   $('game').classList.add('cut'); cutEl.classList.add('black');
   await sleep(320);
-  raise.t = 0; CUT.t = 0; CUT.t0 = performance.now(); CUT.on = true;
+  raise.t = 0; CUT.t = 0; CUT.t0 = performance.now(); CUT.on = true; MSTAR.userData.on = true;
   cutEl.classList.remove('black');
   await new Promise(r => { const w = () => CUT.t >= CUT.dur - .3 ? r() : setTimeout(w, 50); w(); });
   cutEl.classList.add('black');
   await sleep(320);
   column.forEach((g, i) => { g.position.x = CUT.snap[i]; g.position.z = warpS(g.position.x, g.userData.zs); });
-  CUT.on = false; MSTAR.userData.on = true;
+  CUT.on = false;
   $('game').classList.remove('cut'); cutEl.classList.remove('black');
   state.busy = false;
 }
-// a tracking shot from the far side of the line, just ahead of him, drifting round to his flank as the column comes on;
-// timed on the wall clock so it stays a few seconds long even on a slow machine
+// a tracking shot from the town side of the line, where the player watches from, a little above the riders so none of them
+// cuts across him; the path (x 180 to 216, z 4.8, 3 m up) was raycast against the town and the column and is clear the whole way.
+// Timed on the wall clock so it stays a few seconds long even on a slow machine
 const _cl = new THREE.Vector3();
+const P_HEAD = v => { MAD.g.updateMatrixWorld(true); return MAD.g.userData.P.J.head.getWorldPosition(v); };
 function cutCamera() {
   CUT.t = (performance.now() - CUT.t0) / 1000;
   const g = MAD.g, s = Math.min(1, CUT.t / CUT.dur), e = s * s * (3 - 2 * s);
-  camera.position.set(g.position.x - 6 + 4.2 * e, g.position.y + 2.0 + .25 * e, g.position.z + 4.9 - .6 * e);
-  _cl.set(g.position.x - .8 + .5 * e, g.position.y + 2.0, g.position.z);
+  camera.position.set(g.position.x + .5 + 1.5 * e, g.position.y + 3.2, g.position.z - 8.2);
+  P_HEAD(_cl); _cl.y += .15;
   camera.lookAt(_cl);
   if (Math.abs(camera.fov - 50) > 1e-4) { camera.fov = 50; camera.updateProjectionMatrix(); }
 }
@@ -2712,7 +2714,7 @@ const MSTAR = new THREE.Sprite(MARK_MAT.star); MSTAR.visible = false; MSTAR.rend
 const _ms = new THREE.Vector3(), _mu = new THREE.Vector3(), _mm = new THREE.Matrix4();
 function updateMaderoStar(t) {
   const P = MAD && MAD.g.userData.P;
-  const show = MSTAR.userData.on && P && MAD.g.visible && !state.columnDone && !CUT.on && !state.raised && raise.t === 0 && !state.seqCover;
+  const show = MSTAR.userData.on && P && MAD.g.visible && !state.columnDone && !state.raised && raise.t === 0 && !state.seqCover;
   MSTAR.visible = !!show; if (!show) return;
   if (P.crown === undefined) { // head bone to the top of the hat, from the vertices the head carries, in the bind pose
     const sk = P.hi.skeleton, k = sk.bones.indexOf(P.J.head), geo = P.hi.geometry, pos = geo.attributes.position, si = geo.attributes.skinIndex, sw = geo.attributes.skinWeight;
@@ -4188,7 +4190,7 @@ streamZones(0, true);
 requestAnimationFrame(frame);
 // the town is only drawn behind the title long enough to warm up its shaders; after that nothing renders until the front room
 setTimeout(() => { if (!state.started) IN.cover = true; }, 2500);
-window.__casasola = { CUT, MSTAR, MAD, zones: ZONES, column, CAST, ROOM, IN, ST, INTRO, MIGUEL_LINES, TALKS, VOICES, CONVO, warpP, MARKS, marks, toStreet: () => { $('start').hidden = true; $('intro').hidden = true; IN.cover = false; state.started = true; state.room = false; state.busy = false; Object.assign(ROOM, { hasCam: true, open: true, left: true, talked: true, camDrop: 0 }); if (ROOM.live) ROOM.live.camOnTable.visible = ROOM.live.holders.visible = false; Object.assign(player, { x: 1.5, z: .4, yaw: -Math.PI / 2, pitch: 0 }); host.classList.remove('nocam'); $('dialog').classList.remove('low'); }, scene, people, renderer, renderView, camera, sun, LIGHT, rtMain, state, player, startColumn, scoreFrame, syncCapCam, shoot, toggleRaise, develop, CLOCK, clockNow, raise, FP, tier: () => tier, stepQuality };
+window.__casasola = { THREE, CUT, MSTAR, MAD, zones: ZONES, column, CAST, ROOM, IN, ST, INTRO, MIGUEL_LINES, TALKS, VOICES, CONVO, warpP, MARKS, marks, toStreet: () => { $('start').hidden = true; $('intro').hidden = true; IN.cover = false; state.started = true; state.room = false; state.busy = false; Object.assign(ROOM, { hasCam: true, open: true, left: true, talked: true, camDrop: 0 }); if (ROOM.live) ROOM.live.camOnTable.visible = ROOM.live.holders.visible = false; Object.assign(player, { x: 1.5, z: .4, yaw: -Math.PI / 2, pitch: 0 }); host.classList.remove('nocam'); $('dialog').classList.remove('low'); }, scene, people, renderer, renderView, camera, sun, LIGHT, rtMain, state, player, startColumn, scoreFrame, syncCapCam, shoot, toggleRaise, develop, CLOCK, clockNow, raise, FP, tier: () => tier, stepQuality };
 
 window.__casasola.kit = { THREE: typeof THREE === 'undefined' ? undefined : THREE, C: typeof C === 'undefined' ? undefined : C, OUTLINE: typeof OUTLINE === 'undefined' ? undefined : OUTLINE, IMG: typeof IMG === 'undefined' ? undefined : IMG, tex: typeof tex === 'undefined' ? undefined : tex, patch: typeof patch === 'undefined' ? undefined : patch, FRAG: typeof FRAG === 'undefined' ? undefined : FRAG, box: typeof box === 'undefined' ? undefined : box, world: typeof world === 'undefined' ? undefined : world, warpS: typeof warpS === 'undefined' ? undefined : warpS, slopeS: typeof slopeS === 'undefined' ? undefined : slopeS, warpP: typeof warpP === 'undefined' ? undefined : warpP, HORSES: typeof HORSES === 'undefined' ? undefined : HORSES, people: typeof people === 'undefined' ? undefined : people, state: typeof state === 'undefined' ? undefined : state, TIER: typeof TIER === 'undefined' ? undefined : TIER };
 return window.__casasola;
