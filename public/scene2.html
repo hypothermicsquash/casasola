@@ -3003,7 +3003,7 @@ person({ name: 'Servant', subject: 'servants', D: 'marketwoman', x: 28.6, z: 3.6
 const conscript = person({ name: 'Conscript at the gate', subject: 'soldiers', D: 'federal', x: 23.9, z: 9.1, g: 'patio', ry: Math.PI, r: .45, talk: n => conscriptTalk(n) });
 
 // pantry
-person({ name: 'Steward', D: 'steward', x: 35.6, z: -6, g: 'pantry', ry: .6, subject: 'servants', talk: n => { if (!flags.stamp) { flags.stamp = true; $('item').hidden = false; say(n.name, ['Hm... You’re an official photographer, ', T('verdad', 'right?'), '? I suppose you can go in.'], 'He stamps your letter.'); } else say(n.name, ['Show the ', EM('conscript'), ' at the gate your stamp.']); } });
+person({ name: 'Steward', D: 'steward', x: 35.6, z: -6, g: 'pantry', ry: .6, subject: 'servants', talk: n => { if (!flags.stamp) { flags.stamp = true; $('item').hidden = false; say(n.name, ['An official photographer, you say? Fine, here’s my stamp.', { i: 'He stamps your paper.' }, 'Show it to the ', EM('conscript'), ' at the gate and he’ll let you through.']); } else say(n.name, ['Show the ', EM('conscript'), ' at the gate your stamp.']); } });
 person({ subject: 'servants', D: 'grocer', x: 39.6, z: -6.8, g: 'pantry', ry: -.8 });
 person({ subject: 'servants', D: 'marketwoman', x: 35.8, z: -1, g: 'pantry', ry: 2.6 });
 
@@ -4715,6 +4715,7 @@ function fillLine(el, parts) {
   for (const x of typeof parts === 'string' ? [parts] : parts || []) {
     if (typeof x === 'string') { el.appendChild(document.createTextNode(x)); continue; }
     if (x.b) { const b = document.createElement('b'); b.className = 'em'; b.textContent = x.b; el.appendChild(b); continue; }
+    if (x.i) { const i = document.createElement('i'); i.className = 'note'; i.style.display = 'block'; i.style.margin = '4px 0'; i.textContent = x.i; el.appendChild(i); continue; } // a stage note, in italics on its own line
     const t = document.createElement('span'); t.className = 'term'; t.lang = 'es'; t.textContent = x.t; t.dataset.t = x.t; t.dataset.en = x.en; el.appendChild(t);
   }
 }
