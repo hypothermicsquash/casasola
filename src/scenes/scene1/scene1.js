@@ -1020,36 +1020,101 @@ cyl(0, 2.45, 1.3, 0x6d6560, world, towerX, 12.3, towerZ, { seg: 20, surf: 'plast
 { const sp = box(.35, .35, 3.0, 0x5a4a3c, world, towerX - 2.2, 8.9, towerZ + .5, { surf: 'plaster', tint: 1 }); sp.rotation.set(.55, .9, 0); }
 for (let y = 0.5; y < 8; y += 0.45) box(0.9, 0.07, 0.07, C.wood, world, towerX - 2, y, towerZ - 1.5, { surf: 'woodgray' });
 box(0.09, 8.2, 0.09, C.wood, world, towerX - 2.45, 4.1, towerZ - 1.5, { surf: 'woodgray' }); box(0.09, 8.2, 0.09, C.wood, world, towerX - 1.55, 4.1, towerZ - 1.5, { surf: 'woodgray' });
-// freight cars on the siding, lettered for the national railway, and a balloon-stack locomotive
-const carDecal = canvasTex(512, 160, (g, W, H) => { g.fillStyle = 'rgba(0,0,0,0)'; g.clearRect(0, 0, W, H); g.fillStyle = 'rgba(236,226,200,.85)'; g.font = '700 30px Oswald, "Arial Narrow", sans-serif'; g.textAlign = 'center'; g.fillText('N. DE M.', W * .25, H * .38); g.font = '600 22px Oswald, "Arial Narrow", sans-serif'; g.fillText('No 21407', W * .25, H * .62); g.fillText('CAP. 30000 KG', W * .78, H * .78); });
-function boxcar(x, color) {
-  const G = new THREE.Group(); G.position.set(x, RAIL_TOP, SECOND); world.add(G);
-  box(9, 2.8, 2.7, color, G, 0, 2.3, 0, { surf: 'woodorange', grain: 0, tint: .55 });
-  const p = reg(new THREE.Mesh(new THREE.PlaneGeometry(9, 2.8), envMat(color, 'woodorange', { grain: 0, tint: .55, decal: carDecal }))); p.position.set(0, 2.3, -1.36); p.rotation.y = Math.PI; p.receiveShadow = true; G.add(p);
-  box(9.3, .22, 3.0, 0x3b3330, G, 0, 3.8, 0, { surf: 'woodgray', grain: 1 }); box(9.3, .1, .5, C.wood, G, 0, 3.96, 0, { surf: 'woodgray', grain: 1 });
-  for (const s of [-1, 1]) { box(2.0, 2.4, .1, shade(color, .8), G, 0, 2.2, s * 1.38, { surf: 'woodorange', grain: 0, tint: .55 }); box(9.1, .14, .14, 0x2a2420, G, 0, .95, s * 1.36, { surf: 'plaster', tint: 1 }); for (const xx of [-4.4, 4.4]) box(.1, 2.8, .1, 0x2a2420, G, xx, 2.3, s * 1.37, { surf: 'plaster', tint: 1 }); }
-  for (const dx of [-3.4, 3.4]) { box(2.0, .5, 2.2, 0x2a2420, G, dx, .75, 0, { surf: 'plaster', tint: 1 }); for (const ddx of [-.6, .6]) for (const dz of [-.78, .78]) cyl(.42, .42, .14, C.iron, G, dx + ddx, .42, dz, { rx: Math.PI / 2, seg: 12, surf: 'plaster', tint: 1 }); }
-  box(.5, .3, .4, 0x2a2420, G, 4.75, .95, 0, { surf: 'plaster', tint: 1 }); box(.5, .3, .4, 0x2a2420, G, -4.75, .95, 0, { surf: 'plaster', tint: 1 });
+// freight cars parked on the siding: wooden, outside-braced boxcars of the national railway as they ran around 1911,
+// board-sided and sun-faded, with a sliding door, grab-iron ladders, a peaked roof with a running board and brake wheel,
+// truss rods and queenposts under the floor, and archbar trucks. All boxes and cylinders in a few shared materials, so
+// mergeStatic folds each material into one draw call.
+function carSides(color, num, seedN) {
+  return canvasTex(1024, 256, (g, W, H) => {
+    g.clearRect(0, 0, W, H);
+    let r = seedN * 9301 + 49297; const rr = () => (r = (r * 9301 + 49297) % 233280) / 233280;
+    // boards: a slightly different tone each, a dark seam between
+    const bw = W / 92;
+    for (let i = 0; i < 92; i++) { const k = rr(); g.fillStyle = k < .5 ? `rgba(20,8,4,${(.04 + k * .16).toFixed(3)})` : `rgba(255,226,190,${((k - .5) * .16).toFixed(3)})`; g.fillRect(i * bw, 0, bw, H); }
+    g.fillStyle = 'rgba(25,12,8,.55)'; for (let i = 1; i < 92; i++) g.fillRect(Math.round(i * bw) - 1, 0, 1.4, H);
+    // sun-bleached streaks running down from the eaves, and grime rising from the sill
+    for (let i = 0; i < 40; i++) { const x = rr() * W, w = 4 + rr() * 26, h = H * (.2 + rr() * .7); const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, `rgba(240,215,180,${(.08 + rr() * .14).toFixed(3)})`); gr.addColorStop(1, 'rgba(240,215,180,0)'); g.fillStyle = gr; g.fillRect(x, 0, w, h); }
+    { const gr = g.createLinearGradient(0, H, 0, H * .55); gr.addColorStop(0, 'rgba(70,45,28,.45)'); gr.addColorStop(1, 'rgba(70,45,28,0)'); g.fillStyle = gr; g.fillRect(0, H * .55, W, H * .45); }
+    // faded lettering either side of the door
+    g.fillStyle = 'rgba(232,222,198,.72)'; g.textAlign = 'center';
+    g.font = '700 46px Oswald, "Arial Narrow", sans-serif'; g.fillText('N. DE M.', W * .24, H * .36);
+    g.font = '600 30px Oswald, "Arial Narrow", sans-serif'; g.fillText('No ' + num, W * .24, H * .55);
+    g.font = '600 20px Oswald, "Arial Narrow", sans-serif'; g.fillText('CAP. 30000 KG', W * .77, H * .74); g.fillText('TARA 13600 KG', W * .77, H * .84);
+    // chalk marks and a paper waybill tacked near the door
+    g.strokeStyle = 'rgba(240,236,226,.5)'; g.lineWidth = 2; g.beginPath(); g.moveTo(W * .62, H * .3); g.lineTo(W * .66, H * .24); g.moveTo(W * .63, H * .36); g.lineTo(W * .69, H * .33); g.stroke();
+    g.fillStyle = 'rgba(226,214,184,.8)'; g.fillRect(W * .645, H * .48, 22, 28);
+  });
 }
-// the train stands at the station end of the second line, leaving the stretch by the crossing open as in the photo
-boxcar(146, 0x9a4a30); boxcar(156, 0x7b4a33); boxcar(166, 0xa45436); boxcar(176, 0xb07a40);
-(function loco(x) {
+const CAR_FRAME = 0x4a2e22, CAR_IRON = 0x2a2420, CAR_ROOF = 0x4f4640;
+function boxcar(x, color, num, o = {}) {
   const G = new THREE.Group(); G.position.set(x, RAIL_TOP, SECOND); world.add(G);
-  const IR = 0x24201e, im = o => Object.assign({ surf: 'plaster', tint: 1 }, o || {});
-  cyl(1.05, 1.05, 6.4, IR, G, -.2, 2.5, 0, im({ rz: Math.PI / 2, seg: 16 }));
-  for (const bx of [-1.8, .2, 2.2]) cyl(1.09, 1.09, .1, 0x8a6a3a, G, bx, 2.5, 0, im({ rz: Math.PI / 2, seg: 16 }));
-  cyl(1.12, 1.12, 1.2, 0x1a1716, G, -3.8, 2.5, 0, im({ rz: Math.PI / 2, seg: 16 }));
-  cyl(.42, .42, 1.2, IR, G, -3.7, 4.0, 0, im({ seg: 12 })); cyl(.85, .42, 1.1, IR, G, -3.7, 5.1, 0, im({ seg: 12 })); cyl(.9, .9, .12, IR, G, -3.7, 5.7, 0, im({ seg: 12 }));
-  cyl(.42, .48, .7, 0x8a6a3a, G, -.4, 3.75, 0, im({ seg: 12, surf: 'orange', tint: .6 })); cyl(.36, .42, .55, IR, G, 1.4, 3.7, 0, im({ seg: 12 }));
-  box(.55, .55, .55, 0x2a2420, G, -4.5, 3.3, 0, im()); box(.3, .3, .1, 0xe8d8a0, G, -4.8, 3.3, 0, im({ surf: 'yellow', tint: .3 }));
-  const cab = box(2.8, 2.7, 3.0, 0x5a2a20, G, 4.1, 3.0, 0, { surf: 'woodorange', grain: 0, tint: .7 }); box(3.3, .2, 3.4, 0x2a2420, G, 4.1, 4.45, 0, im());
-  for (const s of [-1, 1]) box(1.0, .9, .06, 0x14100e, G, 4.1, 3.4, s * 1.52, im());
-  for (const dx of [-1.6, .2, 2.0]) for (const s of [-1, 1]) { cyl(.78, .78, .16, 0x7a2a22, G, dx, .8, s * 1.1, im({ rx: Math.PI / 2, seg: 16, surf: 'orange', tint: .7 })); box(.12, 1.5, .06, 0x2a2420, G, dx, .8, s * 1.2, im()); }
-  for (const s of [-1, 1]) box(4.2, .1, .1, 0x8a8a88, G, .2, .8, s * 1.25, im());
-  for (let i = 0; i < 9; i++) { const b = box(.08, 1.0, .08, 0x5a2a20, G, -5.0, .55, -1.0 + i * .25, im({ surf: 'woodorange', tint: .7 })); b.rotation.z = .6; }
-  box(5.2, 2.0, 2.8, 0x3a2c26, G, 8.5, 2.1, 0, { surf: 'woodorange', tint: .85 }); box(3, .7, 2.2, 0x14100e, G, 9.0, 3.4, 0, { surf: 'woodgray', tint: 1 });
-  for (const dx of [7.0, 10.0]) for (const s of [-1, 1]) cyl(.45, .45, .14, C.iron, G, dx, .5, s * .8, im({ rx: Math.PI / 2, seg: 12 }));
-})(188);
+  const L = 10.4, W = 2.7, Y0 = 1.12, H = 2.46, Y1 = Y0 + H, hw = W / 2;
+  const wood = { surf: 'woodorange', grain: 0, tint: .55 }, fr = { surf: 'woodbrown', grain: 0, tint: .6 }, ir = { surf: 'plaster', tint: 1 };
+  // body, and the board sides (one decal material per car, both sides)
+  box(L, H, W - .06, color, G, 0, Y0 + H / 2, 0, wood);
+  const sideMat = envMat(color, 'woodorange', { grain: 0, tint: .55, decal: carSides(color, num, o.seed || 1) });
+  for (const sd of [-1, 1]) { const p = reg(new THREE.Mesh(new THREE.PlaneGeometry(L, H), sideMat)); p.position.set(0, Y0 + H / 2, sd * hw); if (sd < 0) p.rotation.y = Math.PI; p.castShadow = true; p.receiveShadow = true; G.add(p); }
+  // outside framing: sill, plate, corner and side posts, diagonal braces leaning toward the door
+  const DH = .98; // half the door opening
+  for (const sd of [-1, 1]) {
+    const z = sd * (hw + .05);
+    box(L + .08, .2, .1, CAR_FRAME, G, 0, Y0 + .08, z, fr); box(L + .08, .14, .1, CAR_FRAME, G, 0, Y1 - .06, z, fr);
+    for (const px of [-L / 2, -L / 2 + 2.15, -DH - .06, DH + .06, L / 2 - 2.15, L / 2]) box(.13, H, .1, CAR_FRAME, G, px, Y0 + H / 2, z, fr);
+    for (const [a, c] of [[-L / 2, -L / 2 + 2.15], [-L / 2 + 2.15, -DH - .06], [DH + .06, L / 2 - 2.15], [L / 2 - 2.15, L / 2]]) {
+      const dx = c - a, dy = H - .3, len = Math.hypot(dx, dy), toDoor = (a + c) / 2 < 0 ? 1 : -1;
+      const b = box(len, .11, .08, CAR_FRAME, G, (a + c) / 2, Y0 + H / 2, z, fr); b.rotation.z = toDoor * Math.atan2(dy, dx);
+    }
+    // the sliding door on its iron tracks, with a hasp; one car stands with its door rolled back
+    const open = o.open && sd < 0, doorX = open ? -DH * 2 - .05 : 0;
+    box(L * .62, .06, .06, CAR_IRON, G, 0, Y1 - .02, sd * (hw + .17), ir); box(L * .62, .06, .06, CAR_IRON, G, 0, Y0 + .02, sd * (hw + .17), ir);
+    box(DH * 2 + .1, H - .12, .07, shade(color, .9), G, doorX, Y0 + H / 2, sd * (hw + .14), wood);
+    for (const dy of [-.8, 0, .8]) box(DH * 2 + .1, .09, .04, CAR_FRAME, G, doorX, Y0 + H / 2 + dy, sd * (hw + .19), fr);
+    box(.06, .3, .05, CAR_IRON, G, doorX + DH - .1, Y0 + 1.1, sd * (hw + .2), ir);
+    if (open) { const d = reg(new THREE.Mesh(new THREE.PlaneGeometry(DH * 2 - .1, H - .2), envMat(0x1c1410, 'woodgray', { grain: 0, tint: 1 }))); d.position.set(0, Y0 + H / 2, sd * (hw + .005)); d.rotation.y = Math.PI; d.receiveShadow = true; G.add(d); }
+    // grab-iron ladder at the right-hand end of each side
+    const lx = sd * (L / 2 - .35);
+    for (let y = Y0 + .3; y < Y1; y += .4) box(.46, .035, .035, CAR_IRON, G, lx, y, sd * (hw + .14), ir);
+    for (const ex of [-.23, .23]) box(.035, .12, .1, CAR_IRON, G, lx + ex, Y0 + 1.2, sd * (hw + .1), ir);
+  }
+  // ends: posts, end boards' battens, a ladder on one end, the buffer beam and a knuckle coupler at each end
+  for (const se of [-1, 1]) {
+    const x = se * (L / 2 + .03);
+    for (const pz of [-hw + .1, -.45, .45, hw - .1]) box(.1, H, .13, CAR_FRAME, G, x, Y0 + H / 2, pz, fr);
+    box(.22, .32, W + .1, CAR_FRAME, G, se * (L / 2 + .12), Y0 - .1, 0, fr);
+    box(.5, .2, .26, CAR_IRON, G, se * (L / 2 + .45), Y0 - .2, 0, ir); box(.14, .3, .34, CAR_IRON, G, se * (L / 2 + .68), Y0 - .2, 0, ir);
+    if (se > 0) for (let y = Y0 + .3; y < Y1; y += .4) box(.035, .035, .46, CAR_IRON, G, x + .12, y, hw - .4, ir);
+  }
+  // peaked roof with an overhang, a running board on saddles, and the brake wheel on its staff at one end
+  for (const sd of [-1, 1]) { const r = box(L + .36, .07, hw + .2, CAR_ROOF, G, 0, Y1 + .1, sd * (hw + .2) / 2, { surf: 'woodgray', grain: 1, tint: .7 }); r.rotation.x = sd * .09; }
+  box(L + .3, .05, .52, 0x6a5a48, G, 0, Y1 + .32, 0, { surf: 'woodgray', grain: 1, tint: .5 });
+  for (let rx = -L / 2 + .4; rx < L / 2; rx += 1.3) box(.08, .12, .5, CAR_FRAME, G, rx, Y1 + .24, 0, fr);
+  cyl(.03, .03, 1.5, CAR_IRON, G, L / 2 + .2, Y1 - .4, .5, Object.assign({ seg: 5 }, ir));
+  cyl(.3, .3, .04, CAR_IRON, G, L / 2 + .2, Y1 + .38, .5, Object.assign({ seg: 12 }, ir));
+  // underframe: sills, two truss rods dipping under queenposts, the air reservoir and brake cylinder
+  box(L, .28, .7, CAR_FRAME, G, 0, Y0 - .16, 0, fr);
+  for (const tz of [-.75, .75]) {
+    box(.1, .4, .1, CAR_FRAME, G, -1.3, Y0 - .5, tz, fr); box(.1, .4, .1, CAR_FRAME, G, 1.3, Y0 - .5, tz, fr);
+    box(2.6, .04, .04, CAR_IRON, G, 0, Y0 - .7, tz, ir);
+    for (const se of [-1, 1]) { const ax = se * 1.3, bx = se * (L / 2 - .3), len = Math.hypot(bx - ax, .62); const t = box(len, .04, .04, CAR_IRON, G, (ax + bx) / 2, Y0 - .39, tz, ir); t.rotation.z = se * Math.atan2(.62, Math.abs(bx - ax)); }
+  }
+  cyl(.2, .2, 1.1, CAR_IRON, G, -2.2, Y0 - .45, -.3, Object.assign({ rz: Math.PI / 2, seg: 10 }, ir));
+  cyl(.15, .15, .4, CAR_IRON, G, 2.0, Y0 - .45, .3, Object.assign({ rz: Math.PI / 2, seg: 10 }, ir));
+  // archbar trucks: top and bottom arch bars, bolster and spring nest, journal boxes, two wheelsets each
+  for (const tx of [-(L / 2 - 1.55), L / 2 - 1.55]) {
+    box(.3, .24, 2.1, CAR_IRON, G, tx, .78, 0, ir); box(.34, .24, .24, CAR_IRON, G, tx, .58, -.95, ir); box(.34, .24, .24, CAR_IRON, G, tx, .58, .95, ir);
+    for (const sz of [-1, 1]) {
+      const z = sz * 1.0;
+      box(1.9, .07, .08, CAR_IRON, G, tx, .98, z, ir); box(1.5, .07, .08, CAR_IRON, G, tx, .3, z, ir);
+      for (const se of [-1, 1]) { const b = box(.5, .07, .08, CAR_IRON, G, tx + se * .78, .66, z, ir); b.rotation.z = se * -1.0; }
+      for (const wx of [-.8, .8]) { box(.24, .24, .2, CAR_IRON, G, tx + wx, .44, z, ir); cyl(.42, .42, .1, CAR_IRON, G, tx + wx, .42, sz * .72, Object.assign({ rx: Math.PI / 2, seg: 14 }, ir)); }
+    }
+    for (const wx of [-.8, .8]) cyl(.06, .06, 2.0, CAR_IRON, G, tx + wx, .42, 0, Object.assign({ rx: Math.PI / 2, seg: 6 }, ir));
+  }
+  return G;
+}
+// three cars stand on the siding at the station end, two coupled and one left a little apart with its door open;
+// the main line, the riders' strip and the stretch by the crossing stay open, as in the photo
+boxcar(150, 0xb04a2c, '21407', { seed: 3 }); boxcar(161.6, 0x9c4630, '18265', { seed: 7 }); boxcar(179, 0xb85a36, '30118', { seed: 11, open: true });
 // street furniture: hitching rail and trough at the cantina, a lamp, ollas and crates, firewood, a cart
 for (const x of [50.6, 53.4, 56.2]) box(.16, 1.1, .16, C.wood, world, x, .55, -1.9, { surf: 'woodgray' });
 box(5.8, .12, .12, C.wood, world, 53.4, 1.0, -1.9, { surf: 'woodgray', grain: 1 });
@@ -2672,6 +2737,65 @@ function updateMarks(t) {
     m.scale.set(star ? h * Math.abs(Math.cos(t * .6 + ph)) + .04 : h, h, 1);
     m.position.set(_mv.x, _mv.y + P.markTop + .22 + h / 2 + Math.sin(t * 2.2 + ph) * .06, _mv.z); m.visible = true; });
 }
+// ---------- Madero's arrival: a few seconds riding with his men, with a star over his head from then on ----------
+// The column is put back where it was when the cutscene began, so the cutscene costs the player none of the photo window.
+const MAD = COLUMN_SPOTS.find(c => c.key === 'madero');
+const CUT = { on: false, done: false, t: 0, dur: 5, snap: null };
+const cutEl = (() => { const d = document.createElement('div'); d.id = 'cutFx'; d.innerHTML = '<i class="bar t"></i><i class="bar b"></i><i class="fade"></i>'; $('game').appendChild(d); return d; })();
+async function arrivalCut() {
+  if (CUT.done || !MAD) return; CUT.done = true;
+  CUT.snap = column.map(g => g.position.x);
+  state.busy = true; for (const k in keys) keys[k] = false;
+  if (state.raised) { state.raised = false; $('bLower').hidden = true; $('bulb').classList.remove('show'); bulbTip(); }
+  $('prompt').classList.remove('show');
+  $('game').classList.add('cut'); cutEl.classList.add('black');
+  await sleep(320);
+  raise.t = 0; CUT.t = 0; CUT.t0 = performance.now(); CUT.on = true; MSTAR.userData.on = true;
+  cutEl.classList.remove('black');
+  await new Promise(r => { const w = () => CUT.t >= CUT.dur - .3 ? r() : setTimeout(w, 50); w(); });
+  cutEl.classList.add('black');
+  await sleep(320);
+  column.forEach((g, i) => { g.position.x = CUT.snap[i]; g.position.z = warpS(g.position.x, g.userData.zs); });
+  CUT.on = false;
+  $('game').classList.remove('cut'); cutEl.classList.remove('black');
+  state.busy = false;
+}
+// a tracking shot from the town side of the line, where the player watches from, a little above the riders so none of them
+// cuts across him; 8 m out and 3.2 m up, the shot was checked frame by frame and nothing comes between it and him.
+// Timed on the wall clock so it stays a few seconds long even on a slow machine
+const _cl = new THREE.Vector3();
+function cutCamera() {
+  CUT.t = (performance.now() - CUT.t0) / 1000;
+  const g = MAD.g, s = Math.min(1, CUT.t / CUT.dur), e = s * s * (3 - 2 * s);
+  // steady: the camera rides a smooth line set by how far along the track he is, never by the gallop's bounce,
+  // and aims at a fixed height over his saddle rather than at his bobbing head
+  if (!CUT.base) CUT.base = { y: g.position.y, z: g.position.z };
+  const B = CUT.base, mx = g.position.x;
+  camera.position.set(mx + .5 + 1.5 * e, B.y + 3.2, B.z - 8.2);
+  _cl.set(mx - .3, B.y + 2.35, B.z);
+  camera.lookAt(_cl);
+  if (Math.abs(camera.fov - 50) > 1e-4) { camera.fov = 50; camera.updateProjectionMatrix(); }
+}
+// the star rides with him: read his head after the gallop and the crowd have posed him this frame, so it never trails;
+// it sits a clear gap above the crown of his hat, measured off the bind pose, along his head's own up so a nod can't tip it into the hat
+const MSTAR = new THREE.Sprite(MARK_MAT.star); MSTAR.visible = false; MSTAR.renderOrder = 3; MSTAR.userData.on = false; scene.add(MSTAR);
+const _ms = new THREE.Vector3(), _mu = new THREE.Vector3(), _mm = new THREE.Matrix4();
+function updateMaderoStar(t) {
+  const P = MAD && MAD.g.userData.P;
+  const show = MSTAR.userData.on && P && MAD.g.visible && !state.columnDone && !state.raised && raise.t === 0 && !state.seqCover;
+  MSTAR.visible = !!show; if (!show) return;
+  if (P.crown === undefined) { // head bone to the top of the hat, from the vertices the head carries, in the bind pose
+    const sk = P.hi.skeleton, k = sk.bones.indexOf(P.J.head), geo = P.hi.geometry, pos = geo.attributes.position, si = geo.attributes.skinIndex, sw = geo.attributes.skinWeight;
+    let top = -1e9; for (let v = 0; v < pos.count; v++) for (let j = 0; j < 4; j++) if (si.array[v * 4 + j] === k && sw.array[v * 4 + j] > .5) { top = Math.max(top, pos.getY(v)); break; }
+    _mm.copy(sk.boneInverses[k]).invert(); P.crown = Math.max(.25, top - _mm.elements[13]);
+  }
+  MAD.g.updateMatrixWorld(true);
+  const hm = P.J.head.matrixWorld; _ms.setFromMatrixPosition(hm); _mu.setFromMatrixColumn(hm, 1).normalize();
+  const d = camera.position.distanceTo(_ms), h = Math.max(.7, d * .09 * Math.tan(camera.fov * Math.PI / 360)); // never smaller than about 4.5% of the screen
+  _ms.addScaledVector(_mu, P.crown + .15 + h / 2);
+  MSTAR.scale.set(h * Math.abs(Math.cos(t * .6)) + .04 * h / .7, h, 1);
+  MSTAR.position.copy(_ms);
+}
 // while talking, the camera eases round to the speaker's face and stays there until the box closes
 let talkTo = null;
 const _tv = new THREE.Vector3();
@@ -2701,7 +2825,7 @@ function syncCapCam() {
   capCam.fov = THREE.MathUtils.radToDeg(half * 2); capCam.aspect = 1.4; capCam.updateProjectionMatrix();
 }
 function scoreFrame() {
-  const saveFog = scene.fog; scene.fog = null; dust.visible = false;
+  const saveFog = scene.fog; scene.fog = null; dust.visible = false; MSTAR.visible = false;
   const farCast = CAST.crowd.people.filter(P => P.lvl === 2 && P.root.visible && !P.mid.visible); farCast.forEach(P => { P.mid.visible = true; });
   allMeshes.forEach(m => { const ud = m.userData, pu = (m.parent && m.parent.userData) || {}, sid = ud.sid || pu.sid || 0, inst = ud.inst || pu.inst || 0; m.material = inst ? idMatFor(sid, inst, m.isSkinnedMesh) : sid ? (m.isSkinnedMesh ? skId(sid) : idMats[sid]) : (m.isLine ? m.material : (ud.idMat || blackMat)); });
   renderer.setRenderTarget(rtId); renderer.setClearColor(0x000000, 1); renderer.clear(); renderer.render(scene, capCam); renderer.setRenderTarget(null);
@@ -2806,7 +2930,7 @@ function oddTown(P, L) {
   };
 }
 function capturePhoto() {
-  dustScale(PH, capCam.fov);
+  dustScale(PH, capCam.fov); MSTAR.visible = false;
   renderer.setRenderTarget(rtPhoto); renderer.setClearColor(0x000000, 1); renderer.clear(); renderer.render(scene, capCam); renderer.setRenderTarget(null);
   dustScale(renderer.getDrawingBufferSize(new THREE.Vector2()).y, camera.fov);
   const buf = new Uint8Array(PW * PH * 4); renderer.readRenderTargetPixels(rtPhoto, 0, 0, PW, PH, buf);
@@ -3450,6 +3574,7 @@ function startColumn() {
   if (state.columnStarted) return; state.columnStarted = true;
   column.forEach(g => g.visible = true);
   chime();
+  arrivalCut();
 }
 
 // ---------- loop ----------
@@ -3549,9 +3674,10 @@ function frame(now) {
   FP.pose(raise.t, dt, moving, t);
   // indoors the camera is Miguel's until he hands it over; then it comes up from below into your hands
   if (!ROOM.hasCam) FP.rig.visible = false; else if (ROOM.camDrop > 0) FP.rig.position.y -= ROOM.camDrop;
-  placeCamera();
+  if (CUT.on) { FP.rig.visible = false; cutCamera(); } else placeCamera();
   CAST.crowd.update(camera, dt);
   updateTalk(); updateMarks(now / 1000); updateTalkLook(dt);
+  updateMaderoStar(now / 1000);
   renderView();
   requestAnimationFrame(frame);
 }
@@ -4132,7 +4258,7 @@ streamZones(0, true);
 requestAnimationFrame(frame);
 // the town is only drawn behind the title long enough to warm up its shaders; after that nothing renders until the front room
 setTimeout(() => { if (!state.started) IN.cover = true; }, 2500);
-window.__casasola = { zones: ZONES, column, CAST, ROOM, IN, ST, INTRO, MIGUEL_LINES, TALKS, VOICES, CONVO, warpP, MARKS, marks, toStreet: () => { $('start').hidden = true; $('intro').hidden = true; IN.cover = false; state.started = true; state.room = false; state.busy = false; Object.assign(ROOM, { hasCam: true, open: true, left: true, talked: true, camDrop: 0 }); if (ROOM.live) ROOM.live.camOnTable.visible = ROOM.live.holders.visible = false; Object.assign(player, { x: 1.5, z: .4, yaw: -Math.PI / 2, pitch: 0 }); host.classList.remove('nocam'); $('dialog').classList.remove('low'); }, scene, people, renderer, renderView, camera, sun, LIGHT, rtMain, state, player, startColumn, scoreFrame, syncCapCam, shoot, toggleRaise, develop, CLOCK, clockNow, raise, FP, tier: () => tier, stepQuality };
+window.__casasola = { THREE, CUT, MSTAR, MAD, zones: ZONES, column, CAST, ROOM, IN, ST, INTRO, MIGUEL_LINES, TALKS, VOICES, CONVO, warpP, MARKS, marks, toStreet: () => { $('start').hidden = true; $('intro').hidden = true; IN.cover = false; state.started = true; state.room = false; state.busy = false; Object.assign(ROOM, { hasCam: true, open: true, left: true, talked: true, camDrop: 0 }); if (ROOM.live) ROOM.live.camOnTable.visible = ROOM.live.holders.visible = false; Object.assign(player, { x: 1.5, z: .4, yaw: -Math.PI / 2, pitch: 0 }); host.classList.remove('nocam'); $('dialog').classList.remove('low'); }, scene, people, renderer, renderView, camera, sun, LIGHT, rtMain, state, player, startColumn, scoreFrame, syncCapCam, shoot, toggleRaise, develop, CLOCK, clockNow, raise, FP, tier: () => tier, stepQuality };
 
 window.__casasola.kit = { THREE: typeof THREE === 'undefined' ? undefined : THREE, C: typeof C === 'undefined' ? undefined : C, OUTLINE: typeof OUTLINE === 'undefined' ? undefined : OUTLINE, IMG: typeof IMG === 'undefined' ? undefined : IMG, tex: typeof tex === 'undefined' ? undefined : tex, patch: typeof patch === 'undefined' ? undefined : patch, FRAG: typeof FRAG === 'undefined' ? undefined : FRAG, box: typeof box === 'undefined' ? undefined : box, world: typeof world === 'undefined' ? undefined : world, warpS: typeof warpS === 'undefined' ? undefined : warpS, slopeS: typeof slopeS === 'undefined' ? undefined : slopeS, warpP: typeof warpP === 'undefined' ? undefined : warpP, HORSES: typeof HORSES === 'undefined' ? undefined : HORSES, people: typeof people === 'undefined' ? undefined : people, state: typeof state === 'undefined' ? undefined : state, TIER: typeof TIER === 'undefined' ? undefined : TIER };
 return window.__casasola;

@@ -358,3 +358,11 @@ button.print:hover, button.print:focus-visible { outline: 3px solid var(--ochre)
 .hud { transition: opacity .6s; }
 @media (prefers-reduced-motion: reduce) { #watch.chime, .btn.pulse, #bulb.squeeze, #bulb.teach { animation: none; } }
 @media (prefers-reduced-motion: reduce) { #bulb.teach { filter: drop-shadow(0 0 6px #e0a526); } }
+/* Madero's arrival cutscene: letterbox bars, a short dip to black at each end, the HUD out of the way */
+#cutFx { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
+#cutFx .bar { position: absolute; left: 0; right: 0; height: 11vh; background: #0b0908; transform: scaleY(0); transition: transform .45s ease; }
+#cutFx .bar.t { top: 0; transform-origin: top; } #cutFx .bar.b { bottom: 0; transform-origin: bottom; }
+#cutFx .fade { position: absolute; inset: 0; background: #0b0908; opacity: 0; transition: opacity .3s ease; }
+#cutFx.black .fade { opacity: 1; }
+#game.cut #cutFx .bar { transform: scaleY(1); }
+#game.cut .hud, #game.cut #controls, #game.cut #prompt, #game.cut #bulb, #game.cut #bulbTip, #game.cut #doneBar, #game.cut #objective { opacity: 0 !important; pointer-events: none !important; }
